@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.5"
+      - name: Install
+        run: npm ci
+      # Committed fixtures stay the reference; regenerating only proves the generator still runs
+      # against the pinned 4dof-robotic-arm package (trailing digits differ across platforms).
+      - name: Fixture generator runs
+        run: FIXTURES_OUT="$RUNNER_TEMP/python.json" npm run fixtures
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Robot Studio</title>
+  <rect width="64" height="64" fill="#16181b"/>
+  <path d="M16 11V50M32 30L43 46" stroke="#fff" stroke-width="6"/>
+  <circle cx="28" cy="22" r="9" fill="none" stroke="#fff" stroke-width="6"/>
+  <circle cx="28" cy="22" r="2.6" fill="#fff"/>
+  <circle cx="45" cy="49" r="5" fill="#d6182b"/>
+</svg>

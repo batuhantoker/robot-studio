@@ -1,0 +1,27 @@
+:root {
+  --ink: #16181b;
+  --mute: #8b8f95;
+  --faint: #c9ccd0;
+  --line: #e1e3e6;
+  --panel: rgba(248, 248, 249, 0.94);
+  --paper: #ffffff;
+  --backdrop: #eceef1;
+  --accent: #d6182b;
+  --blue: #3d8fe0;
+  --amber: #f05a23;
+  --green: #2e9d6a;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --sans: 'Inter Variable', Inter, system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--backdrop); color: var(--ink); font: 12px/1.45 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+.cap { font-size: 9.6px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap; }
+.mu { color: var(--mute); }
+.mono { font-family: var(--mono); }
+.accent { color: var(--accent); }
+.rule { height: 1px; background: var(--line); margin: 10px 0; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 4px; }
+.katex { font-size: 1.02em; }
+.katex-display { margin: 6px 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }

@@ -1,0 +1,21 @@
+import '@fontsource-variable/inter';
+import '@fontsource/jetbrains-mono';
+import 'katex/dist/katex.min.css';
+import '@/ui/styles/base.css';
+import '@/ui/styles/layout.css';
+import '@/ui/styles/panels.css';
+import '@/ui/styles/controls.css';
+import '@/ui/styles/library.css';
+import { createLayout } from '@/ui/shell/layout';
+import { initialState } from './bootstrap/initial-state';
+import { mountPanels } from './bootstrap/mount-panels';
+import { Studio } from './controller/studio';
+import { catalog, loadCatalog } from './robots/catalog';
+import { Store } from './state/store';
+
+const store = new Store(initialState(await loadCatalog()));
+const layout = createLayout(document.getElementById('app')!);
+const studio = new Studio(layout.stage, store, catalog, (s) => layout.setLoading(s));
+mountPanels(layout, studio);
+await studio.activate(true);
+Object.assign(window, { studio });

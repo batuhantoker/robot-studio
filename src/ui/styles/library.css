@@ -1,0 +1,34 @@
+.search { height: 32px !important; margin-top: 10px; font-family: var(--sans) !important; font-size: 12.5px !important; }
+.filters { margin: 8px 0 6px; }
+.chip-row { display: grid; grid-template-columns: 52px 1fr; align-items: start; gap: 6px; margin: 5px 0; }
+.chip-row > .cap { padding-top: 5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.fchip { height: 22px; padding: 0 7px; border: 1px solid var(--line); background: #fff; cursor: pointer; font: 500 11px var(--sans); display: inline-flex; align-items: center; gap: 5px; }
+.fchip i { font: 500 9.5px var(--mono); color: var(--mute); font-style: normal; }
+.fchip:hover { border-color: var(--faint); }
+.fchip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.fchip.on i { color: #c9ccd0; }
+.fchip.empty { opacity: 0.4; }
+a.clear { color: var(--accent); text-decoration: none; }
+.robot-list { border-top: 1px solid var(--line); margin-top: 6px; }
+.robot-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 7px 8px; border-bottom: 1px solid #eef0f2; cursor: pointer; border-left: 2px solid transparent; }
+.robot-row:hover { background: #fff; }
+.robot-row.on { background: #fff; border-left-color: var(--accent); }
+.robot-main { min-width: 0; }
+.robot-main b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.robot-main small { color: var(--mute); white-space: nowrap; }
+.robot-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.robot-meta .dof { font: 600 12px var(--mono); }
+.robot-meta .dof em { font: 500 8.6px var(--sans); letter-spacing: 0.8px; color: var(--mute); font-style: normal; }
+.robot-meta .src { font: 600 8px var(--sans); letter-spacing: 0.9px; text-transform: uppercase; color: var(--mute); }
+.robot-meta .src.mine { color: var(--accent); }
+.limb-group > summary { cursor: pointer; padding: 6px 0 2px; list-style: none; color: var(--mute); }
+.limb-group > summary::-webkit-details-marker { display: none; }
+.limb-group.focus > summary { color: var(--accent); }
+table.effectors tr { cursor: pointer; }
+table.effectors tr.on td { background: #fff4f4; font-weight: 600; }
+table.effectors tr.warn td:last-child { color: var(--accent); }
+.ik-row { padding: 6px 0; border-bottom: 1px solid #f0f1f3; }
+.ik-row.on b { color: var(--accent); }
+.ik-row b { cursor: pointer; }
+.ik-row .vec { margin-top: 4px; }

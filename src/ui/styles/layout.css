@@ -1,0 +1,16 @@
+.studio { position: fixed; inset: 0; display: grid; grid-template: 52px 1fr / 300px 1fr 400px; }
+.topbar { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 0 18px; border-bottom: 1px solid var(--line); background: var(--panel); z-index: 3; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.2px; }
+.brand img { width: 24px; height: 24px; display: block; }
+.robot-title { font-weight: 600; font-size: 13px; }
+.robot-title small { margin-left: 8px; }
+.side { overflow-y: auto; background: var(--panel); border-right: 1px solid var(--line); padding: 0 14px 40px; }
+.side.right { border-right: none; border-left: 1px solid var(--line); }
+.stagewrap { position: relative; overflow: hidden; }
+.stagewrap canvas { display: block; cursor: grab; }
+.stagewrap canvas:active { cursor: grabbing; }
+.hud { position: absolute; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.hud.bottom { left: 16px; right: 16px; bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; pointer-events: none; }
+.hud.top { left: 16px; top: 14px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(236, 238, 241, 0.6); font: 600 11px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--mute); }

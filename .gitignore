@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vite/
+.vercel/
+.cache/
+# Fetched third-party robot CAD (npm run robots:fetch); licensed per robot, never committed.
+public/robots/
+.DS_Store
+*.log

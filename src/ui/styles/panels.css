@@ -1,0 +1,30 @@
+.pn { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(20, 22, 26, 0.04); padding: 10px 12px; }
+.section { margin-top: 16px; }
+.section > header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.section > header .cap { font-weight: 700; }
+.tabs { position: sticky; top: 0; z-index: 2; display: flex; gap: 0; background: var(--panel); border-bottom: 1px solid var(--line); margin: 0 -14px 4px; padding: 0 14px; }
+.tabs button { flex: 1; height: 40px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; }
+.tabs button.on { border-bottom-color: var(--accent); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; align-items: baseline; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; text-align: right; font-family: var(--mono); font-size: 11.5px; }
+.big { font-size: 34px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; color: var(--accent); font-family: var(--sans); }
+.lib-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 9px; border: 1px solid transparent; cursor: pointer; }
+.lib-item:hover { background: #fff; border-color: var(--line); }
+.lib-item.on { background: #fff; border-color: var(--ink); }
+.lib-item b { font-weight: 600; }
+.lib-item small { color: var(--mute); }
+.card { border: 1px solid var(--line); background: #fff; padding: 9px 10px; margin-bottom: 8px; }
+.card.on { border-color: var(--accent); }
+.card > header { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.card > header b { flex: 1; }
+.chip { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border: 1px solid var(--line); font: 600 8.8px var(--sans); letter-spacing: 0.9px; text-transform: uppercase; background: #fff; }
+.chip.accent { border-color: var(--accent); color: var(--accent); }
+.error { color: var(--accent); font-size: 11px; margin-top: 6px; }
+.note { color: var(--mute); font-size: 11px; line-height: 1.5; }
+.math-block { border-left: 2px solid var(--line); padding-left: 10px; margin: 8px 0; }
+.math-block p { margin: 4px 0; color: #3b3f45; }
+table.grid { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 10.5px; }
+table.grid th { font: 600 8.6px var(--sans); letter-spacing: 1px; text-transform: uppercase; color: var(--mute); text-align: right; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+table.grid td { text-align: right; padding: 3px 4px; border-bottom: 1px solid #f0f1f3; }
+table.grid td:first-child, table.grid th:first-child { text-align: left; }
