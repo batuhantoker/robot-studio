@@ -121,6 +121,10 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - Isolating a module shows its bill of parts, layered callouts with leaders, and a
     load ring that glows with |τ|/τ_max.
   - Left idle for 25 seconds, the page tours itself. Any input hands control back.
+- **Surroundings.** The gear on the viewport picks a backdrop (studio, cyclorama, dusk,
+  dark, blueprint), a floor (grid, seamless, polished, tiles, none) and a setting: open
+  floor, a desk the robot is bolted to, or a small work cell with a safety fence and a
+  conveyor. The setting is scenery; the robot is not checked against it.
 - **Math tab.** Every section is evaluated at the current pose:
   - the chain product and Rodrigues' formula;
   - forward kinematics;
@@ -134,8 +138,9 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - the equations of motion and the control law.
 - **Analysis tab.**
   - IK against a draggable target, with the solver iterations replayed.
-  - Quintic trajectories with joint, speed and torque profiles. Render one pass to an
-    MP4 or WebM video, or export the samples (t, q, qd, qdd, tool path) as CSV or JSON.
+  - Quintic trajectories with joint, speed and torque profiles. Render one pass to a
+    16:9 MP4 (720p to 4K, 30 or 60 fps), drawn offline frame by frame with AO and
+    supersampling, or export the samples (t, q, qd, qdd, tool path) as CSV or JSON.
   - Live MuJoCo tracking with requested and applied torque, tracking error and
     saturation.
   - Workspace and limits, as described above.

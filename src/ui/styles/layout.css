@@ -1,4 +1,4 @@
-.studio { position: fixed; inset: 0; display: grid; grid-template: 52px 1fr / 300px 1fr 400px; }
+.studio { position: fixed; inset: 0; display: grid; grid-template: 52px 1fr / var(--left-w, 300px) 1fr var(--right-w, 400px); }
 .topbar { grid-column: 1 / -1; display: flex; align-items: center; gap: 18px; padding: 0 18px; border-bottom: 1px solid var(--line); background: var(--panel); z-index: 3; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.2px; }
 .brand img { width: 24px; height: 24px; display: block; }

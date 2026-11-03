@@ -1,6 +1,7 @@
-/** Key light with soft shadows, sky fill and rim, tuned per backdrop, over a floor that fades into it. */
+/** Key light with soft shadows, sky fill and rim, tuned per backdrop, over a floor that fades into it, plus the setting around the robot. */
 import * as THREE from 'three';
 import { createBackdrop, setGradient } from './backdrop';
+import { createEnvironment } from './environment';
 import { createFloor } from './floor';
 import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings } from './surroundings';
 
@@ -26,19 +27,27 @@ export function createStudio(): Studio {
   const rim = new THREE.DirectionalLight('#dfe7ff', 0.6);
   const floor = createFloor();
   const backdrop = createBackdrop();
-  group.add(hemi, key, key.target, rim, floor.group, backdrop.mesh);
+  const environment = createEnvironment();
+  group.add(hemi, key, key.target, rim, floor.group, backdrop.mesh, environment.group, environment.seeThrough);
+  let fitted = { radius: 0.5, floorZ: 0 };
 
   const fit = (radius: number, floorZ: number) => {
+    fitted = { radius, floorZ };
+    environment.fit(radius, floorZ);
+    // A desk lifts the robot: the floor, and what lights it, sit lower by the desk's height.
+    const ground = floorZ - environment.drop;
     const r = Math.max(radius, 0.05) * 2.4;
-    floor.fit(radius, floorZ);
+    floor.fit(radius, ground, environment.extent);
     key.position.set(r * 0.7, -r * 0.9, r * 1.6 + floorZ);
-    key.target.position.set(0, 0, floorZ);
+    key.target.position.set(0, 0, ground);
     rim.position.set(-r, r * 0.8, r * 0.9);
+    // The work cell's conveyor runs past the robot's own shadow disc.
+    const extent = Math.max(r, environment.extent);
     const cam = key.shadow.camera;
-    cam.left = cam.bottom = -r;
-    cam.right = cam.top = r;
+    cam.left = cam.bottom = -extent;
+    cam.right = cam.top = extent;
     cam.near = 0.01;
-    cam.far = r * 6;
+    cam.far = r * 6 + environment.drop;
     cam.updateProjectionMatrix();
   };
   const setShadowSize = (size: number) => {
@@ -59,6 +68,10 @@ export function createStudio(): Studio {
     scene.environmentIntensity = b.env;
     floor.apply(b, s.floor);
     setGradient(backdrop.uniforms, b.top, b.bottom);
+    if (environment.id !== s.environment) {
+      environment.apply(s.environment);
+      fit(fitted.radius, fitted.floorZ);
+    }
   };
-  return { group, aoHidden: [...floor.aoHidden, backdrop.mesh], fit, setShadowSize, apply };
+  return { group, aoHidden: [...floor.aoHidden, backdrop.mesh, environment.seeThrough], fit, setShadowSize, apply };
 }

@@ -38,7 +38,7 @@ const MAX_PIXELS = 3840 * 2160;
 
 export const canRenderVideo = (): boolean => typeof VideoEncoder === 'function';
 
-type Origin = Pick<StudioState, 'activeId' | 'sessionVersion' | 'waypoints' | 'duration'>;
+type Origin = Pick<StudioState, 'activeId' | 'sessionVersion' | 'waypoints' | 'duration' | 'stopOpts' | 'pace'>;
 
 interface Job {
   cancelled: boolean;
@@ -87,9 +87,10 @@ export class TrajectoryRecorder {
   private readonly listeners: ((p: RenderProgress | null) => void)[] = [];
 
   constructor(private readonly studio: Studio) {
-    studio.store.on(['mode', 'activeId', 'sessionVersion', 'waypoints', 'duration'], (s) => {
+    const keys = ['activeId', 'sessionVersion', 'waypoints', 'duration', 'stopOpts', 'pace'] as const;
+    studio.store.on(['mode', ...keys], (s) => {
       const f = this.job?.from;
-      if (f && (s.mode !== 'trajectory' || s.activeId !== f.activeId || s.sessionVersion !== f.sessionVersion || s.waypoints !== f.waypoints || s.duration !== f.duration)) this.cancel();
+      if (f && (s.mode !== 'trajectory' || keys.some((k) => s[k] !== f[k]))) this.cancel();
     });
   }
 
@@ -188,7 +189,7 @@ export class TrajectoryRecorder {
 
     store.set({ mode: 'trajectory', rendering: true, playing: false, time: 0, selectedStop: null });
     const s0 = store.state;
-    job.from = { activeId: s0.activeId, sessionVersion: s0.sessionVersion, waypoints: s0.waypoints, duration: s0.duration };
+    job.from = { activeId: s0.activeId, sessionVersion: s0.sessionVersion, waypoints: s0.waypoints, duration: s0.duration, stopOpts: s0.stopOpts, pace: s0.pace };
     canvas.addEventListener('webglcontextlost', lost);
     if (tube) viewport.overlay.add(tube);
     if (settings.orbit) {

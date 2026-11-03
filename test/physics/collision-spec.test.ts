@@ -18,9 +18,8 @@ import { hullChecker } from '@/physics/collision/from-hull';
 import { ModelHandle } from '@/physics/model/handle';
 import { OBJ } from '@/physics/runtime/arrays';
 import { presetNames, presetSpec } from '../support/fixtures';
-import { allJointsRobot } from '../support/robots';
+import { allJointsRobot, withEffector } from '../support/robots';
 import { EFFECTOR_LIST } from '@/core/robot/effectors/kinds';
-import { withEffector } from '../cad/effectors.test';
 
 async function setup(spec: RobotSpec) {
   const assembly = buildSpecAssembly(spec);

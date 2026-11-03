@@ -32,3 +32,4 @@ table.effectors tr.warn td:last-child { color: var(--accent); }
 .ik-row.on b { color: var(--accent); }
 .ik-row b { cursor: pointer; }
 .ik-row .vec { margin-top: 4px; }
+.section.lib-filters { margin-top: 10px; }

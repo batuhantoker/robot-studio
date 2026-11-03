@@ -1,5 +1,6 @@
 /** The sampled trajectory as data: `analyze()`'s t, q, qd, qdd plus the tool path, for CSV or JSON. */
 import type { Vec3 } from '../math/linear/vec';
+import { type Pace, type StopOpts, samplePlan } from './plan';
 import { sampleQuintic } from './quintic/sample';
 
 export interface TrajectoryInput {
@@ -9,6 +10,9 @@ export interface TrajectoryInput {
   waypoints: number[][];
   duration: number;
   timestep: number;
+  /** Vias and holds per stop, and pacing; without them the samples are exactly `analyze()`'s. */
+  opts?: StopOpts[];
+  pace?: Pace;
   /** Tool point of one limb for a whole-robot q. */
   tool?: { limb: string; at: (q: number[]) => Vec3 };
 }
@@ -31,7 +35,10 @@ export interface TrajectoryRecord {
 }
 
 export function trajectoryRecord(input: TrajectoryInput): TrajectoryRecord {
-  const m = sampleQuintic(input.waypoints, input.duration, input.timestep, input.limits);
+  const plain = input.pace !== 'distance' && !input.opts?.some((o) => o.via || (o.hold ?? 0) > 0);
+  const m = plain
+    ? sampleQuintic(input.waypoints, input.duration, input.timestep, input.limits)
+    : samplePlan({ waypoints: input.waypoints, duration: input.duration, opts: input.opts, pace: input.pace }, input.timestep, input.limits);
   return {
     robot: input.robot,
     units: 'SI',

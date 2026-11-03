@@ -10,7 +10,7 @@ export function reachJob(t: TaskSetup, onRing: (cells: ReachCell[]) => void): ()
   const grid = { base: t.base, radius: t.radius, floorZ: t.surfaceZ, rings: RINGS, spokes: SPOKES };
   const step = (ring: number) => {
     if (cancelled) return;
-    cells.push(...reachRing(t.ctx, t.home, grid, t.object, t.lift, ring, t.probe));
+    cells.push(...reachRing(t.ctx, t.seed, grid, t.object, t.lift, ring, t.probe));
     onRing([...cells]);
     if (ring + 1 < RINGS) setTimeout(() => step(ring + 1), 0);
   };

@@ -55,3 +55,6 @@ input.scrub-mini { width: 150px; accent-color: var(--accent); }
 .stop-chips .via-run { min-width: 22px; padding: 0 5px; color: var(--mute); letter-spacing: 0; }
 .traj select.preset { width: 150px; }
 .traj .preset-note { font-size: 10.5px; }
+.stop.via .num { background: #fff; color: var(--ink); border: 1px solid var(--ink); }
+.stop.via-run { color: var(--mute); }
+.stop.via-run .num { background: none; color: var(--mute); }

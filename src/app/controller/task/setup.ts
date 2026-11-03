@@ -1,8 +1,9 @@
 /** What pick and place needs from a loaded robot: one chain, a gripping tool, the floor and a contact probe. */
 import type { EffectorRig } from '../../../cad/assembly/types';
 import { contactText } from '../../../core/collision/hull';
-import type { Vec3 } from '../../../core/math/linear/vec';
+import { type Vec3, add } from '../../../core/math/linear/vec';
 import { reachEstimate } from '../../../core/robot/config/pose';
+import { approachIk } from '../../../core/solvers/ik/approach';
 import { taskObject } from '../../../core/task/objects';
 import type { PlanContext } from '../../../core/task/plan/poses';
 import { workingEnd, solveAt } from '../../../core/task/plan/poses';
@@ -14,6 +15,8 @@ export interface TaskSetup {
   rig: EffectorRig;
   object: TaskObject;
   home: number[];
+  /** A bent, well-conditioned pose reaching forward and down; straight-arm homes are singular starts. */
+  seed: number[];
   floorZ: number;
   /** Where objects stand: the floor, or the top of a stand when the tool cannot reach down to it. */
   surfaceZ: number;
@@ -29,13 +32,18 @@ export function taskSetup(s: RobotSession): TaskSetup | null {
   const object = rig?.grip ? taskObject(rig.kind, rig.size, rig.grip) : null;
   if (!rig || !object || !s.spec || s.limbs.length !== 1) return null;
   const radius = reachEstimate(s.spec);
+  const probe = (q: number[]) => {
+    const hit = s.collision?.hit(q);
+    return hit ? contactText(hit) : null;
+  };
+  const ctx = { chain: s.limbs[0].chain, tool: rig.tool, length: 0.3 * radius, maxTilt: 0.5, probe };
+  const base = s.spec.base, floorZ = s.assembly.floorZ;
+  const tip = workingEnd(ctx, s.home);
+  const heading = Math.atan2(tip[1] - base[1], tip[0] - base[0]);
+  const ahead: Vec3 = [base[0] + 0.45 * radius * Math.cos(heading), base[1] + 0.45 * radius * Math.sin(heading), Math.max(floorZ + 0.1 * radius, base[2] - 0.2 * radius)];
+  const seed = approachIk(ctx.chain, add(ahead, [0, 0, rig.tool.beyond]), [0, 0, -1], rig.tool.approach, s.home, ctx.length).q;
   return {
-    ctx: { chain: s.limbs[0].chain, tool: rig.tool, length: 0.3 * radius, maxTilt: 0.35 },
-    rig, object, home: s.home, floorZ: s.assembly.floorZ, surfaceZ: s.assembly.floorZ, lift: rig.size * 1.5, base: s.spec.base, radius,
-    probe: (q) => {
-      const hit = s.collision?.hit(q);
-      return hit ? contactText(hit) : null;
-    },
+    ctx, rig, object, home: s.home, seed, floorZ, surfaceZ: floorZ, lift: rig.size * 1.5, base, radius, probe,
   };
 }
 
@@ -50,11 +58,11 @@ export function defaultSpots(t: TaskSetup): [Vec3, Vec3] | null {
       const [a, b] = [spot(-1), spot(1)];
       // Each spot must take the grasp and a small lift clear of the object, without touching anything.
       const fits = (p: Vec3, from: number[]) => {
-        const grasp = solveAt(t.ctx, [p[0], p[1], z], from, 1);
+        const grasp = solveAt(t.ctx, [p[0], p[1], z], from, 3);
         const lifted = grasp && solveAt(t.ctx, [p[0], p[1], z + t.object.size[2] + 0.2 * t.lift], grasp, 1);
-        return grasp && lifted && !t.probe(grasp) && !t.probe(lifted) ? grasp : null;
+        return lifted ? grasp : null;
       };
-      const qa = fits(a, t.home);
+      const qa = fits(a, t.seed);
       if (qa && fits(b, qa)) return [a, b];
     }
   }

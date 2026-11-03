@@ -91,7 +91,8 @@ export interface Floor {
   group: THREE.Group;
   /** Never sampled by ambient occlusion: the mirror re-renders the scene in every pass it is drawn in. */
   aoHidden: THREE.Object3D[];
-  fit(radius: number, floorZ: number): void;
+  /** `extent`: half-width of scenery standing on the floor, whose shadows it must catch too. */
+  fit(radius: number, floorZ: number, extent?: number): void;
   apply(b: Backdrop, floor: FloorId): void;
 }
 
@@ -134,11 +135,12 @@ export function createFloor(): Floor {
   return {
     group,
     aoHidden: [mirror],
-    fit(radius, floorZ) {
+    fit(radius, floorZ, extent = 0) {
       const reach = Math.max(radius, 0.05) * 2.4;
       // Wide enough that its rim is always beyond the shadows and well into the backdrop.
       const wide = reach * 4;
-      const layers: [THREE.Object3D, number, number][] = [[base, wide, 0.0008], [mirror, wide, 0.0006], [pattern, wide, 0.0003], [shadow, reach, 0]];
+      const catcher = Math.max(reach, extent * 1.15);
+      const layers: [THREE.Object3D, number, number][] = [[base, wide, 0.0008], [mirror, wide, 0.0006], [pattern, wide, 0.0003], [shadow, catcher, 0]];
       for (const [o, size, below] of layers) {
         o.scale.setScalar(size);
         o.position.z = floorZ - below * size;

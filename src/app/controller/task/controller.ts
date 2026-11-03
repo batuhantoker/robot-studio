@@ -17,6 +17,8 @@ export class TaskController {
   clip: TaskClip | null = null;
   problem: PlanProblem | null = null;
   setup: TaskSetup | null = null;
+  /** Set when no floor or stand height gives this arm a contact-free grasp. */
+  private noLayout: string | null = null;
   private reach: ReachCell[] = [];
   private cancelReach = () => {};
   private timer = 0;
@@ -44,6 +46,7 @@ export class TaskController {
   onChange = (fn: () => void) => void this.listeners.push(fn);
   status(): { text: string; bad: boolean } {
     if (this.problem) return { text: this.problem.message, bad: true };
+    if (this.noLayout) return { text: this.noLayout, bad: true };
     if (!this.clip) return { text: 'Place both spots', bad: true };
     return { text: `${this.clip.period.toFixed(1)} s cycle · drag the arrows or click the floor to move a spot`, bad: false };
   }
@@ -61,7 +64,13 @@ export class TaskController {
     const { task } = this.studio.store.state;
     this.plan();
     const stale = !task.pick || Math.abs(task.pick[2] - (t?.surfaceZ ?? 0)) > 1e-9;
-    if (t && (!this.clip || stale) && arranged?.spots) this.studio.store.set({ task: { ...task, pick: arranged.spots[0], place: arranged.spots[1] } });
+    this.noLayout = t && !arranged?.spots
+      ? `No floor or stand height lets this arm grasp the ${t.object.label.toLowerCase()} without its links touching; click the floor to try a spot`
+      : null;
+    if (t && (!this.clip || stale)) {
+      const spots = arranged?.spots;
+      this.studio.store.set({ task: { ...task, pick: spots?.[0] ?? null, place: spots?.[1] ?? null } });
+    }
     this.refresh();
   }
 

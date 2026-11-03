@@ -1,4 +1,4 @@
-/** Numbered badges at each trajectory stop's tool point; stops in the same place share one badge. */
+/** Numbered badges at each trajectory stop's tool point (vias are dots); stops in the same place share one. */
 import * as THREE from 'three';
 import type { Vec3 } from '../../core/math/linear/vec';
 import { PALETTE } from '../stage/palette';
@@ -36,6 +36,25 @@ function badge(label: string, on: boolean) {
   return made;
 }
 
+let dotTexture: THREE.Texture | null = null;
+
+function dot(): THREE.Texture {
+  if (dotTexture) return dotTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 32;
+  const g = canvas.getContext('2d')!;
+  g.beginPath();
+  g.arc(16, 16, 12, 0, Math.PI * 2);
+  g.fillStyle = PALETTE.ink;
+  g.fill();
+  g.lineWidth = 4;
+  g.strokeStyle = '#fff';
+  g.stroke();
+  dotTexture = new THREE.CanvasTexture(canvas);
+  dotTexture.colorSpace = THREE.SRGBColorSpace;
+  return dotTexture;
+}
+
 export class StopsOverlay {
   readonly group = new THREE.Group();
   private sprites: { sprite: THREE.Sprite; stops: number[] }[] = [];
@@ -45,7 +64,7 @@ export class StopsOverlay {
     this.size = reach * 0.04;
   }
 
-  show(tips: Vec3[], selected: number | null): void {
+  show(tips: Vec3[], selected: number | null, via: (i: number) => boolean = () => false): void {
     const groups: { p: Vec3; stops: number[] }[] = [];
     tips.forEach((p, i) => {
       const near = groups.find((g) => Math.hypot(g.p[0] - p[0], g.p[1] - p[1], g.p[2] - p[2]) < this.size * 0.5);
@@ -64,10 +83,12 @@ export class StopsOverlay {
     }
     groups.forEach((g, k) => {
       const entry = this.sprites[k];
-      const b = badge(g.stops.map((i) => i + 1).join(' · '), selected !== null && g.stops.includes(selected));
+      const named = g.stops.filter((i) => !via(i) || i === selected);
+      const b = named.length ? badge(named.map((i) => i + 1).join(' · '), selected !== null && g.stops.includes(selected)) : { map: dot(), aspect: 1 };
+      const size = named.length ? this.size : this.size * 0.3;
       entry.stops = g.stops;
       entry.sprite.position.set(...g.p);
-      entry.sprite.scale.set(this.size * b.aspect, this.size, 1);
+      entry.sprite.scale.set(size * b.aspect, size, 1);
       if (entry.sprite.material.map !== b.map) {
         entry.sprite.material.map = b.map;
         entry.sprite.material.needsUpdate = true;

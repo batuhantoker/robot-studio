@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addStop, removeStop, reorderStop } from '@/app/controller/stops';
+import { addStop, removeStop, reorderStop, setStopOpts } from '@/app/controller/stops';
 import { dragStop, stopTips } from '@/app/controller/modes/trajectory';
 import { Store } from '@/app/state/store';
 import type { StudioState } from '@/app/state/types';
@@ -85,6 +85,14 @@ describe('stop actions', () => {
     while (s.state.waypoints.length > 2) removeStop(s, 0);
     removeStop(s, 0);
     expect(s.state.waypoints).toHaveLength(2);
+  });
+
+  it('a new hold lengthens the total instead of hurrying the moves', () => {
+    const s = store({ stopOpts: [{}, {}, {}, {}, {}] });
+    setStopOpts(s, 2, { hold: 0.8 });
+    expect(s.state.duration).toBeCloseTo(4.8, 12);
+    setStopOpts(s, 2, { via: true });
+    expect(s.state.duration).toBeCloseTo(4, 12);
   });
 
   it('keeps each stop’s options with it through add, reorder and remove', () => {

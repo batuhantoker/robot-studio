@@ -1,10 +1,13 @@
-/** Backdrops and floors: one definition drives the viewport, its light rig, and rendered video. */
+/** Backdrops, floors and settings: one definition drives the viewport, its light rig, and rendered video. */
+import { ENVIRONMENTS, type EnvironmentId } from './environment';
+
 export type BackdropId = 'studio' | 'white' | 'dusk' | 'dark' | 'blueprint';
 export type FloorId = 'grid' | 'seamless' | 'polished' | 'tiles' | 'none';
 
 export interface Surroundings {
   backdrop: BackdropId;
   floor: FloorId;
+  environment: EnvironmentId;
 }
 
 export interface Backdrop {
@@ -55,7 +58,7 @@ export const BACKDROPS: Record<BackdropId, Backdrop> = {
 
 export const FLOORS: [FloorId, string][] = [['grid', 'Grid'], ['seamless', 'Seamless'], ['polished', 'Polished'], ['tiles', 'Tiles'], ['none', 'None']];
 
-export const DEFAULT_SURROUNDINGS: Surroundings = { backdrop: 'studio', floor: 'grid' };
+export const DEFAULT_SURROUNDINGS: Surroundings = { backdrop: 'studio', floor: 'grid', environment: 'open' };
 
 /** The backdrop as a CSS gradient, as the scene draws it (shown until the first frame, and in swatches). */
 export const backdropCss = (b: Backdrop): string => `linear-gradient(180deg, ${b.top} 0%, ${b.bottom} 100%)`;
@@ -67,7 +70,8 @@ export function loadSurroundings(): Surroundings {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Surroundings> | null;
     const backdrop = raw?.backdrop && raw.backdrop in BACKDROPS ? raw.backdrop : DEFAULT_SURROUNDINGS.backdrop;
     const floor = FLOORS.some(([f]) => f === raw?.floor) ? raw!.floor! : DEFAULT_SURROUNDINGS.floor;
-    return { backdrop, floor };
+    const environment = ENVIRONMENTS.some(([e]) => e === raw?.environment) ? raw!.environment! : DEFAULT_SURROUNDINGS.environment;
+    return { backdrop, floor, environment };
   } catch {
     return { ...DEFAULT_SURROUNDINGS };
   }

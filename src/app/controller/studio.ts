@@ -1,7 +1,5 @@
 /** Orchestrates the active robot: loading, draft edits, modes, teardown view, and picking. */
 import { parseRobot } from '../../core/robot/schema/parse';
-import { defaultWaypoints } from '../../core/trajectory/quintic/sample';
-import { clearWaypoints } from '../collision/waypoints';
 import * as THREE from 'three';
 import { compile } from '../../core/trajectory/plan';
 import { OverlaySet } from '../../scene/overlays';
@@ -25,14 +23,12 @@ import { RobotLoader } from './robots';
 import { bindLimbDrag } from './limb-drag';
 import { planOf } from './modes/trajectory';
 import { bindStopDrag } from './stop-drag';
-import { loadPreset, presetsFor } from './trajectory-presets';
+import { DEFAULT_DURATION, defaultPlan, loadPreset, presetsFor } from './trajectory-presets';
 import type { TrajectoryPreset } from '../../core/trajectory/presets/build';
 import { StudioAnalysis } from './studio-analysis';
 import { TaskController } from './task/controller';
 import { wireTeardownHud } from './tour/wire';
 import { bindPicking } from './viewport-input';
-
-const DEFAULT_DURATION = 6;
 
 export class Studio {
   readonly bus = new LiveBus();
@@ -77,7 +73,7 @@ export class Studio {
       if (s.mode === 'ik' && this.session) this.ik.solve(this.session, s.targets, s.q);
     });
     store.on(['waypoints', 'duration', 'stopOpts', 'pace'], () => this.analysis.refreshProfile());
-    store.on(['waypoints', 'focus', 'selectedStop'], () => this.analysis.refreshStops());
+    store.on(['waypoints', 'stopOpts', 'focus', 'selectedStop'], () => this.analysis.refreshStops());
     store.on(['selectedStop'], (s) => s.selectedStop !== null && this.keepStopsInView(s.selectedStop));
     store.on(['selectedStop', 'waypoints', 'duration', 'stopOpts', 'pace'], (s) => {
       if (s.selectedStop === null) return;
@@ -167,9 +163,8 @@ export class Studio {
     const duration = fresh && this.store.state.pace === 'distance' ? DEFAULT_DURATION : this.store.state.duration;
     this.store.set({
       q, draft: entry.spec ?? null, draftError: null, time: 0, contact: null, sessionVersion: this.store.state.sessionVersion + 1,
-      waypoints: fresh ? clearWaypoints(session, defaultWaypoints(limits), duration) : this.store.state.waypoints,
       selectedStop: fresh ? null : this.store.state.selectedStop,
-      ...(fresh ? { stopOpts: [], pace: 'even' as const, duration } : {}),
+      ...(fresh ? defaultPlan(session, duration) : {}),
       focus, targets: refit ? [] : this.store.state.targets.slice(0, session.limbs.length), isolate: refit ? null : this.store.state.isolate,
     });
     this.analysis.refreshProfile();

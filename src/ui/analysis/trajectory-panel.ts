@@ -3,12 +3,14 @@ import { addStop, removeStop, reorderStop, selectStop } from '../../app/controll
 import type { LiveBus } from '../../app/live/bus';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
-import { compile } from '../../core/trajectory/plan';
+import { type Pace, compile, isVia } from '../../core/trajectory/plan';
 import { planOf } from '../../app/controller/modes/trajectory';
 import { h, replace } from '../dom/h';
 import { LineChart, seriesColor } from '../widgets/chart';
 import { numberInput } from '../widgets/fields';
+import { segmented } from '../widgets/segmented';
 import { reorderable } from '../trajectory/reorder';
+import { stopItems } from '../trajectory/runs';
 import type { AnalysisContext } from './context';
 
 export function trajectoryPanel(store: Store<StudioState>, bus: LiveBus, ctx: AnalysisContext) {
@@ -24,32 +26,43 @@ export function trajectoryPanel(store: Store<StudioState>, bus: LiveBus, ctx: An
   const list = h('div.stops');
   const el = h('div.section', {}, h('header', {}, h('span.cap', {}, 'Trajectory'), summary),
     controls, scrub, ticks, list,
-    h('p.note', {}, 'Drag a stop’s badge in the view to move it, or select it and type its position in the bar below the view. With several limbs, the badges follow the focused one; with a stop selected, grab another limb’s marker to move that limb, while the others stay put. Drag rows or chips to reorder. ← → step between stops, Esc lets go, Delete removes.'),
+    h('p.note', {}, 'Drag a stop’s badge in the view to move it, or select it and type its position in the bar below the view. With several limbs, the badges follow the focused one; with a stop selected, grab another limb’s marker to move that limb, while the others stay put. Drag rows or chips to reorder. ← → step through every point (Shift: stops only), Esc lets go, Delete removes. Presets live in the bar below the view.'),
     h('div.cap.mu', { style: 'margin-top:8px' }, 'Joint positions'), qChart.el,
     h('div.cap.mu', { style: 'margin-top:8px' }, 'Tool speed m/s'), speedChart.el,
     h('div.cap.mu', { style: 'margin-top:8px' }, 'Quasi-static gravity torque'), tauChart.el);
 
-  const row = (s: StudioState, i: number) => {
+  const pace = segmented<Pace>([['even', 'Even'], ['distance', 'By distance']], store.state.pace, (p) => store.set({ pace: p }));
+  pace.el.title = 'Even: every move takes the same time. By distance: time follows how far the joints travel.';
+
+  const row = (s: StudioState, i: number, via: boolean) => {
     const on = s.selectedStop === i;
     const tip = ctx.stopTips()[i];
-    return reorderable(h('div.stop', { class: on ? 'on' : '', title: 'Click to edit, drag to reorder', onclick: () => selectStop(store, on ? null : i) },
+    const hold = s.stopOpts[i]?.hold ?? 0;
+    return reorderable(h('div.stop', { class: `${on ? 'on' : ''} ${via ? 'via' : ''}`, title: 'Click to edit, drag to reorder', onclick: () => selectStop(store, on ? null : i) },
       h('span.num', {}, String(i + 1)),
-      h('span.mono', {}, tip ? `${tip.map((v) => (v * 1000).toFixed(0)).join(', ')} mm` : s.waypoints[i].map((v) => v.toFixed(2)).join(' ')),
+      h('span.mono', {}, tip ? `${tip.map((v) => (v * 1000).toFixed(0)).join(', ')} mm` : s.waypoints[i].map((v) => v.toFixed(2)).join(' '),
+        via ? h('span.mu', {}, ' · via') : hold > 0 ? h('span.mu', {}, ` · hold ${hold.toFixed(2)} s`) : null),
       s.waypoints.length > 2 ? h('button.tb', { title: 'Remove stop', onclick: (e: Event) => (e.stopPropagation(), removeStop(store, i)) }, '×') : null), i, (from, to) => reorderStop(store, from, to));
   };
 
   const render = (s: StudioState) => {
     const n = s.waypoints.length;
     const playing = s.playing && s.mode === 'trajectory';
-    summary.textContent = n > 1 ? `${n} stops · ${(s.duration / (n - 1)).toFixed(2)} s per move` : '';
+    const plan = planOf(s);
+    const vias = s.waypoints.filter((_, i) => isVia(plan, i)).length;
+    summary.textContent = n > 1 ? `${n - vias} stops${vias ? ` · ${vias} vias` : ''} · ${s.duration.toFixed(1)} s` : '';
+    pace.set(s.pace);
     replace(controls,
       h('button.tb', { class: playing ? 'on' : '', onclick: () => store.set({ playing: !playing, mode: 'trajectory' }) }, playing ? '❚❚ Pause' : '▶ Play'),
       h('button.tb.primary', { title: 'After the selected stop, or at the paused pose', onclick: () => addStop(store, bus.latest?.q ?? null) }, '+ Add stop'),
       h('span.mu', {}, 'Duration s'),
-      h('div', { style: 'width:70px' }, numberInput(s.duration, (duration) => duration > 0 && store.set({ duration }), { step: 0.5, digits: 2 })));
+      h('div', { style: 'width:70px' }, numberInput(s.duration, (duration) => duration > 0 && store.set({ duration }), { step: 0.5, digits: 2 })),
+      pace.el);
     scrub.max = String(s.duration);
-    replace(ticks, ...(n > 1 ? compile(planOf(s)).arrive : []).map((t) => h('option', { value: String(t) })));
-    replace(list, ...s.waypoints.map((_, i) => row(s, i)));
+    replace(ticks, ...(n > 1 ? compile(plan).arrive.filter((_, i) => !isVia(plan, i)) : []).map((t) => h('option', { value: String(t) })));
+    replace(list, ...stopItems(s).map((it) => it.kind === 'stop' ? row(s, it.i, it.via)
+      : h('div.stop.via-run', { title: 'Pass-through points: click to edit the first', onclick: () => selectStop(store, it.from) },
+        h('span.num', {}, '⋯'), h('span.mu', {}, `${it.to - it.from + 1} via${it.to > it.from ? 's' : ''} · ${it.from + 1}–${it.to + 1}`))));
     const p = ctx.profile();
     if (!p) return;
     const cols = (m: number[][]) => (m[0] ?? []).map((_, k) => m.map((r) => r[k]));
@@ -63,13 +76,19 @@ export function trajectoryPanel(store: Store<StudioState>, bus: LiveBus, ctx: An
     if (s.mode !== 'trajectory' || s.selectedStop === null || (e.target as Element).closest?.('input, textarea, select')) return;
     const n = s.waypoints.length;
     if (e.key === 'Escape') selectStop(store, null);
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') selectStop(store, (s.selectedStop + (e.key === 'ArrowRight' ? 1 : n - 1)) % n);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const plan = planOf(s), step = e.key === 'ArrowRight' ? 1 : n - 1;
+      let i = (s.selectedStop + step) % n;
+      // Shift skips the vias, jumping stop to stop.
+      while (e.shiftKey && isVia(plan, i) && i !== s.selectedStop) i = (i + step) % n;
+      selectStop(store, i);
+    }
     else if (e.key === 'Delete' || e.key === 'Backspace') removeStop(store, s.selectedStop);
     else return;
     e.preventDefault();
   });
 
-  store.on(['waypoints', 'duration', 'playing', 'activeId', 'draft', 'selectedStop', 'mode', 'focus'], render);
+  store.on(['waypoints', 'stopOpts', 'pace', 'duration', 'playing', 'activeId', 'draft', 'selectedStop', 'mode', 'focus'], render);
   store.on(['time'], (s) => {
     if (document.activeElement !== scrub) scrub.value = String(s.time);
     if (el.offsetParent !== null) [qChart, speedChart, tauChart].forEach((c) => c.draw(s.time));

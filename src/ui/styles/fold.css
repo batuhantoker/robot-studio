@@ -1,0 +1,37 @@
+/* Side panels fold to a rail. */
+.studio { transition: grid-template-columns 0.18s ease; }
+.studio.left-closed { --left-w: 34px; }
+.studio.right-closed { --right-w: 34px; }
+.tabs .fold { flex: none; width: 30px; color: var(--mute); font-size: 17px; line-height: 1; }
+.tabs .fold:hover { color: var(--ink); }
+.side .rail { display: none; }
+.side.closed { padding: 0; overflow: hidden; }
+.side.closed > :not(.rail) { display: none !important; }
+.side.closed > .rail { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; height: 100%; padding: 13px 0; border: none; background: none; cursor: pointer; color: var(--mute); }
+.side.closed > .rail:hover { color: var(--ink); background: #fff; }
+.rail i { font-style: normal; font-size: 17px; line-height: 1; }
+.rail span { writing-mode: vertical-rl; font: 600 9px var(--sans); letter-spacing: 1.2px; text-transform: uppercase; }
+
+/* Sections, bars and the legend fold to their titles. */
+.section:not([data-section]) > header,
+.toolbar:not(.stop-edit) > span.cap:first-child,
+.legend > .cap:first-child { cursor: pointer; user-select: none; }
+.section:not([data-section]) > header > .cap:first-child::before,
+.toolbar:not(.stop-edit) > span.cap:first-child::before,
+.legend > .cap:first-child::before {
+  content: ''; display: inline-block; width: 4px; height: 4px; margin: 0 8px 2px 1px; vertical-align: middle;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; color: var(--mute);
+  transform: rotate(45deg); transition: transform 0.15s;
+}
+.section.folded > header > .cap:first-child::before,
+.toolbar.folded > span.cap:first-child::before,
+.legend.folded > .cap:first-child::before { transform: rotate(-45deg); }
+.section:not([data-section]) > header:hover > .cap:first-child::before,
+.toolbar:not(.stop-edit) > span.cap:first-child:hover::before,
+.legend > .cap:first-child:hover::before { color: var(--ink); }
+.section.folded > header { margin-bottom: 0; }
+.section.folded > :not(header),
+.toolbar.folded > :not(span.cap:first-child),
+.legend.folded > :not(.cap:first-child) { display: none !important; }
+.legend.folded { min-width: 0; }
+.legend.folded > .cap:first-child { margin-bottom: 0 !important; }

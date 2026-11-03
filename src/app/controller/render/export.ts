@@ -22,6 +22,8 @@ export function exportTrajectory(s: RobotSession | null, st: StudioState, format
       limits: jointLimits(s),
       waypoints: st.waypoints,
       duration: st.duration,
+      opts: st.stopOpts,
+      pace: st.pace,
       timestep: 1 / rate,
       tool: { limb: limb.name, at: (q) => chainFrames(limb.chain, limbQ(limb, q)).tip.p },
     });

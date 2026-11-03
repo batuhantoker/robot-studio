@@ -1,4 +1,12 @@
+import type { Vec3 } from '@/core/math/linear/vec';
+import { toStudioDict } from '@/core/robot/io/export';
 import { parseRobot } from '@/core/robot/schema/parse';
+import type { EffectorKind } from '@/core/robot/schema/types';
+import { presetSpec } from './fixtures';
+
+/** spatial_3link carrying a given end effector, with a tool point far enough out for any of them. */
+export const withEffector = (effector: EffectorKind, tool: Vec3 = [0.12, 0, 0]) =>
+  parseRobot({ ...toStudioDict(presetSpec('spatial_3link')), effector, tool });
 
 /** One link of every joint kind, with skewed axes and a payload. */
 export const allJointsRobot = () => parseRobot({

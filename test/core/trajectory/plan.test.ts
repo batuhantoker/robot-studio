@@ -3,6 +3,7 @@ import { dofLimits } from '@/core/robot/config/pose';
 import { compile, samplePlan } from '@/core/trajectory/plan';
 import { quinticAt } from '@/core/trajectory/quintic/profile';
 import { defaultWaypoints, sampleQuintic } from '@/core/trajectory/quintic/sample';
+import { trajectoryRecord } from '@/core/trajectory/export';
 import { expectClose, presetSpec, python } from '../../support/fixtures';
 
 const W = [[0, 0], [0.4, 0.1], [0.8, 0.5], [0.9, 1], [0.5, 1.2], [0, 0]];
@@ -68,6 +69,16 @@ describe('plan', () => {
     const c = compile({ waypoints: [[0], [1], [0]], duration: 2, opts: [{}, { hold: 10 }, {}] });
     expect(c.leave[1] - c.arrive[1]).toBeCloseTo(1.6, 12);
     expect(c.arrive[2]).toBeCloseTo(2, 12);
+  });
+
+  it('exports what plays: vias and holds reach the sampled data', () => {
+    const opts = [{}, { via: true }, { hold: 0.5 }, { via: true }, { via: true }, {}];
+    const limits: [number, number][] = [[-5, 5], [-5, 5]];
+    const rec = trajectoryRecord({ robot: 'r', joints: ['a', 'b'], limits, waypoints: W, duration: 6, timestep: 0.01, opts, pace: 'distance' });
+    const c = compile({ waypoints: W, duration: 6, opts, pace: 'distance' });
+    rec.t.forEach((t, k) => expectClose(rec.q[k], c.at(t).q, 1e-12));
+    const plain = trajectoryRecord({ robot: 'r', joints: ['a', 'b'], limits, waypoints: W, duration: 6, timestep: 0.01 });
+    expect(Math.max(...rec.q.map((q, k) => Math.abs(q[0] - plain.q[k][0])))).toBeGreaterThan(0.01);
   });
 
   it('a via turning back does not overshoot its neighbours', () => {

@@ -86,7 +86,7 @@ export function mountTrajectoryBar(el: HTMLElement, store: Store<StudioState>, b
     stop.style.display = tip ? '' : 'none';
     if (i === null || !tip) return;
     const via = isVia(plan, i), end = i === 0 || i === n - 1;
-    const kind = (v: boolean) => h('button.tb', { class: via === v ? 'on' : '', onclick: () => setStopOpts(store, i, v ? { via: true, hold: 0 } : { via: false }) }, v ? 'Via' : 'Stop');
+    const kind = (v: boolean) => h('button.tb', { class: via === v ? 'on' : '', onclick: () => setStopOpts(store, i, { via: v }) }, v ? 'Via' : 'Stop');
     replace(stop,
       h('span.cap', {}, `${via ? 'Via' : 'Stop'} ${i + 1}`),
       end ? null : h('div.seg', { title: 'Stop: come to rest here. Via: pass through without stopping.' }, kind(false), kind(true)),

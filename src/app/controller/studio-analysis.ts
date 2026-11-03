@@ -3,6 +3,7 @@ import type { Vec3 } from '../../core/math/linear/vec';
 import type { WorkspaceMetric } from '../../scene/overlays/workspace';
 import type { AnalysisContext } from '../../ui/analysis/context';
 import { focusLimb, jointLimits } from '../robots/focus';
+import { isVia } from '../../core/trajectory/plan';
 import { type PathProfile, dragStop, planOf, profile, stopTips } from './modes/trajectory';
 import { type WorkspaceStudy, runStudy, studyKey } from './workspace/study';
 import type { Studio } from './studio';
@@ -54,7 +55,8 @@ export class StudioAnalysis implements AnalysisContext {
     const s = this.studio.session;
     const st = this.studio.store.state;
     this.tips = s && st.waypoints[0]?.length === s.joints.length ? stopTips(jointLimits(s), focusLimb(s, st.focus), st.waypoints) : [];
-    this.studio.overlays.stops.show(this.tips, st.selectedStop);
+    const plan = planOf(st);
+    this.studio.overlays.stops.show(this.tips, st.selectedStop, (i) => isVia(plan, i));
   }
 
   workspace = () => this.study;

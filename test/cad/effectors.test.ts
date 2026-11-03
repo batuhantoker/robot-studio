@@ -5,16 +5,12 @@ import { moduleOf } from '@/cad/assembly/types';
 import { partOf } from '@/cad/common/part';
 import { chainFrames, forwardKinematics } from '@/core/chain/kinematics/frames';
 import { chainFromSpec } from '@/core/chain/model/from-spec';
-import type { Vec3 } from '@/core/math/linear/vec';
 import { EFFECTOR_LIST } from '@/core/robot/effectors/kinds';
 import { toPythonDict, toStudioDict } from '@/core/robot/io/export';
+import { withEffector } from '../support/robots';
 import { homePose } from '@/core/robot/config/pose';
 import { parseRobot } from '@/core/robot/schema/parse';
 import type { EffectorKind } from '@/core/robot/schema/types';
-import { presetSpec } from '../support/fixtures';
-
-export const withEffector = (effector: EffectorKind, tool: Vec3 = [0.12, 0, 0]) =>
-  parseRobot({ ...toStudioDict(presetSpec('spatial_3link')), effector, tool });
 
 function posed(effector: EffectorKind) {
   const spec = withEffector(effector);

@@ -26,6 +26,7 @@ export function mountLibrary(el: HTMLElement, store: Store<StudioState>, actions
   file.addEventListener('change', () => file.files?.[0] && actions.importFile(file.files[0]));
   const search = h('input.text.search', { placeholder: 'Search name, maker, type, tag…  ( / )', value: filter.query, spellcheck: false });
   const filters = h('div');
+  const tally = h('span.cap.mu');
   const list = h('div.robot-list');
   el.append(
     h('div.row', { style: 'margin-top:12px' },
@@ -35,11 +36,12 @@ export function mountLibrary(el: HTMLElement, store: Store<StudioState>, actions
       file),
     search,
     h('div.note', { style: 'margin:4px 0 2px' }, 'Try ', h('span.mono', {}, 'kuka'), ' · ', h('span.mono', {}, 'humanoid'), ' · ', h('span.mono', {}, 'dof:6-7'), ' · ', h('span.mono', {}, 'dof>20')),
-    filters, list);
+    h('div.section.lib-filters', {}, h('header', {}, h('span.cap', {}, 'Filters'), tally), filters), list);
   let shown: StudioState['library'] = [];
   const render = (s: StudioState) => {
     shown = applyFilter(s.library, filter);
     replace(filters, filterBar(s.library, filter, shown.length, update));
+    tally.textContent = `${shown.length} of ${s.library.length}`;
     replace(list, ...shown.map((e) => robotRow(e, e.id === s.activeId, () => store.set({ activeId: e.id }))),
       shown.length ? null : h('p.note', {}, 'No robots match. ', s.library.some((e) => e.group === 'cad') ? '' : 'Run npm run robots:fetch for real robot CAD.'));
   };

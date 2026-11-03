@@ -1,5 +1,5 @@
 /** Trajectory stop editing: selecting a stop parks the playhead on it, and edits keep it there. */
-import { type StopOpts, compile } from '../../core/trajectory/plan';
+import { type StopOpts, compile, isVia } from '../../core/trajectory/plan';
 import { insertAt, midpoint, remap, reorder } from '../../core/trajectory/stops';
 import type { Store } from '../state/store';
 import type { StudioState } from '../state/types';
@@ -56,6 +56,14 @@ export function setStopJoint(store: S, i: number, k: number, value: number): voi
   store.set({ waypoints: w.map((q, j) => (j === i ? q.map((v, m) => (m === k ? value : v)) : q)) });
 }
 
+/** Change a stop's via/hold; the total grows or shrinks by the hold, so the moves keep their pace. */
 export function setStopOpts(store: S, i: number, patch: StopOpts): void {
-  store.set({ stopOpts: optsOf(store.state).map((o, j) => (j === i ? { ...o, ...patch } : o)) });
+  const s = store.state;
+  // A via never rests, so turning one on drops its hold.
+  const stopOpts = optsOf(s).map((o, j) => (j === i ? { ...o, ...patch, ...(patch.via ? { hold: 0 } : {}) } : o));
+  const held = (opts: StopOpts[]) => {
+    const plan = { waypoints: s.waypoints, duration: s.duration, opts };
+    return opts.reduce((sum, o, j) => sum + (isVia(plan, j) ? 0 : Math.max(o.hold ?? 0, 0)), 0);
+  };
+  store.set({ stopOpts, duration: Math.max(s.duration + held(stopOpts) - held(optsOf(s)), 0.5) });
 }
