@@ -32,13 +32,16 @@ uniform vec3 tileColor;
 uniform float cells;
 uniform float opacity;
 uniform float tiles;
+uniform vec2 shift;
+uniform float turn;
 varying vec2 vLocal;
 float lines(vec2 p, float width) {
   vec2 g = abs(fract(p - 0.5) - 0.5) / fwidth(p);
   return 1.0 - min(min(g.x, g.y) / width, 1.0);
 }
 void main() {
-  vec2 p = vLocal * cells;
+  // The pattern belongs to the world, which slides and turns under a driven robot; the fade stays on it.
+  vec2 p = mat2(cos(turn), sin(turn), -sin(turn), cos(turn)) * (vLocal * cells) + shift;
   float fade = 1.0 - smoothstep(0.06, 0.42, length(vLocal));
   vec3 color = lineColor;
   float a;
@@ -94,6 +97,8 @@ export interface Floor {
   /** `extent`: half-width of scenery standing on the floor, whose shadows it must catch too. */
   fit(radius: number, floorZ: number, extent?: number): void;
   apply(b: Backdrop, floor: FloorId): void;
+  /** Where the robot stands in the world (m, rad): the pattern moves the other way. */
+  shift(x: number, y: number, yaw: number): void;
 }
 
 export function createFloor(): Floor {
@@ -114,6 +119,13 @@ export function createFloor(): Floor {
     cells: { value: 40 },
     opacity: { value: 0.6 },
     tiles: { value: 0 },
+    shift: { value: new THREE.Vector2() },
+    turn: { value: 0 },
+  };
+  let at = { x: 0, y: 0, yaw: 0, perMetre: 1 };
+  const place = () => {
+    patternUniforms.shift.value.set(at.x * at.perMetre, at.y * at.perMetre);
+    patternUniforms.turn.value = at.yaw;
   };
   const pattern = new THREE.Mesh(disc(), new THREE.ShaderMaterial({
     uniforms: patternUniforms, vertexShader: LOCAL_VERTEX, fragmentShader: PATTERN_FRAGMENT, transparent: true, depthWrite: false,
@@ -147,6 +159,12 @@ export function createFloor(): Floor {
       }
       // Cells stay the size the old grid had: 40 across the shadow disc.
       patternUniforms.cells.value = (20 * wide) / reach;
+      at.perMetre = 20 / reach;
+      place();
+    },
+    shift(x, y, yaw) {
+      at = { ...at, x, y, yaw };
+      place();
     },
     apply(b, floor) {
       base.visible = shadow.visible = floor !== 'none';

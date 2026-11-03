@@ -5,6 +5,7 @@ import { enforceLimits } from '../../core/chain/limbs/limits';
 import { limbQ } from '../../core/chain/limbs/types';
 import type { OverlaySet } from '../../scene/overlays';
 import type { LiveBus } from '../live/bus';
+import { bodyFor } from '../robots/body';
 import { focusLimb, jointLimits } from '../robots/focus';
 import { type RobotSession, mujocoBias, pose } from '../robots/session';
 import type { Store } from '../state/store';
@@ -26,6 +27,8 @@ export interface LoopDeps {
   ik: IkMode;
   motion: () => MotionClip | null;
   task: () => TaskClip | null;
+  /** Pilot's pose for this frame, null until it has a rig for this robot. */
+  pilot: (s: RobotSession, dt: number) => number[] | null;
   focusJoint: () => number;
 }
 
@@ -49,6 +52,8 @@ function chooseQ(d: LoopDeps, s: RobotSession, st: StudioState, dt: number) {
       if (st.playing) d.store.set({ time: (time = (st.time + dt * st.motion.speed) % clip.period) });
       q = clip.at(time).q;
     }
+  } else if (st.mode === 'pilot') {
+    q = d.pilot(s, dt) ?? q;
   } else if (simulating) {
     q = st.playing ? physics!.advance(dt, planOf(st)) ?? q : physics!.sim!.q();
     time = physics!.sim!.time % st.duration;
@@ -78,9 +83,11 @@ export function frameLoop(d: LoopDeps): (dt: number) => void {
     }
     const posed = pose(s, q, st.explode, st.focus, !simulating);
     const limb = focusLimb(s, st.focus);
-    const limbs = s.limbs.map((l) => {
+    const parts = s.limbs.length > 1 ? bodyFor(s).partOf : [];
+    const limbs = s.limbs.map((l, i) => {
       const report = dexterity(l.chain, limbQ(l, q));
-      if (!l.chain.joints.length) report.nearSingular = false;
+      // A wheel has no workspace to condition; its rank-1 Jacobian is not a singularity worth flagging.
+      if (!l.chain.joints.length || parts[i]?.kind === 'wheel') report.nearSingular = false;
       return report;
     });
     const sim = st.mode === 'physics' ? d.physics()?.last ?? null : null;

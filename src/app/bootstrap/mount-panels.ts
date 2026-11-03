@@ -18,6 +18,7 @@ import { mountPartsCard } from '../../ui/teardown/parts-card';
 import { mountToolbar } from '../../ui/teardown/toolbar';
 import { mountMotionBar } from '../../ui/motion/bar';
 import { mountTaskBar } from '../../ui/task/bar';
+import { mountPilotBar } from '../../ui/pilot/bar';
 import { mountTrajectoryBar } from '../../ui/trajectory/bar';
 import { mountMaterialLegend } from '../../ui/teardown/material-legend';
 import { libraryActions } from '../controller/library-actions';
@@ -32,7 +33,7 @@ import type { Studio } from '../controller/studio';
 export function mountPanels(layout: Layout, studio: Studio): void {
   const { store } = studio;
   const active = () => store.state.library.find((e) => e.id === store.state.activeId);
-  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus));
+  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => m !== 'pilot' || studio.pilot.available());
   const left = mountLeftTabs(layout.left);
   const base = libraryActions(store, (m) => store.set({ draftError: m }), () => studio.session);
   const actions = { ...base, create: () => (base.create(), left.show('build')) };
@@ -58,6 +59,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   const stack = mountToolbar(layout.hudBottom, store);
   mountMotionBar(stack, store, () => studio.motion.presets, studio.task.available);
   mountTaskBar(stack, store, studio.task);
+  mountPilotBar(stack, store, studio.pilot, studio.bus);
   mountTrajectoryBar(stack, store, studio.bus, studio.analysis, { list: () => studio.trajectoryPresets(), load: (id) => studio.loadTrajectoryPreset(id) });
   mountMaterialLegend(layout.hudBottom, store, () => studio.session?.assembly ?? null);
   mountPartsCard(layout.hudTop, store, () => studio.session?.assembly ?? null, (o) => studio.viewport.flash(o));

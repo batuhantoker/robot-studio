@@ -7,12 +7,16 @@ import { approachIk } from '../../../core/solvers/ik/approach';
 import { taskObject } from '../../../core/task/objects';
 import type { PlanContext } from '../../../core/task/plan/poses';
 import { workingEnd, solveAt } from '../../../core/task/plan/poses';
-import type { TaskObject } from '../../../core/task/types';
+import type { TaskClip, TaskObject } from '../../../core/task/types';
+import { isClip, planTask } from '../../../core/task/plan/check';
 import type { RobotSession } from '../../robots/session';
+import { bodyFor } from '../../robots/body';
+import { limbSetup } from './limb-setup';
 
 export interface TaskSetup {
   ctx: PlanContext;
-  rig: EffectorRig;
+  /** The studio gripper it drives; null for a CAD hand, which holds the object in its palm. */
+  rig: EffectorRig | null;
   object: TaskObject;
   home: number[];
   /** A bent, well-conditioned pose reaching forward and down; straight-arm homes are singular starts. */
@@ -24,10 +28,19 @@ export interface TaskSetup {
   base: Vec3;
   radius: number;
   probe: (q: number[]) => string | null;
+  /** One arm of a multi-limb robot: the limb planned with, and its chain pose as a whole-robot pose. */
+  limb?: number;
+  expand?: (q: number[]) => number[];
+  /** Preferred work height (a standing robot's bench) and the heading the opening spots face. */
+  work?: number;
+  heading?: number;
+  label?: string;
 }
 
-/** Null unless the robot is a single studio arm carrying a gripper. */
-export function taskSetup(s: RobotSession): TaskSetup | null {
+/** A single studio arm with a gripper, or one arm (the focused one, else the right) of a multi-limb robot. */
+export function taskSetup(s: RobotSession, focus = 0): TaskSetup | null {
+  // Several parts, not just several chains: a single arm whose extra chains are its fingertips keeps the gripper path.
+  if (s.limbs.length > 1 && bodyFor(s).parts.length > 1) return limbSetup(s, focus);
   const rig = s.assembly.effector;
   const object = rig?.grip ? taskObject(rig.kind, rig.size, rig.grip) : null;
   if (!rig || !object || !s.spec || s.limbs.length !== 1) return null;
@@ -47,10 +60,14 @@ export function taskSetup(s: RobotSession): TaskSetup | null {
   };
 }
 
+/** A clip planned on one arm's chain, played as whole-robot poses. */
+export const wholeBody = (clip: TaskClip, expand: (q: number[]) => number[]): TaskClip =>
+  ({ ...clip, at: (t) => { const p = clip.at(t); return { q: expand(p.q), gap: p.gap }; } });
+
 /** Opening spots either side of where the arm points at home, pulled in until the tool reaches both. */
-export function defaultSpots(t: TaskSetup): [Vec3, Vec3] | null {
+export function defaultSpots(t: TaskSetup, accept: (a: Vec3, b: Vec3) => boolean = () => true): [Vec3, Vec3] | null {
   const tip = workingEnd(t.ctx, t.home);
-  const heading = Math.atan2(tip[1] - t.base[1], tip[0] - t.base[0]);
+  const heading = t.heading ?? Math.atan2(tip[1] - t.base[1], tip[0] - t.base[0]);
   const z = t.surfaceZ + t.object.graspZ;
   for (const f of [0.5, 0.42, 0.6, 0.35, 0.7, 0.28]) {
     for (const spread of [0.7, 0.45, 1.0]) {
@@ -63,17 +80,26 @@ export function defaultSpots(t: TaskSetup): [Vec3, Vec3] | null {
         return lifted ? grasp : null;
       };
       const qa = fits(a, t.seed);
-      if (qa && fits(b, qa)) return [a, b];
+      if (qa && fits(b, qa) && accept(a, b)) return [a, b];
     }
   }
   return null;
 }
 
-/** The lowest work height with reachable opening spots: the floor first, then ever taller stands (SCARAs work on tables). */
-export function arrange(t: TaskSetup): { setup: TaskSetup; spots: [Vec3, Vec3] | null } {
-  for (let k = 0; k <= 12; k++) {
-    const setup = { ...t, surfaceZ: t.floorZ + k * 0.04 * t.radius };
-    const spots = defaultSpots(setup);
+/**
+ * The lowest work height with reachable opening spots: the floor first, then ever taller stands (SCARAs work on
+ * tables). A standing robot starts at its bench and tries a little lower and higher around it.
+ */
+export function arrange(t: TaskSetup, clear: (p: Vec3) => boolean = () => true): { setup: TaskSetup; spots: [Vec3, Vec3] | null } {
+  const step = 0.04 * t.radius;
+  const heights = t.work !== undefined
+    ? [0, 1, -1, 2, -2, 3, 4, 5].map((k) => t.work! + k * step).filter((z) => z >= t.floorZ)
+    : Array.from({ length: 13 }, (_, k) => t.floorZ + k * step);
+  for (const surfaceZ of heights) {
+    const setup = { ...t, surfaceZ };
+    // A hand's carry is less sure than a gripper arm's: check the whole cycle plans before offering the spots.
+    const plans = (a: Vec3, b: Vec3) => !t.expand || isClip(planTask({ ctx: t.ctx, home: t.home, pick: a, place: b, object: t.object, lift: t.lift, base: t.base }, t.probe));
+    const spots = defaultSpots(setup, (a, b) => clear(a) && clear(b) && plans(a, b));
     if (spots) return { setup, spots };
   }
   return { setup: t, spots: null };

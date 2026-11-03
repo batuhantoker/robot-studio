@@ -11,6 +11,7 @@ import { renderFrame } from './render-frame';
 import { type Stage, createStage } from '../stage/renderer';
 import { BACKDROP_LAYER } from '../stage/backdrop';
 import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings, backdropCss } from '../stage/surroundings';
+import type { Stance } from '../stage/scenery/kit';
 import { Cutaway } from '../teardown/cutaway';
 import { explodeParts } from '../teardown/explode';
 import type { Look } from '../look/types';
@@ -39,6 +40,8 @@ export class Viewport {
   private floorZ = 0;
   private scale = 0.5;
   private grounding: Grounding = 'bolted';
+  /** As the robot describes it: `hand` in its own frame, turned into height above the floor once it is grounded. */
+  private stance: Stance | undefined;
   private readonly contacts = new GroundContactOverlay();
   private last = performance.now();
   private clock = performance.now();
@@ -72,14 +75,33 @@ export class Viewport {
     return this.stage.renderer.domElement;
   }
 
+  /** Highest still scenery top under (x, y) at or below `z`, else the floor; for pick and place spots. */
+  supportBelow(x: number, y: number, z: number): number {
+    return this.studio.supportBelow(x, y, z);
+  }
+
+  /** Where a ray first meets still scenery, and whether that is a top (a belt, a bench) a spot can stand on. */
+  sceneryHit(ray: THREE.Ray): { point: THREE.Vector3; top: boolean } | null {
+    return this.studio.sceneryHit(ray);
+  }
+
+  /**
+   * The active robot's base pose in the world (m, rad). The robot stays at the origin and everything that
+   * belongs to the world (setting, floor pattern) is drawn the other way; the one entry point for that.
+   */
+  setWorldShift(x: number, y: number, yaw: number): void {
+    this.studio.shift(x, y, yaw);
+  }
+
   /** Backdrop (the canvas is transparent over it) and floor, with the light rig to match. */
   setSurroundings(s: Surroundings): void {
     this.studio.apply(s, this.stage.scene);
     this.canvas.style.background = backdropCss(BACKDROPS[s.backdrop]);
   }
 
-  setAssembly(assembly: Assembly, grounding: Grounding = 'bolted'): void {
+  setAssembly(assembly: Assembly, grounding: Grounding = 'bolted', stance?: Stance): void {
     this.grounding = grounding;
+    this.stance = stance;
     if (this.assembly) {
       this.holder.remove(this.assembly.root);
       this.cutaway?.dispose();
@@ -107,13 +129,15 @@ export class Viewport {
   /** Frame the camera on the assembly as currently posed. */
   fit(): void {
     if (!this.assembly) return;
-    this.floorZ = this.grounding === 'settle' ? 0 : this.assembly.floorZ;
+    // A settled robot's assembly floor is its lowest point at home, so it rests there with the holder unmoved.
+    this.floorZ = this.assembly.floorZ;
     groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
     this.holder.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(this.assembly.root);
     const sphere = box.getBoundingSphere(new THREE.Sphere());
     this.scale = sphere.radius;
-    this.studio.fit(sphere.radius, this.floorZ);
+    const st = this.stance && { ...this.stance, hand: this.stance.hand + this.holder.position.z - this.floorZ };
+    this.studio.fit(sphere.radius, this.floorZ, st);
     this.stage.frame(sphere.radius, sphere.center);
   }
 
@@ -225,6 +249,7 @@ export class Viewport {
 
   private advance(dt: number): void {
     for (const fn of this.listeners) fn(dt);
+    this.studio.update(dt);
     if (this.view.cut === 'section' && this.cutaway) {
       this.cutaway.aim(this.stage.controls.target, this.stage.camera);
     }

@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { createBackdrop, setGradient } from './backdrop';
 import { createEnvironment } from './environment';
+import type { Stance } from './scenery/kit';
 import { createFloor } from './floor';
 import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings } from './surroundings';
 
@@ -9,9 +10,17 @@ export interface Studio {
   group: THREE.Group;
   /** Objects ambient occlusion must skip. */
   aoHidden: THREE.Object3D[];
-  fit(radius: number, floorZ: number): void;
+  fit(radius: number, floorZ: number, stance?: Stance): void;
   setShadowSize(size: number): void;
   apply(s: Surroundings, scene: THREE.Scene): void;
+  /** Advances the setting's moving parts. */
+  update(dt: number): void;
+  /** Where the robot stands in the world (m, rad); the setting and floor pattern move the other way. */
+  shift(x: number, y: number, yaw: number): void;
+  /** Highest still scenery top at (x, y) at or below `z`, else the floor. */
+  supportBelow(x: number, y: number, z: number): number;
+  /** Where a ray first meets still scenery, and whether it is a top. */
+  sceneryHit(ray: THREE.Ray): { point: THREE.Vector3; top: boolean } | null;
 }
 
 export function createStudio(): Studio {
@@ -28,12 +37,15 @@ export function createStudio(): Studio {
   const floor = createFloor();
   const backdrop = createBackdrop();
   const environment = createEnvironment();
-  group.add(hemi, key, key.target, rim, floor.group, backdrop.mesh, environment.group, environment.seeThrough);
-  let fitted = { radius: 0.5, floorZ: 0 };
+  // The robot stays at the origin; a driven robot moves the world (setting and floor pattern) instead.
+  const world = new THREE.Group();
+  world.add(environment.group, environment.seeThrough);
+  group.add(hemi, key, key.target, rim, floor.group, backdrop.mesh, world);
+  let fitted: { radius: number; floorZ: number; stance?: Stance } = { radius: 0.5, floorZ: 0 };
 
-  const fit = (radius: number, floorZ: number) => {
-    fitted = { radius, floorZ };
-    environment.fit(radius, floorZ);
+  const fit = (radius: number, floorZ: number, stance?: Stance) => {
+    fitted = { radius, floorZ, stance };
+    environment.fit(radius, floorZ, stance);
     // A desk lifts the robot: the floor, and what lights it, sit lower by the desk's height.
     const ground = floorZ - environment.drop;
     const r = Math.max(radius, 0.05) * 2.4;
@@ -66,12 +78,24 @@ export function createStudio(): Studio {
     rim.color.set(b.rim);
     rim.intensity = b.rimIntensity;
     scene.environmentIntensity = b.env;
+    environment.motion = s.motion;
     floor.apply(b, s.floor);
     setGradient(backdrop.uniforms, b.top, b.bottom);
     if (environment.id !== s.environment) {
       environment.apply(s.environment);
-      fit(fitted.radius, fitted.floorZ);
+      fit(fitted.radius, fitted.floorZ, fitted.stance);
     }
   };
-  return { group, aoHidden: [...floor.aoHidden, backdrop.mesh, environment.seeThrough], fit, setShadowSize, apply };
+  return {
+    group, aoHidden: [...floor.aoHidden, backdrop.mesh, environment.seeThrough], fit, setShadowSize, apply,
+    update: (dt) => environment.update(dt),
+    shift(x, y, yaw) {
+      world.rotation.z = -yaw;
+      world.position.set(-(Math.cos(yaw) * x + Math.sin(yaw) * y), Math.sin(yaw) * x - Math.cos(yaw) * y, 0);
+      world.updateMatrixWorld(true);
+      floor.shift(x, y, yaw);
+    },
+    supportBelow: (x, y, z) => environment.supportBelow(x, y, z),
+    sceneryHit: (ray) => environment.hit(ray),
+  };
 }

@@ -8,6 +8,8 @@ export interface Surroundings {
   backdrop: BackdropId;
   floor: FloorId;
   environment: EnvironmentId;
+  /** Whether the setting's machines, belts and vehicles run. */
+  motion: boolean;
 }
 
 export interface Backdrop {
@@ -58,7 +60,7 @@ export const BACKDROPS: Record<BackdropId, Backdrop> = {
 
 export const FLOORS: [FloorId, string][] = [['grid', 'Grid'], ['seamless', 'Seamless'], ['polished', 'Polished'], ['tiles', 'Tiles'], ['none', 'None']];
 
-export const DEFAULT_SURROUNDINGS: Surroundings = { backdrop: 'studio', floor: 'grid', environment: 'open' };
+export const DEFAULT_SURROUNDINGS: Surroundings = { backdrop: 'studio', floor: 'grid', environment: 'open', motion: true };
 
 /** The backdrop as a CSS gradient, as the scene draws it (shown until the first frame, and in swatches). */
 export const backdropCss = (b: Backdrop): string => `linear-gradient(180deg, ${b.top} 0%, ${b.bottom} 100%)`;
@@ -71,7 +73,7 @@ export function loadSurroundings(): Surroundings {
     const backdrop = raw?.backdrop && raw.backdrop in BACKDROPS ? raw.backdrop : DEFAULT_SURROUNDINGS.backdrop;
     const floor = FLOORS.some(([f]) => f === raw?.floor) ? raw!.floor! : DEFAULT_SURROUNDINGS.floor;
     const environment = ENVIRONMENTS.some(([e]) => e === raw?.environment) ? raw!.environment! : DEFAULT_SURROUNDINGS.environment;
-    return { backdrop, floor, environment };
+    return { backdrop, floor, environment, motion: raw?.motion !== false };
   } catch {
     return { ...DEFAULT_SURROUNDINGS };
   }

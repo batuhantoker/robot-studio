@@ -8,7 +8,8 @@ export function meshGeometry(mesh: MeshBuffers): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(mesh.vertices, 3));
   g.setIndex(new THREE.BufferAttribute(mesh.faces, 1));
-  return toCreasedNormals(g, Math.PI / 6);
+  // toCreasedNormals welds on a 1/100-unit grid, 1 cm in metres: weld in millimetres instead.
+  return toCreasedNormals(g.scale(1000, 1000, 1000), Math.PI / 6).scale(0.001, 0.001, 0.001);
 }
 
 /** Primitive geoms; MuJoCo sizes are half-extents/radii, cylinders and capsules along local Z. */

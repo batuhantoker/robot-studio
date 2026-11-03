@@ -6,6 +6,7 @@ import { type Layer, partOf } from '../../cad/common/part';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
 import { h, replace } from '../dom/h';
+import { select } from '../widgets/fields';
 
 const LAYER_LABEL: Record<Layer, string> = {
   housing: 'Housing', structure: 'Structure', drive: 'Drive', bearing: 'Bearing', fastener: 'Fastener', sensor: 'Sensing', cable: 'Cabling', kinematic: 'Kinematic',
@@ -18,10 +19,14 @@ export function mountPartsCard(el: HTMLElement, store: Store<StudioState>, assem
   const render = (s: StudioState) => {
     const a = assembly();
     if (!a) return;
-    replace(chips, ...a.modules.slice(0, 40).map((m) => h('button.tb', {
-      class: s.isolate === m.id ? 'on' : '',
-      onclick: () => store.set({ isolate: s.isolate === m.id ? null : m.id }),
-    }, m.label)));
+    // A humanoid's thirty-odd bodies as chips would wall off the view; past a handful, one picker.
+    replace(chips, ...(a.modules.length > 10
+      ? [select<string>([['', `Isolate a part · ${a.modules.length}`], ...a.modules.map((m): [string, string] => [m.id, m.label])],
+        s.isolate ?? '', (v) => store.set({ isolate: v || null }))]
+      : a.modules.map((m) => h('button.tb', {
+        class: s.isolate === m.id ? 'on' : '',
+        onclick: () => store.set({ isolate: s.isolate === m.id ? null : m.id }),
+      }, m.label))));
     const mod = a.modules.find((m) => m.id === s.isolate);
     if (!mod) {
       card.style.display = 'none';

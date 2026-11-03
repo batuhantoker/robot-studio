@@ -1,4 +1,4 @@
-/** Loads the active library entry into a session, swapping and disposing the previous one. */
+/** Loads library entries into sessions, one per stage placement; a newer load for a placement replaces the older. */
 import type { Catalog } from '../robots/catalog';
 import { sessionFromCatalog } from '../robots/from-catalog';
 import { sessionFromSpec } from '../robots/from-spec';
@@ -6,42 +6,88 @@ import { sessionFromTwin } from '../robots/from-twin';
 import type { RobotSession } from '../robots/session';
 import type { LibraryEntry } from '../state/types';
 
+export const MAX_ROBOTS = 4;
+// MuJoCo's heap stops at 2 GB, and compiling a heavy CAD robot peaks about 1.1 GB above what is already held.
+const HELD_BUDGET = 500e6;
+
+/** Rough MuJoCo heap a session holds: its model, its MjData and the collision checker's own copy. */
+export function heldBytes(s: RobotSession): number {
+  const { model, data } = s.handle;
+  return model.nbuffer + 2 * (data.nbuffer + data.narena);
+}
+
 export class RobotLoader {
-  current: RobotSession | null = null;
-  private token = 0;
+  /** The placement the studio drives. */
+  activeKey = 'main';
+  private readonly sessions = new Map<string, RobotSession>();
+  private readonly tokens = new Map<string, number>();
+  private pending = 0;
 
   constructor(private readonly catalog: () => Catalog | null) {}
 
-  /** Resolve the newest request only; older in-flight loads are disposed on arrival. */
-  async load(entry: LibraryEntry, onStatus: (s: string | null) => void): Promise<RobotSession | null> {
-    const token = ++this.token;
+  get current(): RobotSession | null {
+    return this.sessions.get(this.activeKey) ?? null;
+  }
+
+  get(key: string): RobotSession | null {
+    return this.sessions.get(key) ?? null;
+  }
+
+  /** Why no further robot fits on the stage, or null when one does. */
+  roomForAnother(): string | null {
+    if (this.sessions.size >= MAX_ROBOTS) return `The stage holds up to ${MAX_ROBOTS} robots.`;
+    let held = 0;
+    for (const s of this.sessions.values()) held += heldBytes(s);
+    return held > HELD_BUDGET ? 'Not enough memory for another robot; remove one first.' : null;
+  }
+
+  /** Resolve the newest request per placement only; older in-flight loads are disposed on arrival. */
+  async load(entry: LibraryEntry, onStatus: (s: string | null) => void, key = this.activeKey): Promise<RobotSession | null> {
+    const token = this.bump(key);
+    this.pending++;
     let session: RobotSession;
     try {
-      const twinSource = entry.twin && this.catalog()?.robots.find((r) => r.id === entry.twin!.catalogId);
-      if (entry.spec && entry.twin && twinSource) {
-        onStatus(`Binding ${twinSource.title} CAD`);
-        session = await sessionFromTwin(entry.id, entry.spec, entry.twin, twinSource);
-      } else if (entry.spec) {
-        session = await sessionFromSpec(entry.id, entry.title, entry.spec);
-      } else {
-        const robot = this.catalog()?.robots.find((r) => r.id === entry.catalogId);
-        if (!robot) throw new Error(`robot ${entry.catalogId} is not in the catalog`);
-        onStatus(`Loading ${robot.title} · ${robot.files.length} files`);
-        session = await sessionFromCatalog(robot, (d, t) => onStatus(`Loading ${robot.title} · ${d}/${t} files`));
-      }
-    } catch (error) {
-      onStatus(null);
-      throw error;
+      session = await this.open(entry, onStatus);
+    } finally {
+      if (--this.pending === 0) onStatus(null);
     }
-    if (token !== this.token) {
+    if (token !== this.tokens.get(key)) {
       session.dispose();
       return null;
     }
-    const previous = this.current;
-    this.current = session;
-    onStatus(null);
-    // Panels may still hold the old snapshot for a frame; free its WASM objects afterwards.
-    setTimeout(() => previous?.dispose(), 250);
+    this.retire(this.sessions.get(key));
+    this.sessions.set(key, session);
     return session;
+  }
+
+  /** Drop a placement, and any load still in flight for it. */
+  remove(key: string): void {
+    this.bump(key);
+    this.retire(this.sessions.get(key));
+    this.sessions.delete(key);
+  }
+
+  private bump(key: string): number {
+    const token = (this.tokens.get(key) ?? 0) + 1;
+    this.tokens.set(key, token);
+    return token;
+  }
+
+  private retire(session: RobotSession | undefined): void {
+    // Panels may still hold the old snapshot for a frame; free its WASM objects afterwards.
+    if (session) setTimeout(() => session.dispose(), 250);
+  }
+
+  private async open(entry: LibraryEntry, onStatus: (s: string | null) => void): Promise<RobotSession> {
+    const twinSource = entry.twin && this.catalog()?.robots.find((r) => r.id === entry.twin!.catalogId);
+    if (entry.spec && entry.twin && twinSource) {
+      onStatus(`Binding ${twinSource.title} CAD`);
+      return sessionFromTwin(entry.id, entry.spec, entry.twin, twinSource);
+    }
+    if (entry.spec) return sessionFromSpec(entry.id, entry.title, entry.spec);
+    const robot = this.catalog()?.robots.find((r) => r.id === entry.catalogId);
+    if (!robot) throw new Error(`robot ${entry.catalogId} is not in the catalog`);
+    onStatus(`Loading ${robot.title} · ${robot.files.length} files`);
+    return sessionFromCatalog(robot, (d, t) => onStatus(`Loading ${robot.title} · ${d}/${t} files`));
   }
 }

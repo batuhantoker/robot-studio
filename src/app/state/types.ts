@@ -6,7 +6,7 @@ import type { Look } from '../../scene/look/types';
 import type { Surroundings } from '../../scene/stage/surroundings';
 import type { Cut } from '../../scene/teardown/materials';
 
-export type Mode = 'pose' | 'motion' | 'ik' | 'trajectory' | 'physics' | 'workspace' | 'task';
+export type Mode = 'pose' | 'motion' | 'pilot' | 'ik' | 'trajectory' | 'physics' | 'workspace' | 'task';
 
 /** Pick and place: spots on the floor, and which one the gizmo and floor clicks move. */
 export interface TaskState {
@@ -95,4 +95,27 @@ export interface StudioState {
   /** What the last move ran into ("elbow ↔ floor"); null when nothing stopped it. */
   contact: string | null;
   task: TaskState;
+  /** Robots on the stage; the active one's state lives in the flat fields above. */
+  scene: SceneRobot[];
+  activeKey: string;
+}
+
+/** Where a robot stands on the stage: metres, and radians about the vertical. */
+export interface RobotBase {
+  x: number;
+  y: number;
+  yaw: number;
+}
+
+/** The fields that belong to one robot, kept aside while another robot is active. */
+export type Parked = Pick<StudioState, 'q' | 'focus' | 'waypoints' | 'stopOpts' | 'pace' | 'duration' | 'targets' | 'task' | 'motion' | 'selectedStop'>;
+
+export interface SceneRobot {
+  /** One placement; the same library entry can stand on the stage twice. */
+  key: string;
+  entryId: string;
+  /** In the stage frame, never relative to the active robot. */
+  base: RobotBase;
+  /** Null for the active robot, and for one that hasn't been driven yet. */
+  parked: Parked | null;
 }

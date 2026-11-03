@@ -21,6 +21,8 @@ export function bindPicking(host: HTMLElement, viewport: Viewport, store: Store<
     lift(e);
     const slop = e.pointerType === 'touch' ? 10 : 4;
     if (multi || !down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > slop || (e.target as HTMLElement).tagName !== 'CANVAS') return;
+    // Driving, a click takes the mouse for looking around; it does not isolate a part.
+    if (store.state.mode === 'pilot') return;
     const id = viewport.pick(e.clientX, e.clientY);
     store.set({ isolate: id && id !== store.state.isolate ? id : null });
   });

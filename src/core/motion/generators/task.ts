@@ -11,12 +11,27 @@ import type { MotionClip, MotionRobot } from '../types';
 /** Targets per limb at cycle phase s in [0, 1); null leaves a limb free. */
 export type TargetPath = (s: number) => (Vec3 | null)[];
 
-export function taskClip(robot: MotionRobot, q0: number[], path: TargetPath, period: number, samples = 48): MotionClip {
-  const solve = (s: number, from: number[], restarts: number) => {
-    const targets = path(s).flatMap((point, limb) => (point ? [{ limb, point }] : []));
-    return targets.length ? solveWholeBody(robot.limbs, robot.joints, targets, from, { restarts, maxIter: 80 }).q : from;
+/** Joints held at given values at phase s (a waist kept still, or turned on a script). */
+export type Pins = (s: number) => Map<number, number>;
+
+export interface ClipOptions {
+  pins?: Pins;
+  /** Per limb, a tip-frame axis kept pointing up while its target moves (feet kept flat on the ground). */
+  level?: Map<number, Vec3>;
+  /** Redundant joints drift back toward this pose (see solveWholeBody). */
+  posture?: number[];
+}
+
+export function taskClip(robot: MotionRobot, q0: number[], path: TargetPath, period: number, samples = 48, { pins, posture, level }: ClipOptions = {}): MotionClip {
+  const solve = (s: number, from: number[], restarts: number, maxIter = 80) => {
+    const held = pins?.(s);
+    const start = held?.size ? from.map((v, i) => held.get(i) ?? v) : from;
+    const targets = path(s).flatMap((point, limb) => (point ? [{ limb, point, level: level?.get(limb) }] : []));
+    const fixed = held?.size ? new Set(held.keys()) : undefined;
+    return targets.length ? solveWholeBody(robot.limbs, robot.joints, targets, start, { restarts, maxIter, fixed, posture }).q : start;
   };
-  let q = solve(0, q0, 2);
+  // Long enough from the warm start that random restarts (and their odd poses) are a last resort.
+  let q = solve(0, q0, 2, 300);
   const out: number[][] = [];
   // Two laps: the second starts from the end of the first, so the loop closes without a jump.
   for (let lap = 0; lap < 2; lap++) {

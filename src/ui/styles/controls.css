@@ -35,6 +35,10 @@ canvas.chart { width: 100%; height: 120px; display: block; background: #fff; bor
 .legend-row { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; padding: 2px 0; }
 .legend-row i { width: 12px; height: 12px; border: 1px solid rgba(0, 0, 0, 0.15); }
 .motion-bar .seg .tb.on { background: var(--accent); border-color: var(--accent); }
+.pilot-bar .seg .tb.on { background: var(--accent); border-color: var(--accent); }
+.pilot-key { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; white-space: nowrap; }
+.pilot-key kbd { font: 600 10px/1 var(--mono); min-width: 17px; height: 17px; padding: 0 4px; display: inline-grid; place-items: center; border: 1px solid var(--line); border-bottom-width: 2px; background: #fff; color: var(--ink); }
+.pilot-key .mu { margin-left: 2px; }
 .joint .range { grid-column: 1 / -1; font-size: 9.5px; color: var(--mute); margin-top: -2px; }
 .joint.at-limit .val, .joint.at-limit .range { color: var(--accent); }
 .joint.at-limit .range::after { content: ' · at limit'; }

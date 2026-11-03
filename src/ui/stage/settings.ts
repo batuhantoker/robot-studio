@@ -1,4 +1,4 @@
-/** A gear on the viewport that opens the backdrop and floor choices. */
+/** A gear on the viewport that opens the backdrop, floor and setting choices. */
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
 import { ENVIRONMENTS, type EnvironmentId } from '../../scene/stage/environment';
@@ -23,11 +23,14 @@ function floorSwatch(id: FloorId, b: Backdrop): string {
   }
 }
 
-// Line drawings over the backdrop: an open floor, a desk, a fenced cell with its conveyor.
+// Line drawings over the backdrop: an open floor, a desk, a lab bench, a fenced cell, a machine tool, racking.
 const SETTING_ICON: Record<EnvironmentId, string> = {
   open: '<path d="M6 25h28"/><path d="M17 25v-4h6v4M20 21l3-7 6 3"/>',
   desk: '<path d="M5 17h30M8 17v11M32 17v11"/><path d="M14 17v-3h5v3M16.5 14l2-6 5 2"/>',
+  lab: '<path d="M4 19h32M7 19v9M33 19v9"/><path d="M9 19v-3h5v3M11.5 16l2-6 5 2"/><path d="M27 8v4l-3.5 7h9L29 12V8M26 8h4"/><path d="M24.6 16.5h6.8" stroke-width="1"/>',
   cell: '<path d="M5 27V8M13 27V8M5 11h8M5 23h8M13 8l7-3M20 5v17"/><path d="M9 14h2M9 18h2" stroke-width="1"/><path d="M18 24h17M18 27h17"/><path d="M27 24v-3h4v3"/>',
+  machine: '<path d="M16 27V6h19v21M16 23h19"/><path d="M19 10h13v10H19z"/><path d="M25.5 10v5" stroke-width="1"/><path d="M33 6V3"/><path d="M4 27h8M6 27v-4h4v4M8 23l2-7 5 2"/>',
+  warehouse: '<path d="M5 27V5M17 27V5M5 12h12M5 19h12M5 26h12"/><path d="M7 12V9h3v3M11 12V9.5h4V12M8 19v-3h5v3M7 26v-3h4v3" stroke-width="1"/><path d="M21 25.5h13v-3H21zM23 22.5V19h7v3.5"/><path d="M33 22v-1.5" stroke-width="1"/>',
 };
 
 export function mountStageSettings(stage: HTMLElement, store: Store<StudioState>): void {
@@ -36,11 +39,12 @@ export function mountStageSettings(stage: HTMLElement, store: Store<StudioState>
   const backdrops = h('div.swatches');
   const floors = h('div.swatches');
   const settings = h('div.swatches.three');
+  const motion = h('button.tb.scenery-motion', { title: 'Run the setting\'s conveyors, machines and vehicles', onclick: () => set({ motion: !store.state.surroundings.motion }) }, 'Motion');
   const panel = h('div.stage-settings', { hidden: true, role: 'dialog', 'aria-label': 'Surroundings' },
     h('h4', {}, 'Backdrop'), backdrops,
     h('h4', {}, 'Floor'), floors,
-    h('h4', {}, 'Setting'), settings,
-    h('p.hint', {}, 'Applies to the viewport and to rendered video. The setting is scenery: the robot is not checked against it.'));
+    h('div.stage-settings-head', {}, h('h4', {}, 'Setting'), motion), settings,
+    h('p.hint', {}, 'Applies to the viewport and to rendered video. The setting is scenery: the robot is not checked against it. In pick and place, click the top of a bench, table or belt to stand a spot on it.'));
   stage.append(gear, panel);
 
   const open = (on: boolean) => {
@@ -55,6 +59,8 @@ export function mountStageSettings(stage: HTMLElement, store: Store<StudioState>
   const set = (patch: Partial<Surroundings>) => store.set({ surroundings: { ...store.state.surroundings, ...patch } });
   const render = (s: StudioState) => {
     const { backdrop, floor, environment } = s.surroundings;
+    motion.classList.toggle('on', s.surroundings.motion);
+    motion.setAttribute('aria-pressed', String(s.surroundings.motion));
     const b = BACKDROPS[backdrop];
     replace(backdrops, ...(Object.entries(BACKDROPS) as [BackdropId, Backdrop][]).map(([id, d]) =>
       h('button.swatch', { class: id === backdrop ? 'on' : '', title: d.label, onclick: () => set({ backdrop: id }) }, h('i', { style: `background:${backdropCss(d)}` }), d.label)));

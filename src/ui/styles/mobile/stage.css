@@ -57,6 +57,7 @@
 
   /* Gear and its panel, sized to the phone. */
   .stage-gear { top: 8px; right: 8px; width: 36px; height: 36px; }
+  .stage-gear.stage-robots { right: 52px; }
   .stage-settings { top: 52px; left: 8px; right: 8px; width: auto; max-height: calc(100% - 60px); overflow-y: auto; overscroll-behavior: contain; }
   .stage-settings .hint { max-width: none; }
   .swatch { min-height: 44px; }

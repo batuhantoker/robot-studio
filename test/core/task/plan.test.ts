@@ -25,7 +25,7 @@ async function setup(effector: EffectorKind) {
   const probe = (q: number[]) => { const h = checker.hit(q); return h && contactText(h); };
   const ctx = { chain, tool: rig.tool, length: 0.2, maxTilt: 0.35 };
   const object = taskObject(effector, rig.size, rig.grip!)!;
-  const input = (pick: Vec3, place: Vec3) => ({ ctx, home: homePose(spec), pick, place, object, floorZ: a.floorZ, lift: rig.size * 1.5, base: spec.base });
+  const input = (pick: Vec3, place: Vec3) => ({ ctx, home: homePose(spec), pick, place, object, lift: rig.size * 1.5, base: spec.base });
   return { spec, a, checker, probe, ctx, object, input };
 }
 
@@ -58,6 +58,23 @@ describe('pick and place planning', () => {
       checker.dispose();
     });
   }
+
+  it('picks from the floor and places on a raised surface, resting the object on it', async () => {
+    const { a, checker, probe, ctx, object, input } = await setup('parallel');
+    const shelf = a.floorZ + 0.08;
+    const [pick, place]: Vec3[] = [[0.34, -0.18, a.floorZ], [0.34, 0.18, shelf]];
+    const clip = planTask(input(pick, place), probe);
+    expect(isClip(clip)).toBe(true);
+    if (!isClip(clip)) return;
+    const ts = Array.from({ length: 2000 }, (_, i) => (clip.period * i) / 2000);
+    const rests = ts.map((t) => clip.object(t)).filter((st) => !st.held);
+    const atB = rests.find((st) => !st.held && Math.hypot(st.pose.p[0] - place[0], st.pose.p[1] - place[1]) < 2e-3);
+    if (!atB || atB.held) throw new Error('expected a resting state at the place spot');
+    expect(atB.pose.p[2]).toBeCloseTo(shelf + object.size[2] / 2, 6);
+    const release = ts.find((t, i) => i > 0 && clip.object(ts[i - 1]).held && !clip.object(t).held)!;
+    expect(workingEnd(ctx, clip.at(release).q)[2]).toBeCloseTo(shelf + object.graspZ, 2);
+    checker.dispose();
+  });
 
   it('reports an out-of-reach pick instead of planning it', async () => {
     const { a, checker, probe, input } = await setup('parallel');

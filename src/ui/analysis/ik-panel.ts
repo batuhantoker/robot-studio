@@ -1,5 +1,6 @@
 /** Whole-body IK: a target per end effector; the gizmo drags the focused limb's, the markers pick a limb. */
 import type { LiveBus } from '../../app/live/bus';
+import { limbLabel } from '../../app/robots/body';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
 import type { Vec3 } from '../../core/math/linear/vec';
@@ -16,13 +17,14 @@ export function ikPanel(store: Store<StudioState>, bus: LiveBus, ctx: AnalysisCo
     rows, result);
   const tipOf = (limb: number): Vec3 | undefined => bus.latest?.posed.limbs[limb]?.tip.p;
   const render = (s: StudioState) => {
-    const limbs = bus.latest?.session.limbs ?? [];
+    const session = bus.latest?.session;
+    const limbs = session?.limbs ?? [];
     const set = (limb: number, p: Vec3 | null) => store.set({ targets: withTarget(store.state.targets, limb, p), mode: 'ik' });
     replace(rows,
       ...limbs.map((l, i) => {
         const t = s.targets[i] ?? null;
         return h('div', { class: `ik-row ${i === s.focus ? 'on' : ''}` },
-          h('label', {}, h('input', { type: 'checkbox', checked: !!t, onchange: () => set(i, t ? null : tipOf(i) ?? null) }), ' ', h('b', { onclick: () => store.set({ focus: i }) }, l.name)),
+          h('label', {}, h('input', { type: 'checkbox', checked: !!t, onchange: () => set(i, t ? null : tipOf(i) ?? null) }), ' ', h('b', { onclick: () => store.set({ focus: i }), title: l.name }, session ? limbLabel(session, i) : l.name)),
           t ? vecInput(t, (v) => set(i, v as Vec3), { scale: 1000, step: 5, digits: 1 }) : null);
       }),
       limbs.length > 1 ? h('div.row', {},

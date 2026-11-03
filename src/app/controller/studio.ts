@@ -10,6 +10,7 @@ import { LiveBus } from '../live/bus';
 import type { Catalog } from '../robots/catalog';
 import { jointLimits } from '../robots/focus';
 import { type RobotSession, pose } from '../robots/session';
+import { stanceOf } from '../robots/body';
 import { pinAll, withTarget } from './targets';
 import type { Store } from '../state/store';
 import type { StudioState } from '../state/types';
@@ -27,6 +28,7 @@ import { DEFAULT_DURATION, defaultPlan, loadPreset, presetsFor } from './traject
 import type { TrajectoryPreset } from '../../core/trajectory/presets/build';
 import { StudioAnalysis } from './studio-analysis';
 import { TaskController } from './task/controller';
+import { PilotController } from './pilot/controller';
 import { wireTeardownHud } from './tour/wire';
 import { bindPicking } from './viewport-input';
 
@@ -38,6 +40,7 @@ export class Studio {
   readonly motion = new MotionPlayer();
   readonly analysis: StudioAnalysis;
   readonly task: TaskController;
+  readonly pilot: PilotController;
   readonly recorder: TrajectoryRecorder;
   physics: PhysicsMode | null = null;
   private readonly loader: RobotLoader;
@@ -50,10 +53,12 @@ export class Studio {
     this.loader = new RobotLoader(catalog);
     this.analysis = new StudioAnalysis(this);
     this.task = new TaskController(this);
+    this.pilot = new PilotController(this);
     this.recorder = new TrajectoryRecorder(this);
     const tick = frameLoop({
       store, bus: this.bus, overlays: this.overlays, ik: this.ik,
       session: () => this.session, physics: () => this.physics, motion: () => this.motion.clip, task: () => this.task.clip,
+      pilot: (s, dt) => this.pilot.step(s, dt),
       focusJoint: () => this.analysis.focusJoint(),
     });
     const hud = wireTeardownHud(this, host);
@@ -154,7 +159,7 @@ export class Studio {
     const n = limits.length;
     const q = !refit && keep.length === n ? keep.map((v, k) => Math.min(Math.max(v, limits[k][0]), limits[k][1])) : [...session.home];
     const focus = refit ? session.defaultFocus : Math.min(this.store.state.focus, session.limbs.length - 1);
-    this.viewport.setAssembly(session.assembly, session.base === 'fixed' ? 'bolted' : 'settle');
+    this.viewport.setAssembly(session.assembly, session.base === 'fixed' ? 'bolted' : 'settle', stanceOf(session));
     this.analysis.clearWorkspace();
     this.physics = new PhysicsMode(session);
     this.motion.load(session, q);

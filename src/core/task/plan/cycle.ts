@@ -14,8 +14,7 @@ export interface CycleInput {
   pick: Vec3;
   place: Vec3;
   object: TaskObject;
-  floorZ: number;
-  /** Clearance over the object's top while carrying (m). */
+  /** Clearance over the object's top while carrying (m); the carry clears the higher spot. */
   lift: number;
   /** Centre the carry arc swings around (the arm's base). */
   base: Vec3;
@@ -32,11 +31,14 @@ function arcPoint(a: Vec3, b: Vec3, base: Vec3, u: number, z: number): Vec3 {
 
 export function planCycle(c: CycleInput): TaskClip | PlanProblem {
   const { ctx, object: o } = c;
-  const graspZ = c.floorZ + o.graspZ, aboveZ = c.floorZ + o.graspZ + o.size[2] + c.lift;
+  // p[2] is the surface the object stands on, not the grasp height.
+  const aboveZ = Math.max(c.pick[2], c.place[2]) + o.graspZ + o.size[2] + c.lift;
   const descent = (p: Vec3, from: number[], where: 'pick' | 'place'): number[][] | PlanProblem => {
     const qs: number[][] = [];
-    for (let k = 0; k <= 3; k++) {
-      const q = solveAt(ctx, [p[0], p[1], aboveZ + ((graspZ - aboveZ) * k) / 3], qs.at(-1) ?? from);
+    const graspZ = p[2] + o.graspZ;
+    const steps = Math.min(8, Math.max(3, Math.ceil((3 * (aboveZ - graspZ)) / (o.size[2] + c.lift))));
+    for (let k = 0; k <= steps; k++) {
+      const q = solveAt(ctx, [p[0], p[1], aboveZ + ((graspZ - aboveZ) * k) / steps], qs.at(-1) ?? from);
       if (!q) return { where, message: k ? `The tool cannot reach down to the ${where} spot` : `The ${where} spot is out of reach` };
       qs.push(q);
     }
@@ -56,7 +58,7 @@ export function planCycle(c: CycleInput): TaskClip | PlanProblem {
   const rev = (qs: number[][]) => [...qs].reverse();
   const move = (qs: number[][], g: number): Segment => ({ qs, gap: [g, g], duration: moveTime(qs) });
   const dwell = (q: number[], g0: number, g1: number, duration = 0.45): Segment => ({ qs: [q], gap: [g0, g1], duration });
-  const [gA, gB, { open, hold }] = [dA[3], dB[3], o];
+  const [gA, gB, { open, hold }] = [dA[dA.length - 1], dB[dB.length - 1], o];
   const segments = [
     move([c.home, dA[0]], open), move(dA, open), dwell(gA, open, hold),
     move(rev(dA), hold), move(arc, hold), move(dB, hold), dwell(gB, hold, open),
@@ -66,9 +68,9 @@ export function planCycle(c: CycleInput): TaskClip | PlanProblem {
   ];
   const line = timeline(segments);
   const [tGrasp1, tRelease1, tGrasp2, tRelease2] = [line.starts[3], line.starts[6], line.starts[11], line.starts[14]];
-  const atA = restingPose(ctx, gA, o, c.floorZ);
+  const atA = restingPose(ctx, gA, o, c.pick[2]);
   const off1 = heldOffset(ctx, gA, atA);
-  const atB = settle(ctx, gB, off1, o, c.floorZ);
+  const atB = settle(ctx, gB, off1, o, c.place[2]);
   const off2 = heldOffset(ctx, gB, atB);
   return {
     period: line.period,

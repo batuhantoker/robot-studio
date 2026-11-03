@@ -1,5 +1,6 @@
 /** Every end effector at once: tool position and conditioning per limb; click to focus a limb. */
 import type { Snapshot } from '../../app/live/bus';
+import { limbLabel } from '../../app/robots/body';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
 import { mm, num } from '../dom/format';
@@ -18,8 +19,8 @@ export function effectorTable(store: Store<StudioState>) {
         return h('tr', {
           class: `${i === s.focus ? 'on' : ''} ${d.nearSingular ? 'warn' : ''}`,
           onclick: () => store.set({ focus: i }),
-          title: d.nearSingular ? 'Near a singularity' : `${limb.chain.joints.length} DOF`,
-        }, h('td', {}, limb.name), h('td', {}, tip.map((v) => mm(v, 0)).join(' ')),
+          title: `${limb.name} · ${d.nearSingular ? 'near a singularity' : `${limb.chain.joints.length} DOF`}`,
+        }, h('td', {}, limbLabel(s.session, i)), h('td', {}, tip.map((v) => mm(v, 0)).join(' ')),
         h('td', {}, num(d.svd.manipulability * 1e3, 1)), h('td', {}, num(d.svd.condition, 1)));
       }));
     },

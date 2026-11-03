@@ -1,189 +1,55 @@
 /**
- * What stands around the robot: nothing, a desk it is bolted to, or a small production cell (safety fence,
- * light curtain, conveyor with parcels, hazard tape). Everything is sized from the robot's own radius.
+ * What stands around the robot, from nothing to a whole warehouse aisle, sized from the robot's own radius.
+ * Moving parts run on a scenery clock advanced with each frame, so rendered video shows them too.
  */
 import * as THREE from 'three';
+import { buildCell } from './scenery/cell';
+import { buildDesk } from './scenery/desk';
+import { type Scenery, type Stance, dispose } from './scenery/kit';
+import { buildLab } from './scenery/lab';
+import { buildMachine } from './scenery/machine';
+import { buildWarehouse } from './scenery/warehouse';
 
-export type EnvironmentId = 'open' | 'desk' | 'cell';
+export type EnvironmentId = 'open' | 'desk' | 'lab' | 'cell' | 'machine' | 'warehouse';
 
-export const ENVIRONMENTS: [EnvironmentId, string][] = [['open', 'Open'], ['desk', 'Desk'], ['cell', 'Work cell']];
+export const ENVIRONMENTS: [EnvironmentId, string][] = [
+  ['open', 'Open'], ['desk', 'Desk'], ['lab', 'Lab bench'], ['cell', 'Work cell'], ['machine', 'Machining'], ['warehouse', 'Warehouse'],
+];
 
-const YELLOW = '#f2b51d';
+/** A table's height: in proportion to the robot, but always a table. */
+const tableHeight = (s: number) => Math.min(Math.max(1.6 * s, 0.45), 0.78);
 
-function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  draw(c.getContext('2d')!);
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 8;
-  return t;
-}
-
-// Welded wire mesh: opaque wires, open cells.
-const meshAlpha = () => canvasTexture(64, 64, (g) => {
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, 64, 64);
-  g.fillStyle = '#fff';
-  g.fillRect(0, 0, 64, 5);
-  g.fillRect(0, 0, 5, 64);
-});
-
-const hazard = () => {
-  const t = canvasTexture(64, 16, (g) => {
-    g.fillStyle = YELLOW;
-    g.fillRect(0, 0, 64, 16);
-    g.fillStyle = '#17191c';
-    for (let x = -16; x < 64; x += 16) {
-      g.beginPath();
-      g.moveTo(x, 16);
-      g.lineTo(x + 8, 16);
-      g.lineTo(x + 16, 0);
-      g.lineTo(x + 8, 0);
-      g.closePath();
-      g.fill();
-    }
-  });
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+/** For a standing robot, `s` is a person-sized workplace unit from the bench height instead of the robot's radius. */
+const KINDS: Record<Exclude<EnvironmentId, 'open'>, { build(s: number, drop: number, stance?: Stance): Scenery; raised: boolean; extent: number }> = {
+  desk: { build: buildDesk, raised: true, extent: 2.2 },
+  lab: { build: buildLab, raised: true, extent: 2.2 },
+  cell: { build: buildCell, raised: false, extent: 3.7 },
+  machine: { build: buildMachine, raised: false, extent: 3 },
+  warehouse: { build: buildWarehouse, raised: false, extent: 3.7 },
 };
-
-const box = (w: number, d: number, h: number, m: THREE.Material) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, d, h), m);
-  mesh.castShadow = mesh.receiveShadow = true;
-  return mesh;
-};
-
-/** Built once per size; `s` is the robot's bounding radius. */
-function buildDesk(s: number, height: number): THREE.Group {
-  const g = new THREE.Group();
-  const top = new THREE.MeshStandardMaterial({ color: '#d9c4a3', roughness: 0.55, metalness: 0 });
-  const steel = new THREE.MeshStandardMaterial({ color: '#4a4f56', roughness: 0.4, metalness: 0.75 });
-  const w = 2.9 * s, d = 1.7 * s, t = Math.max(0.025, 0.06 * s);
-  const cx = 0.55 * s;
-  const slab = box(w, d, t, top);
-  slab.position.set(cx, 0, -t / 2);
-  g.add(slab);
-  const leg = Math.max(0.03, 0.07 * s);
-  for (const [x, y] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
-    const l = box(leg, leg, height - t, steel);
-    l.position.set(cx + x * (w / 2 - leg), y * (d / 2 - leg), -t - (height - t) / 2);
-    g.add(l);
-  }
-  // A rail along the back stiffens the frame and reads as furniture rather than a plank.
-  const rail = box(w - 2 * leg, leg * 0.6, leg * 1.4, steel);
-  rail.position.set(cx, d / 2 - leg, -t - leg);
-  g.add(rail);
-  return g;
-}
-
-function buildCell(s: number, seeThrough: THREE.Group): THREE.Group {
-  const g = new THREE.Group();
-  const yellow = new THREE.MeshStandardMaterial({ color: YELLOW, roughness: 0.45, metalness: 0.2 });
-  const wire = new THREE.MeshStandardMaterial({
-    color: '#2f3338', roughness: 0.5, metalness: 0.6, alphaMap: meshAlpha(), alphaTest: 0.5, side: THREE.DoubleSide,
-  });
-  const alu = new THREE.MeshStandardMaterial({ color: '#b9bec4', roughness: 0.35, metalness: 0.8 });
-  const rubber = new THREE.MeshStandardMaterial({ color: '#25282c', roughness: 0.92, metalness: 0 });
-  const card = new THREE.MeshStandardMaterial({ color: '#c39a6b', roughness: 0.85, metalness: 0 });
-
-  const a = 2.3 * s; // half-size of the fenced square
-  const h = 2.4 * s; // fence height
-  const post = Math.max(0.02, 0.055 * s);
-  const cw = 0.5 * s; // conveyor width
-  const cy = 1.3 * s; // conveyor centre line (y): behind the robot from the default view, within reach
-  const ch = 0.5 * s; // belt height
-  const gap = [cy - cw / 2 - post, cy + cw / 2 + post];
-
-  const panel = (x0: number, y0: number, x1: number, y1: number) => {
-    const len = Math.hypot(x1 - x0, y1 - y0);
-    if (len < post * 2) return;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(len, h * 0.86), wire);
-    const uv = m.geometry.attributes.uv as THREE.BufferAttribute;
-    const cells = (len / (h * 0.86)) * 18;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * cells, uv.getY(i) * 18);
-    m.position.set((x0 + x1) / 2, (y0 + y1) / 2, h * 0.07 + (h * 0.86) / 2);
-    m.rotation.set(Math.PI / 2, Math.atan2(y1 - y0, x1 - x0), 0, 'ZXY');
-    seeThrough.add(m);
-    for (const z of [h * 0.07, h * 0.93]) {
-      const r = box(len, post * 0.5, post * 0.5, yellow);
-      r.position.set((x0 + x1) / 2, (y0 + y1) / 2, z);
-      r.rotation.z = Math.atan2(y1 - y0, x1 - x0);
-      g.add(r);
-    }
-  };
-  const upright = (x: number, y: number, tall = h) => {
-    const p = box(post, post, tall, yellow);
-    p.position.set(x, y, tall / 2);
-    g.add(p);
-  };
-
-  // Fence on the two far sides (-x, +y); the near sides stay open to the camera, as a cutaway would,
-  // marked only by tape (a post at the near corner would stand in the default line of sight).
-  // The conveyor leaves through a gap in the -x side.
-  panel(-a, -a, -a, gap[0]);
-  panel(-a, gap[1], -a, a);
-  panel(-a, a, a, a);
-  for (const [x, y] of [[-a, -a], [-a, gap[0]], [-a, gap[1]], [-a, a], [a, a]]) upright(x, y);
-
-  // Conveyor along x: from outside the fence, past the robot, out of the open side.
-  const x0 = -a - 1.3 * s, x1 = a + 0.9 * s;
-  const len = x1 - x0, mid = (x0 + x1) / 2;
-  const belt = box(len, cw, 0.035 * s, rubber);
-  belt.position.set(mid, cy, ch);
-  g.add(belt);
-  for (const side of [-1, 1]) {
-    const rail = box(len, 0.04 * s, 0.13 * s, alu);
-    rail.position.set(mid, cy + side * (cw / 2 + 0.02 * s), ch - 0.025 * s);
-    g.add(rail);
-    for (let i = 0; i <= 4; i++) {
-      const leg = box(0.04 * s, 0.04 * s, ch - 0.08 * s, alu);
-      leg.position.set(x0 + 0.15 * s + ((len - 0.3 * s) * i) / 4, cy + side * (cw / 2), (ch - 0.08 * s) / 2);
-      g.add(leg);
-    }
-  }
-  for (const x of [x0, x1]) {
-    const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.05 * s, cw, 24), alu);
-    drum.position.set(x, cy, ch - 0.015 * s);
-    drum.castShadow = true;
-    g.add(drum);
-  }
-  for (const [x, w, d, t] of [[-2.9, 0.24, 0.22, 0.17], [-1.1, 0.2, 0.26, 0.14], [0.8, 0.26, 0.2, 0.18], [2.6, 0.22, 0.24, 0.15]]) {
-    const p = box(w * s, d * s, t * s, card);
-    p.position.set(x * s, cy + (x > 0 ? 0.03 : -0.04) * s, ch + 0.018 * s + (t * s) / 2);
-    p.rotation.z = x * 0.06;
-    g.add(p);
-  }
-
-  // Hazard tape around the cell.
-  const tape = new THREE.MeshStandardMaterial({ map: hazard(), roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -4 });
-  const tw = 0.1 * s;
-  for (const [x, y, l, rot] of [[0, -a - tw, 2 * a + 2 * tw, 0], [0, a + tw, 2 * a + 2 * tw, 0], [-a - tw, 0, 2 * a, Math.PI / 2], [a + tw, 0, 2 * a, Math.PI / 2]] as const) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(l, tw), tape.clone());
-    const map = (m.material as THREE.MeshStandardMaterial).map!.clone();
-    map.repeat.set(l / (tw * 4), 1);
-    (m.material as THREE.MeshStandardMaterial).map = map;
-    m.position.set(x, y, 0.0005);
-    m.rotation.z = rot;
-    m.receiveShadow = true;
-    g.add(m);
-  }
-  return g;
-}
 
 export interface Environment {
   group: THREE.Group;
-  /** Wire mesh: AO would treat it as a solid wall and shade what is seen through it. */
+  /** Wire mesh and glass: AO would treat them as solid and shade what is seen through them. */
   seeThrough: THREE.Group;
   id: EnvironmentId;
-  /** How far below the robot's base the floor sits (a desk's height). */
+  /** How far below the robot's base the floor sits (a table's height). */
   drop: number;
   /** Half-width of the ground the setting covers, for the shadow frustum. */
   extent: number;
-  fit(radius: number, floorZ: number): void;
+  /** Whether the scenery clock runs. */
+  motion: boolean;
+  fit(radius: number, floorZ: number, stance?: Stance): void;
   apply(id: EnvironmentId): void;
+  update(dt: number): void;
+  /** Highest still scenery top at (x, y) at or below `z`, else the floor. */
+  supportBelow(x: number, y: number, z: number): number;
+  /** Where a ray first meets still scenery, and whether that is a top a spot can stand on. */
+  hit(ray: THREE.Ray): { point: THREE.Vector3; top: boolean } | null;
 }
+
+/** Moving parts and floor paint are never where a spot stands. */
+const skipped = (o: THREE.Object3D | null): boolean => !!o && (o.userData.moving === true || o.userData.marking === true || skipped(o.parent));
 
 export function createEnvironment(): Environment {
   const group = new THREE.Group();
@@ -191,32 +57,84 @@ export function createEnvironment(): Environment {
   let id: EnvironmentId = 'open';
   let radius = 0.5;
   let floorZ = 0;
+  let stance: Stance | undefined;
+  let time = 0;
+  let built: Scenery | null = null;
+  const caster = new THREE.Raycaster();
+
+  const hits = (ray: THREE.Ray) => {
+    group.updateMatrixWorld(true);
+    caster.ray.copy(ray);
+    caster.far = Infinity;
+    return caster.intersectObject(group, true).filter((h) => !skipped(h.object));
+  };
+  const toWorld = new THREE.Matrix4(), instance = new THREE.Matrix4();
+  const up = (h: THREE.Intersection) => {
+    const n = h.face?.normal;
+    if (!n) return false;
+    toWorld.copy(h.object.matrixWorld);
+    if (h.instanceId !== undefined) {
+      (h.object as THREE.InstancedMesh).getMatrixAt(h.instanceId, instance);
+      toWorld.multiply(instance);
+    }
+    return n.clone().transformDirection(toWorld).z > 0.9;
+  };
+
   const env: Environment = {
     group,
     seeThrough,
     id,
     drop: 0,
     extent: 0,
-    fit(r, z) {
+    motion: true,
+    fit(r, z, st) {
+      if (Math.abs(r - radius) < 1e-9 && Math.abs(z - floorZ) < 1e-9 && JSON.stringify(st) === JSON.stringify(stance) && built) return;
       radius = Math.max(r, 0.05);
       floorZ = z;
+      stance = st;
       rebuild();
     },
     apply(next) {
       id = env.id = next;
       rebuild();
     },
+    update(dt) {
+      // A hidden tab resumes with one long frame; don't jump the scenery by it.
+      if (env.motion) time += Math.min(Math.max(dt, 0), 0.1);
+      built?.pose?.(time);
+    },
+    supportBelow(x, y, z) {
+      const ground = floorZ - env.drop;
+      if (!built) return ground;
+      const tol = 0.002 * radius;
+      const top = hits(new THREE.Ray(new THREE.Vector3(x, y, z + tol), new THREE.Vector3(0, 0, -1)))[0];
+      return top ? Math.max(top.point.z, ground) : ground;
+    },
+    hit(ray) {
+      const first = built ? hits(ray)[0] : undefined;
+      return first ? { point: first.point.clone(), top: up(first) } : null;
+    },
   };
   const rebuild = () => {
     for (const c of [...group.children, ...seeThrough.children]) {
       c.removeFromParent();
-      c.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+      dispose(c);
     }
-    env.drop = id === 'desk' ? Math.min(Math.max(1.6 * radius, 0.45), 0.78) : 0;
-    env.extent = id === 'cell' ? 3.7 * radius : id === 'desk' ? 2.2 * radius : 0;
-    const built = id === 'desk' ? buildDesk(radius, env.drop) : id === 'cell' ? buildCell(radius, seeThrough) : null;
-    if (built) group.add(built);
+    built = null;
+    const kind = id === 'open' ? null : KINDS[id];
+    const standing = !!stance?.standing;
+    // A raised setting's unit puts its table at the bench height, as tableHeight does for a bolted robot.
+    const s = standing && stance ? stance.hand / 1.6 : radius;
+    env.drop = kind?.raised && !standing ? tableHeight(radius) : 0;
+    env.extent = kind ? kind.extent * Math.max(s, radius) : 0;
+    if (kind) {
+      built = kind.build(s, kind.raised && standing ? stance!.hand : env.drop, stance);
+      group.add(built.group);
+      for (const o of built.seeThrough ?? []) seeThrough.add(o);
+      built.pose?.(time);
+    }
     group.position.z = seeThrough.position.z = floorZ;
+    group.rotation.z = seeThrough.rotation.z = stance?.facing ?? 0;
   };
   return env;
 }

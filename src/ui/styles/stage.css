@@ -8,6 +8,10 @@
 .stage-settings[hidden] { display: none; }
 .stage-settings h4 { margin: 0 0 8px; font: 700 9.6px var(--sans); letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink); }
 .stage-settings h4 + .swatches { margin-bottom: 14px; }
+.stage-settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.stage-settings-head h4 { margin: 0; }
+.stage-settings-head + .swatches { margin-bottom: 14px; }
+.scenery-motion { height: 20px; padding: 0 8px; font-size: 8.4px; }
 .stage-settings .hint { margin: 2px 0 0; max-width: 290px; color: var(--mute); font-size: 10.5px; line-height: 1.45; }
 
 .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
@@ -28,3 +32,24 @@
 .render-meter i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.12s linear; }
 .render-card .row.spread span { font: 500 11px var(--mono); color: var(--mute); }
 .render-card .row.spread b { color: var(--ink); font-weight: 600; }
+
+/* Robots on the stage: a second button left of the gear, and its list. */
+.stage-gear.stage-robots { right: 56px; }
+.scene-panel .stage-settings-head .row { gap: 8px; align-items: center; }
+.scene-list { border-top: 1px solid var(--line); margin-bottom: 10px; }
+.scene-robot { border-bottom: 1px solid #eef0f2; border-left: 2px solid transparent; }
+.scene-robot.on { background: #fff; border-left-color: var(--accent); }
+.scene-robot-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 8px; cursor: pointer; }
+.scene-robot.on .scene-robot-head { cursor: default; }
+.scene-robot-head:hover { background: #fff; }
+.scene-remove { width: 22px; height: 22px; padding: 0; border: 1px solid transparent; background: none; color: var(--mute); font-size: 15px; line-height: 1; cursor: pointer; }
+.scene-remove:hover { border-color: var(--line); color: var(--ink); }
+.scene-base { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 8px 8px; }
+.scene-base label { display: flex; flex-direction: column; gap: 3px; font: 600 8.8px var(--sans); letter-spacing: 0.9px; text-transform: uppercase; color: var(--mute); }
+.scene-base .num { width: 100%; }
+.scene-actions { gap: 6px; margin-bottom: 8px; }
+.scene-picker[hidden] { display: none; }
+.scene-picker .search { width: 100%; margin-bottom: 6px; }
+.scene-results { max-height: 240px; overflow-y: auto; margin: 0 0 8px; }
+.scene-results .robot-row.off { opacity: 0.4; pointer-events: none; }
+.scene-panel [hidden] { display: none; }

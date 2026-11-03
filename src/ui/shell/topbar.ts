@@ -6,10 +6,11 @@ import { segmented } from '../widgets/segmented';
 import markUrl from '../brand/mark.svg';
 
 const MODES: [Mode, string][] = [
-  ['pose', 'Pose'], ['motion', 'Motion'], ['task', 'Pick & place'], ['ik', 'Inverse kin.'], ['trajectory', 'Trajectory'], ['physics', 'Physics'], ['workspace', 'Workspace'],
+  ['pose', 'Pose'], ['motion', 'Motion'], ['pilot', 'Pilot'], ['task', 'Pick & place'], ['ik', 'Inverse kin.'], ['trajectory', 'Trajectory'], ['physics', 'Physics'], ['workspace', 'Workspace'],
 ];
 
-export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf: () => [string, string], extra: HTMLElement): void {
+/** `enabled` greys out modes the loaded robot cannot use (Pilot needs legs or wheels). */
+export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf: () => [string, string], extra: HTMLElement, enabled: (m: Mode) => boolean = () => true): void {
   const title = h('div.robot-title');
   const modes = segmented(MODES, store.state.mode, (mode) => store.set({ mode, playing: mode === 'trajectory' || mode === 'physics' || mode === 'motion' || mode === 'task' }));
   const tour = h('div.tourchip.cap', { onclick: () => store.set({ touring: !store.state.touring }) }, h('i'), 'Auto tour');
@@ -18,8 +19,12 @@ export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf:
     const [name, detail] = titleOf();
     replace(title, name, h('small.mu', {}, detail));
     modes.set(store.state.mode);
+    for (const b of modes.el.querySelectorAll<HTMLButtonElement>('button')) {
+      b.disabled = !enabled(b.dataset.v as Mode);
+      b.title = b.disabled && b.dataset.v === 'pilot' ? 'Pilot needs a robot with legs or wheels' : '';
+    }
     tour.classList.toggle('on', store.state.touring);
   };
-  store.on(['activeId', 'mode', 'touring', 'loading', 'draft'], render);
+  store.on(['activeId', 'mode', 'touring', 'loading', 'draft', 'sessionVersion'], render);
   render();
 }

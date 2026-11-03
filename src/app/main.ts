@@ -15,11 +15,13 @@ import { mountMobileDock } from '@/ui/shell/mobile/dock';
 import { createLayout } from '@/ui/shell/layout';
 import { initialState } from './bootstrap/initial-state';
 import { mountPanels } from './bootstrap/mount-panels';
+import { bindScene } from './controller/scene';
 import { Studio } from './controller/studio';
 import { catalog, loadCatalog } from './robots/catalog';
 import { Store } from './state/store';
 
 const store = new Store(initialState(await loadCatalog()));
+bindScene(store);
 const layout = createLayout(document.getElementById('app')!);
 const studio = new Studio(layout.stage, store, catalog, (s) => layout.setLoading(s));
 mountPanels(layout, studio);

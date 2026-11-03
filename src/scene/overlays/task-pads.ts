@@ -1,4 +1,4 @@
-/** Pick and place pads on the floor, the reachable spots as faint dots, and a floor-bound move gizmo. */
+/** Pick and place pads where objects stand, the reachable spots as faint dots, and a move gizmo with a height arrow. */
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import type { Vec3 } from '../../core/math/linear/vec';
@@ -29,13 +29,13 @@ export class TaskPads {
   private readonly pads: Record<Spot, THREE.Group> = { pick: pad(COLOR.pick), place: pad(COLOR.place) };
   private readonly handle = new THREE.Object3D();
   private dots = new THREE.Group();
-  private floorZ = 0;
   selected: Spot = 'pick';
+  /** Height a dragged spot settles at: kept above the floor, and caught by a surface when lowered onto it. */
+  limit: (p: Vec3, vertical: boolean) => number = (p) => p[2];
 
   constructor(stage: Stage, onMove: (spot: Spot, p: Vec3, done: boolean) => void) {
     this.gizmo = new TransformControls(stage.camera, stage.renderer.domElement);
     this.gizmo.setSize(0.6);
-    this.gizmo.showZ = false;
     this.gizmo.attach(this.handle);
     this.gizmo.addEventListener('dragging-changed', (e) => {
       const dragging = (e as unknown as { value: boolean }).value;
@@ -43,26 +43,25 @@ export class TaskPads {
       if (!dragging) onMove(this.selected, this.at(), true);
     });
     this.gizmo.addEventListener('objectChange', () => {
-      this.handle.position.z = this.floorZ;
+      this.handle.position.z = this.limit(this.at(), !!this.gizmo.axis?.includes('Z'));
       onMove(this.selected, this.at(), false);
     });
     this.group.add(this.dots, this.pads.pick, this.pads.place, this.handle, this.gizmo.getHelper());
   }
 
-  private at = (): Vec3 => [this.handle.position.x, this.handle.position.y, this.floorZ];
+  private at = (): Vec3 => [this.handle.position.x, this.handle.position.y, this.handle.position.z];
 
-  /** `bad` marks the spot the plan failed at in the accent colour. */
-  setSpots(pick: Vec3 | null, place: Vec3 | null, radius: number, floorZ: number, bad: Spot | null): void {
-    this.floorZ = floorZ;
+  /** Each pad lies on its spot's own surface; `bad` marks the spot the plan failed at in the accent colour. */
+  setSpots(pick: Vec3 | null, place: Vec3 | null, radius: number, bad: Spot | null): void {
     for (const [spot, p] of [['pick', pick], ['place', place]] as [Spot, Vec3 | null][]) {
       const g = this.pads[spot];
       g.visible = !!p;
-      if (p) g.position.set(p[0], p[1], floorZ + radius * 0.01);
+      if (p) g.position.set(p[0], p[1], p[2] + radius * 0.01);
       g.scale.setScalar(radius);
       for (const m of g.children as THREE.Mesh[]) (m.material as THREE.MeshBasicMaterial).color.set(spot === bad ? PALETTE.accent : COLOR[spot]);
     }
     const sel = this.selected === 'pick' ? pick : place;
-    if (sel && !this.gizmo.dragging) this.handle.position.set(sel[0], sel[1], floorZ);
+    if (sel && !this.gizmo.dragging) this.handle.position.set(sel[0], sel[1], sel[2]);
   }
 
   setReach(cells: ReachCell[], size: number): void {

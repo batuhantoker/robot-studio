@@ -2,6 +2,7 @@
 import { jog } from '../../app/collision/jog';
 import type { Snapshot } from '../../app/live/bus';
 import { setStopJoint } from '../../app/controller/stops';
+import { limbLabel } from '../../app/robots/body';
 import type { RobotSession } from '../../app/robots/session';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
@@ -16,7 +17,7 @@ function groups(s: RobotSession): { title: string; limb: number; joints: number[
   const out = shared.size ? [{ title: 'Shared', limb: -1, joints: [...shared].sort((a, b) => a - b) }] : [];
   s.limbs.forEach((l, i) => {
     const own = l.index.filter((j) => !placed.has(j) && placed.add(j));
-    if (own.length) out.push({ title: s.limbs.length > 1 ? l.name : '', limb: i, joints: own });
+    if (own.length) out.push({ title: s.limbs.length > 1 ? limbLabel(s, i) : '', limb: i, joints: own });
   });
   return out;
 }

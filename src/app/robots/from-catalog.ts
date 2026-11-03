@@ -2,6 +2,7 @@
 import { buildMjcfAssembly } from '../../cad/assembly/mjcf/build';
 import { chainFrames } from '../../core/chain/kinematics/frames';
 import { limbQ, mergeLimbs } from '../../core/chain/limbs/types';
+import { bodyOf } from '../../core/motion/body';
 import type { Vec3 } from '../../core/math/linear/vec';
 import { jointTorqueLimits } from '../../physics/extract/actuators';
 import { modelChecker } from '../../physics/collision/from-model';
@@ -50,12 +51,14 @@ export async function sessionFromCatalog(robot: CatalogRobot, onProgress?: (d: n
   const home = qposAdr.map((adr, k) => Math.min(Math.max(rest[adr], joints[k].limits[0]), joints[k].limits[1]));
   const reach = Math.max(0.2, ...limbs.map((l) => Math.hypot(...chainFrames(l.chain, limbQ(l, home)).tip.p)));
   const assembly = buildMjcfAssembly(handle, readBodies(handle), models, reach);
-  const focus = Math.max(0, specs.findIndex((c) => sameChain(c, robot.chain)));
+  // Open on an arm (the right one of a pair) rather than whichever leg or wheel the manifest lists first.
+  const parts = bodyOf({ joints, limbs }, home, robot.category ?? 'arm').parts;
+  const arm = parts.find((p) => p.kind === 'arm' && p.side === 'right') ?? parts.find((p) => p.kind === 'arm');
+  const focus = arm?.limb ?? Math.max(0, specs.findIndex((c) => sameChain(c, robot.chain)));
   const base = robot.base ?? 'fixed';
-  if (base === 'fixed') {
-    kinematicsAt(handle, rest, qposAdr, home);
-    assembly.floorZ = restingFloorZ(assembly, limbs.map((l) => chainFrames(l.chain, limbQ(l, home))));
-  }
+  // Settled bases rest on this floor too, so the robot's frame and the world agree at home.
+  kinematicsAt(handle, rest, qposAdr, home);
+  assembly.floorZ = restingFloorZ(assembly, limbs.map((l) => chainFrames(l.chain, limbQ(l, home))));
   // Robots that settle on the ground are lifted onto it every frame; only bolted ones can dig in.
   const collision = modelChecker(handle, { qposAdr, rest, home, floorZ: base === 'fixed' ? assembly.floorZ : null, tol: contactTol(reach) });
   return {

@@ -51,8 +51,10 @@ export function readMesh(h: ModelHandle, id: number): MeshBuffers {
   const m = arrays(h.model);
   const v0 = m.mesh_vertadr[id], nv = m.mesh_vertnum[id];
   const f0 = m.mesh_faceadr[id], nf = m.mesh_facenum[id];
+  // Every read of these bindings builds a new heap view, so read each once and copy the slice.
+  const vert = m.mesh_vert as Float32Array, face = m.mesh_face as Int32Array;
   return {
-    vertices: Float32Array.from({ length: nv * 3 }, (_, i) => m.mesh_vert[v0 * 3 + i]),
-    faces: Uint32Array.from({ length: nf * 3 }, (_, i) => m.mesh_face[f0 * 3 + i]),
+    vertices: vert.slice(3 * v0, 3 * (v0 + nv)),
+    faces: Uint32Array.from(face.subarray(3 * f0, 3 * (f0 + nf))),
   };
 }
