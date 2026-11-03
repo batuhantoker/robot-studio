@@ -11,7 +11,6 @@ the Python package, so they may use any joint kind.
 | `irb120` | ABB IRB 120 datasheet DH (290/270/70/302/72 mm) | 6 revolute |
 | `puma560` | Corke's PUMA 560 standard DH, 56 mm flange, 0.66 m pedestal | 6 revolute |
 | `scara` | Epson LS6-B602S proportions: 325 + 275 mm arms, 200 mm quill | 3 revolute, 1 prismatic |
-| `cartesian_gantry` | CNC router layout: X/Y/Z axes and a spindle | 3 prismatic, 1 revolute |
 | `stanford_arm` | Scheinman's 1969 Stanford arm: 412 mm column, 154 mm shoulder offset | 2 revolute, 1 prismatic, 1 spherical |
 | `mobile_manipulator` | A home-robot layout: drive base, lift mast, telescoping arm, wrist | planar, 2 prismatic, 3 revolute |
 | `so101` | Zero-pose anchors and axes of MuJoCo Menagerie's `so101.xml` | 5 revolute |

@@ -53,7 +53,7 @@ function dhTip({ conv, rows, flange, pre }: Dh, q: number[]): number[] {
 
 describe('studio presets', () => {
   it('every file parses as a robot', () => {
-    expect(ids.length).toBeGreaterThanOrEqual(11);
+    expect(ids.length).toBeGreaterThanOrEqual(10);
     for (const id of ids) expect(spec(id).name).toBe(id);
   });
 
