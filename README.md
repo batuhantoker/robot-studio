@@ -103,6 +103,14 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
     windings, magnet rotor, strain-wave gear, bearings and encoder; a ball-screw axis;
     a telescoping sleeve; a Cardan yoke; a ball and socket; an XY stage.
   - Robots are saved in the browser and export as Python JSON, studio JSON or MJCF.
+- **16 presets, ready to pose and edit.**
+  - Five real arms are built from their published DH tables, and a test checks each
+    against its table: UR5e, Franka Panda, KUKA iiwa 14, ABB IRB 120 and PUMA 560.
+  - Classic layouts: a SCARA, the Stanford arm with its telescoping boom, and a
+    Cartesian gantry.
+  - Newer machines: a home-robot mobile manipulator, LeRobot's SO-101 and a
+    humanoid arm with spherical shoulder and wrist.
+  - Sources are listed in [`presets/studio`](presets/studio/README.md).
 - **Motion.** One-click motions matched to the loaded robot:
   - circle, figure 8 and pick-and-place for arms;
   - trot, walk or tripod gaits for legged robots;
@@ -127,7 +135,8 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - the equations of motion and the control law.
 - **Analysis tab.**
   - IK against a draggable target, with the solver iterations replayed.
-  - Quintic trajectories with joint, speed and torque profiles.
+  - Quintic trajectories with joint, speed and torque profiles. Render one pass to an
+    MP4 or WebM video, or export the samples (t, q, qd, qdd, tool path) as CSV or JSON.
   - Live MuJoCo tracking with requested and applied torque, tracking error and
     saturation.
   - Workspace and limits, as described above.

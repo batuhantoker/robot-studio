@@ -1,8 +1,8 @@
-/** Example robots vendored from the 4-DOF study (see presets/serial-arm/PROVENANCE.md). */
+/** Example robots: vendored from the 4-DOF study (presets/serial-arm) and the studio's own (presets/studio). */
 import { parseRobot } from '@/core/robot/schema/parse';
 import type { RobotSpec } from '@/core/robot/schema/types';
 
-const files = import.meta.glob<Record<string, unknown>>('../../../presets/serial-arm/*.json', {
+const files = import.meta.glob<Record<string, unknown>>(['../../../presets/serial-arm/*.json', '../../../presets/studio/*.json'], {
   eager: true,
   import: 'default',
 });

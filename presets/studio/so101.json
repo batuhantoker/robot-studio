@@ -1,0 +1,137 @@
+{
+  "name": "so101",
+  "units": "SI",
+  "base": [
+    0.0,
+    0.0,
+    0.0624
+  ],
+  "tool": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_mass": 0.05,
+  "links": [
+    {
+      "name": "shoulder_pan",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "offset": [
+        0.0304,
+        -0.0183,
+        0.0542
+      ],
+      "mass": 0.1,
+      "limits": [
+        -1.92,
+        1.92
+      ],
+      "radius": 0.018,
+      "damping": 0.05,
+      "armature": 0.01,
+      "torque_limit": 2.94,
+      "kp": 12,
+      "kd": 1.2
+    },
+    {
+      "name": "shoulder_lift",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.028,
+        0.0,
+        0.1126
+      ],
+      "mass": 0.103,
+      "limits": [
+        -1.745,
+        1.745
+      ],
+      "radius": 0.018,
+      "damping": 0.05,
+      "armature": 0.01,
+      "torque_limit": 2.94,
+      "kp": 12,
+      "kd": 1.2
+    },
+    {
+      "name": "elbow_flex",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.1349,
+        0.0,
+        0.0052
+      ],
+      "mass": 0.104,
+      "limits": [
+        -1.69,
+        1.69
+      ],
+      "radius": 0.018,
+      "damping": 0.05,
+      "armature": 0.01,
+      "torque_limit": 2.94,
+      "kp": 12,
+      "kd": 1.2
+    },
+    {
+      "name": "wrist_flex",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.0611,
+        0.0181,
+        0.0
+      ],
+      "mass": 0.079,
+      "limits": [
+        -1.658,
+        1.658
+      ],
+      "radius": 0.018,
+      "damping": 0.05,
+      "armature": 0.01,
+      "torque_limit": 2.94,
+      "kp": 12,
+      "kd": 1.2
+    },
+    {
+      "name": "wrist_roll",
+      "axis": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "offset": [
+        0.0982,
+        -0.0008,
+        0.0119
+      ],
+      "mass": 0.087,
+      "limits": [
+        -2.744,
+        2.841
+      ],
+      "radius": 0.018,
+      "damping": 0.05,
+      "armature": 0.01,
+      "torque_limit": 2.94,
+      "kp": 12,
+      "kd": 1.2
+    }
+  ]
+}

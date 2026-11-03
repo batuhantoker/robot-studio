@@ -1,0 +1,114 @@
+{
+  "name": "scara",
+  "units": "SI",
+  "base": [
+    0.0,
+    0.0,
+    0.38
+  ],
+  "tool": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_mass": 0.5,
+  "links": [
+    {
+      "name": "j1",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.325,
+        0.0,
+        0.0
+      ],
+      "mass": 4.0,
+      "limits": [
+        -2.3038,
+        2.3038
+      ],
+      "radius": 0.06,
+      "damping": 1.0,
+      "armature": 0.3,
+      "torque_limit": 60,
+      "kp": 300,
+      "kd": 30
+    },
+    {
+      "name": "j2",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.275,
+        0.0,
+        0.0
+      ],
+      "mass": 3.0,
+      "limits": [
+        -2.618,
+        2.618
+      ],
+      "radius": 0.05,
+      "damping": 0.8,
+      "armature": 0.2,
+      "torque_limit": 30,
+      "kp": 200,
+      "kd": 20
+    },
+    {
+      "name": "quill",
+      "joint": "prismatic",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        -0.1
+      ],
+      "mass": 1.0,
+      "limits": [
+        0,
+        0.2
+      ],
+      "radius": 0.02,
+      "damping": 5.0,
+      "armature": 0.5,
+      "torque_limit": 150,
+      "kp": 800,
+      "kd": 80
+    },
+    {
+      "name": "u",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        -0.04
+      ],
+      "mass": 0.4,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "radius": 0.025,
+      "damping": 0.1,
+      "armature": 0.02,
+      "torque_limit": 2,
+      "kp": 10,
+      "kd": 1
+    }
+  ]
+}

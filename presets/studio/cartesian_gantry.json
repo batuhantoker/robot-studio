@@ -1,0 +1,116 @@
+{
+  "name": "cartesian_gantry",
+  "units": "SI",
+  "base": [
+    0.0,
+    0.0,
+    0.05
+  ],
+  "tool": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_mass": 0.0,
+  "links": [
+    {
+      "name": "x",
+      "joint": "prismatic",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.55
+      ],
+      "mass": 6.0,
+      "limits": [
+        -0.4,
+        0.4
+      ],
+      "radius": 0.04,
+      "damping": 20.0,
+      "armature": 2.0,
+      "torque_limit": 400,
+      "kp": 2000,
+      "kd": 200
+    },
+    {
+      "name": "y",
+      "joint": "prismatic",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass": 3.0,
+      "limits": [
+        -0.3,
+        0.3
+      ],
+      "radius": 0.035,
+      "damping": 15.0,
+      "armature": 1.5,
+      "torque_limit": 300,
+      "kp": 1500,
+      "kd": 150
+    },
+    {
+      "name": "z",
+      "joint": "prismatic",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        -0.15
+      ],
+      "mass": 2.0,
+      "limits": [
+        0,
+        0.3
+      ],
+      "radius": 0.03,
+      "damping": 15.0,
+      "armature": 1.5,
+      "torque_limit": 300,
+      "kp": 1500,
+      "kd": 150
+    },
+    {
+      "name": "spindle",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        -0.08
+      ],
+      "mass": 0.8,
+      "limits": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "radius": 0.03,
+      "damping": 0.05,
+      "armature": 0.02,
+      "torque_limit": 3,
+      "kp": 10,
+      "kd": 1
+    }
+  ]
+}

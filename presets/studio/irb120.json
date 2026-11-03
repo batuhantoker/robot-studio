@@ -1,0 +1,161 @@
+{
+  "name": "irb120",
+  "units": "SI",
+  "base": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "tool": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_mass": 0.3,
+  "links": [
+    {
+      "name": "axis1",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.29
+      ],
+      "mass": 3.067,
+      "limits": [
+        -2.8798,
+        2.8798
+      ],
+      "radius": 0.07,
+      "damping": 1.0,
+      "armature": 0.3,
+      "torque_limit": 60,
+      "kp": 300,
+      "kd": 30.0
+    },
+    {
+      "name": "axis2",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.27
+      ],
+      "mass": 3.909,
+      "limits": [
+        -1.9199,
+        1.9199
+      ],
+      "radius": 0.06,
+      "damping": 1.0,
+      "armature": 0.3,
+      "torque_limit": 60,
+      "kp": 300,
+      "kd": 30.0
+    },
+    {
+      "name": "axis3",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.07
+      ],
+      "mass": 2.944,
+      "limits": [
+        -1.9199,
+        1.2217
+      ],
+      "radius": 0.05,
+      "damping": 0.8,
+      "armature": 0.15,
+      "torque_limit": 30,
+      "kp": 150,
+      "kd": 15.0
+    },
+    {
+      "name": "axis4",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "offset": [
+        0.302,
+        0.0,
+        0.0
+      ],
+      "mass": 1.328,
+      "limits": [
+        -2.7925,
+        2.7925
+      ],
+      "radius": 0.04,
+      "damping": 0.3,
+      "armature": 0.05,
+      "torque_limit": 10,
+      "kp": 40,
+      "kd": 4.0
+    },
+    {
+      "name": "axis5",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass": 0.546,
+      "limits": [
+        -2.0944,
+        2.0944
+      ],
+      "radius": 0.035,
+      "damping": 0.3,
+      "armature": 0.05,
+      "torque_limit": 10,
+      "kp": 40,
+      "kd": 4.0
+    },
+    {
+      "name": "axis6",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "offset": [
+        0.072,
+        0.0,
+        0.0
+      ],
+      "mass": 0.137,
+      "limits": [
+        -6.9813,
+        6.9813
+      ],
+      "radius": 0.03,
+      "damping": 0.2,
+      "armature": 0.03,
+      "torque_limit": 6,
+      "kp": 20,
+      "kd": 2.0
+    }
+  ]
+}

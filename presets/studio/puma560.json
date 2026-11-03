@@ -1,0 +1,161 @@
+{
+  "name": "puma560",
+  "units": "SI",
+  "base": [
+    0.0,
+    0.0,
+    0.66
+  ],
+  "tool": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_mass": 0.5,
+  "links": [
+    {
+      "name": "waist",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass": 5.0,
+      "limits": [
+        -2.7925,
+        2.7925
+      ],
+      "radius": 0.08,
+      "damping": 1.5,
+      "armature": 0.8,
+      "torque_limit": 97.6,
+      "kp": 400,
+      "kd": 40.0
+    },
+    {
+      "name": "shoulder",
+      "axis": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "offset": [
+        0.4318,
+        0.0,
+        0.0
+      ],
+      "mass": 17.4,
+      "limits": [
+        -3.927,
+        0.7854
+      ],
+      "radius": 0.07,
+      "damping": 2.0,
+      "armature": 2.3,
+      "torque_limit": 186.4,
+      "kp": 800,
+      "kd": 80.0
+    },
+    {
+      "name": "elbow",
+      "axis": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "offset": [
+        0.0203,
+        -0.15005,
+        0.0
+      ],
+      "mass": 4.8,
+      "limits": [
+        -0.7854,
+        3.927
+      ],
+      "radius": 0.06,
+      "damping": 1.0,
+      "armature": 0.6,
+      "torque_limit": 89.4,
+      "kp": 400,
+      "kd": 40.0
+    },
+    {
+      "name": "wrist_rotate",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.4318
+      ],
+      "mass": 0.82,
+      "limits": [
+        -1.9199,
+        2.9671
+      ],
+      "radius": 0.04,
+      "damping": 0.3,
+      "armature": 0.19,
+      "torque_limit": 24.2,
+      "kp": 80,
+      "kd": 8.0
+    },
+    {
+      "name": "wrist_bend",
+      "axis": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass": 0.34,
+      "limits": [
+        -1.7453,
+        1.7453
+      ],
+      "radius": 0.035,
+      "damping": 0.3,
+      "armature": 0.17,
+      "torque_limit": 20.1,
+      "kp": 60,
+      "kd": 6.0
+    },
+    {
+      "name": "flange",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.056
+      ],
+      "mass": 0.09,
+      "limits": [
+        -4.6426,
+        4.6426
+      ],
+      "radius": 0.03,
+      "damping": 0.3,
+      "armature": 0.19,
+      "torque_limit": 21.3,
+      "kp": 60,
+      "kd": 6.0
+    }
+  ]
+}

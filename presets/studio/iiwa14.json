@@ -1,0 +1,185 @@
+{
+  "name": "iiwa14",
+  "units": "SI",
+  "base": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "tool": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_mass": 1.0,
+  "links": [
+    {
+      "name": "a1",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.36
+      ],
+      "mass": 4.0,
+      "limits": [
+        -2.9671,
+        2.9671
+      ],
+      "radius": 0.07,
+      "damping": 2.0,
+      "armature": 0.6,
+      "torque_limit": 320,
+      "kp": 800,
+      "kd": 80.0
+    },
+    {
+      "name": "a2",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass": 4.0,
+      "limits": [
+        -2.0944,
+        2.0944
+      ],
+      "radius": 0.07,
+      "damping": 2.0,
+      "armature": 0.6,
+      "torque_limit": 320,
+      "kp": 800,
+      "kd": 80.0
+    },
+    {
+      "name": "a3",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.42
+      ],
+      "mass": 3.0,
+      "limits": [
+        -2.9671,
+        2.9671
+      ],
+      "radius": 0.065,
+      "damping": 1.5,
+      "armature": 0.4,
+      "torque_limit": 176,
+      "kp": 500,
+      "kd": 50.0
+    },
+    {
+      "name": "a4",
+      "axis": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass": 2.7,
+      "limits": [
+        -2.0944,
+        2.0944
+      ],
+      "radius": 0.065,
+      "damping": 1.5,
+      "armature": 0.4,
+      "torque_limit": 176,
+      "kp": 500,
+      "kd": 50.0
+    },
+    {
+      "name": "a5",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.4
+      ],
+      "mass": 1.7,
+      "limits": [
+        -2.9671,
+        2.9671
+      ],
+      "radius": 0.06,
+      "damping": 1.0,
+      "armature": 0.25,
+      "torque_limit": 110,
+      "kp": 300,
+      "kd": 30.0
+    },
+    {
+      "name": "a6",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass": 1.8,
+      "limits": [
+        -2.0944,
+        2.0944
+      ],
+      "radius": 0.055,
+      "damping": 0.5,
+      "armature": 0.08,
+      "torque_limit": 40,
+      "kp": 100,
+      "kd": 10.0
+    },
+    {
+      "name": "a7",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "offset": [
+        0.0,
+        0.0,
+        0.126
+      ],
+      "mass": 0.3,
+      "limits": [
+        -3.0543,
+        3.0543
+      ],
+      "radius": 0.045,
+      "damping": 0.5,
+      "armature": 0.08,
+      "torque_limit": 40,
+      "kp": 100,
+      "kd": 10.0
+    }
+  ]
+}
