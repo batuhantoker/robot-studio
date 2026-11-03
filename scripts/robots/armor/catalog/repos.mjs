@@ -63,7 +63,6 @@ export const REPOS = {
   'ros-industrial/staubli': ['melodic-devel', '367d92ec7432867d9ba87c3399d49a940c4afc67'],
   'Source-Robotics/robot_descriptions': ['main', 'e799acb74dc7d7f798f5981beac16ab03d59f6e3'],
   'TechmanRobotInc/tmr_ros2': ['humble', 'c40bfc0d296337311f311c837861fd6318b00407'],
-  'ToyotaResearchInstitute/punyo_egrl': ['main', 'c68d31746d6c3266fd133b7db546e79f30f53202'],
   'UMich-BipedLab/cassie_description': ['master', '96323f3d0cc2cb7101cb92d7fcf4650abdcb2e81'],
   'unitreerobotics/unitree_ros': ['master', '25746e8c73f097c3b32bed7b6c16d4e195dfacd8'],
   'UniversalRobots/Universal_Robots_ROS2_Description': ['rolling', '0eb1a861f7772fceb38510d90fa2f98ec668070c'],

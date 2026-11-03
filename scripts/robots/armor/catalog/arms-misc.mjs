@@ -58,13 +58,6 @@ export default [
     dirs: ['assets/end_effector/pinch_gripper/meshes/collision', 'assets/end_effector/pinch_gripper/meshes/visual', 'assets/robot/openarm_v2.0/meshes/arm/collision', 'assets/robot/openarm_v2.0/meshes/arm/visual', 'assets/robot/openarm_v2.0/meshes/body/collision', 'assets/robot/openarm_v2.0/meshes/body/visual', 'assets/robot/openarm_v2.0/urdf/example'],
   },
   {
-    slug: 'punyo', title: 'TRI Punyo', vendor: 'Toyota Research Institute', category: 'arm', base: 'fixed',
-    tags: ['dual-arm', 'soft-robotics', 'research'],
-    description: 'Toyota Research Institute\'s soft-skinned humanoid upper body for whole-body manipulation research.',
-    repo: 'ToyotaResearchInstitute/punyo_egrl', urdf: 'assets/urdf/punyo/punyo_v2.urdf',
-    dirs: ['assets/urdf/punyo'],
-  },
-  {
     slug: 'staubli-rx160', title: 'Staubli RX160', vendor: 'Stäubli', category: 'arm', base: 'fixed',
     tags: ['industrial', '6-axis'],
     description: 'Six-axis Staubli industrial arm with an enclosed design for handling and welding.',
