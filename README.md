@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="https://robotics-studio-one.vercel.app"><img src="https://img.shields.io/badge/live%20demo-robotics--studio--one.vercel.app-d6182b?style=flat-square&logo=vercel&logoColor=white" alt="Live demo"></a>
-  <a href="https://github.com/batuhantoker/robotics-studio/actions/workflows/ci.yml"><img src="https://github.com/batuhantoker/robotics-studio/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/batuhantoker/robot-studio/actions/workflows/ci.yml"><img src="https://github.com/batuhantoker/robot-studio/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/TypeScript-strict-16181b?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/three.js-r187-16181b?style=flat-square&logo=threedotjs&logoColor=white" alt="three.js">
   <img src="https://img.shields.io/badge/MuJoCo-3.17%20WASM-d6182b?style=flat-square" alt="MuJoCo 3.17 WASM">
@@ -176,7 +176,7 @@ sources:
 ### The published robot pack
 
 The live site loads its 116 CAD robots from a pack on GitHub Pages, not from the
-Vercel build. The pack's [attribution page](https://batuhantoker.github.io/robotics-studio/)
+Vercel build. The pack's [attribution page](https://batuhantoker.github.io/robot-studio/)
 lists every robot with its license and upstream source.
 
 - [`robots-pages.yml`](.github/workflows/robots-pages.yml) runs `robots:fetch`,
