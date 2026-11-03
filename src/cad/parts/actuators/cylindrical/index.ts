@@ -1,6 +1,7 @@
 /** Cylindrical joint: telescoping sleeve (slide) topped by a rotary collar (turn), one axis. */
 import * as THREE from 'three';
 import { boltCircle } from '../../../common/fasteners';
+import { hullCylinder } from '../../../common/hull';
 import { hollowCylinder, lathe, solidCylinder } from '../../../common/lathe';
 import { axisFrame, cylinderExit, v3 } from '../../../common/orient';
 import { part } from '../../../common/part';
@@ -17,9 +18,14 @@ export const cylindricalModule: JointModuleBuilder = ({ mats, link }) => {
     part(lathe(hollowCylinder(R * 0.95, R * 0.72, bottom, -R * 0.1, R * 0.06)), mats, 'shell', { label: 'Outer sleeve', layer: 'housing', explode: up(-R * 1.2) }),
     part(lathe(solidCylinder(R * 1.25, bottom - R * 0.2, bottom, R * 0.05)), mats, 'cap', { label: 'Base flange', layer: 'structure', explode: up(-R * 1.8) }),
     part(lathe(hollowCylinder(R * 0.75, R * 0.66, -R * 0.6, -R * 0.1)), mats, 'brass', { label: 'Guide bushing', layer: 'bearing', explode: up(R * 0.6) }),
+    hullCylinder(R * 0.95, bottom, -R * 0.1),
+    hullCylinder(R * 1.25, bottom - R * 0.2, bottom),
   );
   const tube = axisFrame(axis);
-  tube.add(part(lathe(hollowCylinder(R * 0.64, R * 0.5, -(hi - lo) - R * 0.8, R * 0.25, R * 0.03)), mats, 'alu', { label: 'Telescoping tube', layer: 'structure', explode: up(R * 0.9) }));
+  tube.add(
+    part(lathe(hollowCylinder(R * 0.64, R * 0.5, -(hi - lo) - R * 0.8, R * 0.25, R * 0.03)), mats, 'alu', { label: 'Telescoping tube', layer: 'structure', explode: up(R * 0.9) }),
+    hullCylinder(R * 0.64, -(hi - lo) - R * 0.8, R * 0.25),
+  );
   const ring = part(lathe(hollowCylinder(R * 1.01, R * 0.95, R * 0.28, R * 0.36), 64), mats, 'accent', { label: 'Load ring', layer: 'sensor' });
   ring.material = mats.get('accent').clone();
   const collar = axisFrame(axis);
@@ -29,6 +35,7 @@ export const cylindricalModule: JointModuleBuilder = ({ mats, link }) => {
     part(lathe(solidCylinder(R * 0.85, R * 0.85, R * 0.95, R * 0.03)), mats, 'alu', { label: 'Top flange', layer: 'structure', explode: up(R * 1.9) }),
     boltCircle(mats, 6, R * 0.62, R * 0.07, R * 0.95, 1, { label: 'Flange screws', layer: 'fastener', explode: up(R * 2.3) }),
     ring,
+    hullCylinder(R, R * 0.25, R * 0.95),
   );
   const stages = [new THREE.Group(), new THREE.Group(), new THREE.Group()];
   stages[0].add(sleeve);

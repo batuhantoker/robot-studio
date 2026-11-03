@@ -1,5 +1,6 @@
 /** Structural link: an aluminium tube between joint housings, clamped collars, and a cable run. */
 import * as THREE from 'three';
+import { hullCylinder } from '../../common/hull';
 import { hollowCylinder, lathe } from '../../common/lathe';
 import { axisFrame } from '../../common/orient';
 import { part } from '../../common/part';
@@ -40,6 +41,9 @@ export function buildTube({ mats, offset, radius, startTrim, endTrim }: TubeOpti
     part(lathe(hollowCylinder(r, r * 0.82, y0, y1, r * 0.04)), mats, 'alu', { label: 'Link tube', layer: 'structure' }),
     collar(y0 + r * 0.35, -1),
     collar(y1 - r * 0.35, 1),
+    hullCylinder(r, y0, y1),
+    hullCylinder(r * 1.22, y0, y0 + r * 0.7),
+    hullCylinder(r * 1.22, y1 - r * 0.7, y1),
   );
   if (y1 - y0 > r * 4) {
     frame.add(cable(y1 - y0, r, mats, y0 + r * 0.9, y1 - r * 0.9));

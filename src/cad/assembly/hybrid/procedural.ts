@@ -14,7 +14,7 @@ export function proceduralLink(spec: RobotSpec, k: number, mats: MaterialSet, st
   const id = `joint:${link.name}`;
   m.stages.forEach((stage, i) => {
     stage.userData.module = id;
-    slots.push({ group: stage, frame: (f) => (i === 0 ? f.pre[starts[k]] : f.frames[starts[k] + i - 1]), before: starts[k] + i });
+    slots.push({ group: stage, frame: (f) => (i === 0 ? f.pre[starts[k]] : f.frames[starts[k] + i - 1]), body: starts[k] + i - 1, before: starts[k] + i });
   });
   modules.push({ id, label: link.name, kind: `${JOINT_KINDS[link.joint].label} (procedural)`, joints: link.dofs.map((_, i) => starts[k] + i) });
   const offset = v3(link.offset);

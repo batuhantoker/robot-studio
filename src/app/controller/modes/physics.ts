@@ -3,7 +3,8 @@ import type { SimReadout } from '../../live/bus';
 import type { RobotSession } from '../../robots/session';
 import { TrackingSim } from '../../../physics/control/tracking';
 import { jointLimits } from '../../robots/focus';
-import { stateAt } from './trajectory';
+import type { Plan } from '../../../core/trajectory/plan';
+import { player } from './trajectory';
 
 export interface PhysicsHistory {
   t: number[];
@@ -33,22 +34,22 @@ export class PhysicsMode {
     this.reason = null;
   }
 
-  reset(waypoints: number[][], duration: number): void {
+  reset(plan: Plan): void {
     if (!this.sim) return;
-    this.sim.reset(stateAt(jointLimits(this.session), waypoints, duration, 0).q);
+    this.sim.reset(player(jointLimits(this.session), plan)(0).q);
     this.history = { t: [], error: [], applied: [], requested: [] };
     this.wall = 0;
   }
 
   /** Advance simulated time to follow wall time (bounded per frame); returns joint positions. */
-  advance(dtWall: number, waypoints: number[][], duration: number): number[] | null {
+  advance(dtWall: number, plan: Plan): number[] | null {
     const sim = this.sim;
     if (!sim) return null;
     this.wall += Math.min(dtWall, 0.05);
+    const play = player(jointLimits(this.session), plan);
     let guard = 0;
     while (sim.time < this.wall && guard++ < 400) {
-      const t = sim.time % duration;
-      const ref = stateAt(jointLimits(this.session), waypoints, duration, t);
+      const ref = play(sim.time % plan.duration);
       this.last = sim.step(ref.q, ref.qd);
     }
     if (this.last) this.record(sim.time);

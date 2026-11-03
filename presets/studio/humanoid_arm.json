@@ -12,6 +12,7 @@
     0.0
   ],
   "payload_mass": 0.3,
+  "effector": "three_finger",
   "links": [
     {
       "name": "shoulder",

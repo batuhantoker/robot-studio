@@ -1,9 +1,8 @@
 /** Per-limb IK targets. */
 import { chainFrames } from '../../core/chain/kinematics/frames';
+import { limbQ } from '../../core/chain/limbs/types';
 import type { Vec3 } from '../../core/math/linear/vec';
-import { focusLimb, focusQ } from '../robots/focus';
 import type { RobotSession } from '../robots/session';
-import type { StudioState } from '../state/types';
 
 export function withTarget(targets: (Vec3 | null)[], limb: number, point: Vec3 | null): (Vec3 | null)[] {
   const next = [...targets];
@@ -12,6 +11,7 @@ export function withTarget(targets: (Vec3 | null)[], limb: number, point: Vec3 |
   return next;
 }
 
-/** The focused limb's current tool point, the natural place to drop a new target. */
-export const focusTip = (s: RobotSession, st: StudioState): Vec3 =>
-  chainFrames(focusLimb(s, st.focus).chain, focusQ(s, st.focus, st.q)).tip.p;
+/** Untargeted limbs pinned where their tool points are now, so moving one limb's target leaves the rest in place. */
+export function pinAll(s: RobotSession, targets: (Vec3 | null)[], q: number[]): (Vec3 | null)[] {
+  return s.limbs.map((l, i) => targets[i] ?? chainFrames(l.chain, limbQ(l, q)).tip.p);
+}

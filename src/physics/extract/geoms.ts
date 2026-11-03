@@ -23,6 +23,9 @@ export interface MeshBuffers {
   faces: Uint32Array;
 }
 
+/** Menagerie convention: groups 0–2 are visual, 3+ collision. */
+export const visibleGeom = (g: GeomInfo) => g.group <= 2 && g.type !== GEOM.plane && g.rgba[3] > 0;
+
 export function readGeoms(h: ModelHandle): GeomInfo[] {
   const m = arrays(h.model);
   return Array.from({ length: m.ngeom }, (_, id) => {

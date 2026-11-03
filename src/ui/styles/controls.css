@@ -38,3 +38,5 @@ canvas.chart { width: 100%; height: 120px; display: block; background: #fff; bor
 .joint .range { grid-column: 1 / -1; font-size: 9.5px; color: var(--mute); margin-top: -2px; }
 .joint.at-limit .val, .joint.at-limit .range { color: var(--accent); }
 .joint.at-limit .range::after { content: ' · at limit'; }
+.joint.blocked .val, .joint.blocked .range { color: var(--accent); }
+.joint.blocked .range::after { content: ' · contact'; }

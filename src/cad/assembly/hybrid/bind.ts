@@ -2,17 +2,14 @@
 import * as THREE from 'three';
 import type { Twin } from '../../../core/chain/twin/spec-from-chain';
 import type { ModelChain } from '../../../physics/extract/chain/from-model';
-import { type GeomInfo, readGeoms } from '../../../physics/extract/geoms';
+import { type GeomInfo, readGeoms, visibleGeom } from '../../../physics/extract/geoms';
 import type { ModelHandle } from '../../../physics/model/handle';
-import { GEOM } from '../../../physics/runtime/arrays';
 
 export interface BoundGeom {
   geom: GeomInfo;
   /** Geom → twin link frame (rotation C_k, origin at the joint anchor). */
   toLink: THREE.Matrix4;
 }
-
-const visible = (g: GeomInfo) => g.group <= 2 && g.type !== GEOM.plane && g.rgba[3] > 0;
 
 const matrixOf = (R: ArrayLike<number>, p: ArrayLike<number>) =>
   new THREE.Matrix4().set(R[0], R[1], R[2], p[0], R[3], R[4], R[5], p[1], R[6], R[7], R[8], p[2], 0, 0, 0, 1);
@@ -21,7 +18,7 @@ const matrixOf = (R: ArrayLike<number>, p: ArrayLike<number>) =>
 export function bindGeoms(h: ModelHandle, mc: ModelChain, twin: Twin) {
   const links: BoundGeom[][] = mc.chain.joints.map(() => []);
   const base: BoundGeom[] = [];
-  for (const geom of readGeoms(h).filter(visible)) {
+  for (const geom of readGeoms(h).filter(visibleGeom)) {
     const at = mc.attach[geom.body];
     const geomPose = new THREE.Matrix4().compose(
       new THREE.Vector3(...geom.pos),

@@ -4,11 +4,14 @@ import { chainFrames } from '../../core/chain/kinematics/frames';
 import { limbQ, mergeLimbs } from '../../core/chain/limbs/types';
 import type { Vec3 } from '../../core/math/linear/vec';
 import { jointTorqueLimits } from '../../physics/extract/actuators';
+import { modelChecker } from '../../physics/collision/from-model';
 import { readBodies } from '../../physics/extract/bodies';
 import { type ModelChain, chainFromModel } from '../../physics/extract/chain/from-model';
 import { ModelHandle } from '../../physics/model/handle';
 import { OBJ, arrays, state } from '../../physics/runtime/arrays';
 import { type CatalogChain, type CatalogRobot, fetchRobotFiles } from './catalog';
+import { contactTol } from './contact';
+import { kinematicsAt, restingFloorZ } from './resting-floor';
 import type { RobotSession } from './session';
 
 function homeQpos(h: ModelHandle): Float64Array {
@@ -48,14 +51,22 @@ export async function sessionFromCatalog(robot: CatalogRobot, onProgress?: (d: n
   const reach = Math.max(0.2, ...limbs.map((l) => Math.hypot(...chainFrames(l.chain, limbQ(l, home)).tip.p)));
   const assembly = buildMjcfAssembly(handle, readBodies(handle), models, reach);
   const focus = Math.max(0, specs.findIndex((c) => sameChain(c, robot.chain)));
+  const base = robot.base ?? 'fixed';
+  if (base === 'fixed') {
+    kinematicsAt(handle, rest, qposAdr, home);
+    assembly.floorZ = restingFloorZ(assembly, limbs.map((l) => chainFrames(l.chain, limbQ(l, home))));
+  }
+  // Robots that settle on the ground are lifted onto it every frame; only bolted ones can dig in.
+  const collision = modelChecker(handle, { qposAdr, rest, home, floorZ: base === 'fixed' ? assembly.floorZ : null, tol: contactTol(reach) });
   return {
-    id: robot.id, title: robot.title, source: 'cad', spec: null, category: robot.category ?? 'arm', base: robot.base ?? 'fixed',
+    id: robot.id, title: robot.title, source: 'cad', spec: null, category: robot.category ?? 'arm', base,
     joints, limbs, defaultFocus: focus, handle, assembly, qposAdr,
     dofAdr: keys.map((j) => m.jnt_dofadr[j]),
     torqueLimits: jointTorqueLimits(handle, keys),
-    home, rest,
+    home, rest, collision,
     mujocoTips: () => models.map((mc, i) => tipOf(handle, mc, specs[i].tip)),
     dispose() {
+      collision.dispose();
       assembly.dispose();
       handle.dispose();
     },

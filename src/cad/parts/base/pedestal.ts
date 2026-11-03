@@ -1,6 +1,7 @@
 /** Floor plate and column carrying the first joint module. */
 import * as THREE from 'three';
 import { boltCircle } from '../../common/fasteners';
+import { hullPin } from '../../common/hull';
 import { hollowCylinder, lathe, solidCylinder } from '../../common/lathe';
 import { part } from '../../common/part';
 import type { MaterialSet } from '../../materials/library';
@@ -14,13 +15,14 @@ export function buildPedestal(mats: MaterialSet, base: THREE.Vector3, floorZ: nu
   const height = Math.max(top - floorZ - plate, 0);
   g.add(
     part(toZ(lathe(solidCylinder(R * 1.9, 0, plate, R * 0.06), 64)), mats, 'cap', { label: 'Floor plate', layer: 'structure', explode: down(-R * 1.4) }),
+    hullPin(R * 1.9, plate, 'z', down(plate / 2)),
   );
   const bolts = boltCircle(mats, 8, R * 1.55, R * 0.1, plate, 1, { label: 'Anchor bolts', layer: 'fastener', explode: down(R * 0.8) });
   bolts.rotation.x = Math.PI / 2;
   g.add(bolts);
   if (height > R * 0.05) {
     const col = toZ(lathe(hollowCylinder(R * 1.08, R * 0.9, plate, plate + height, R * 0.05), 56));
-    g.add(part(col, mats, 'shell', { label: 'Column', layer: 'housing', explode: down(-R * 0.7) }));
+    g.add(part(col, mats, 'shell', { label: 'Column', layer: 'housing', explode: down(-R * 0.7) }), hullPin(R * 1.08, height, 'z', down(plate + height / 2)));
   }
   g.position.set(base.x, base.y, floorZ);
   return g;

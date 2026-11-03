@@ -3,6 +3,7 @@ import { mountBuilder } from '../../ui/builder/panel';
 import { ikPanel } from '../../ui/analysis/ik-panel';
 import { physicsPanel } from '../../ui/analysis/physics-panel';
 import { trajectoryPanel } from '../../ui/analysis/trajectory-panel';
+import { trajectoryExportPanel } from '../../ui/analysis/trajectory-export';
 import { workspacePanel } from '../../ui/analysis/workspace-panel';
 import { mountLibrary } from '../../ui/library/panel';
 import { mountRobotActions } from '../../ui/builder/robot-actions';
@@ -16,8 +17,15 @@ import { focusPicker } from '../../ui/shell/focus-picker';
 import { mountPartsCard } from '../../ui/teardown/parts-card';
 import { mountToolbar } from '../../ui/teardown/toolbar';
 import { mountMotionBar } from '../../ui/motion/bar';
+import { mountTaskBar } from '../../ui/task/bar';
+import { mountTrajectoryBar } from '../../ui/trajectory/bar';
 import { mountMaterialLegend } from '../../ui/teardown/material-legend';
 import { libraryActions } from '../controller/library-actions';
+import { exportTrajectory } from '../controller/render/export';
+import { canRenderVideo } from '../controller/render/recorder';
+import { mountRenderOverlay } from '../../ui/render/overlay';
+import { mountStageSettings } from '../../ui/stage/settings';
+import { saveSurroundings } from '../../scene/stage/surroundings';
 import type { Studio } from '../controller/studio';
 
 export function mountPanels(layout: Layout, studio: Studio): void {
@@ -35,12 +43,28 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   mountMath(panes.math, store, studio.bus, () => studio.ik.result);
   panes.analysis.append(
     ikPanel(store, studio.bus, studio.analysis),
-    trajectoryPanel(store, studio.analysis),
+    trajectoryPanel(store, studio.bus, studio.analysis),
+    trajectoryExportPanel(store, {
+      canRender: canRenderVideo(),
+      render: (settings) => studio.recorder.start(settings),
+      cancel: () => studio.recorder.cancel(),
+      onProgress: (fn) => studio.recorder.onProgress(fn),
+      exportData: (format, rate) => exportTrajectory(studio.session, store.state, format, rate),
+    }),
     physicsPanel(store, studio.bus, studio.analysis),
     workspacePanel(store, studio.analysis),
   );
   const stack = mountToolbar(layout.hudBottom, store);
-  mountMotionBar(stack, store, () => studio.motion.presets);
+  mountMotionBar(stack, store, () => studio.motion.presets, studio.task.available);
+  mountTaskBar(stack, store, studio.task);
+  mountTrajectoryBar(stack, store, studio.bus, studio.analysis, { list: () => studio.trajectoryPresets(), load: (id) => studio.loadTrajectoryPreset(id) });
   mountMaterialLegend(layout.hudBottom, store, () => studio.session?.assembly ?? null);
   mountPartsCard(layout.hudTop, store, () => studio.session?.assembly ?? null, (o) => studio.viewport.flash(o));
+  mountRenderOverlay(layout.stage, studio.recorder);
+  mountStageSettings(layout.stage, store);
+  studio.viewport.setSurroundings(store.state.surroundings);
+  store.on(['surroundings'], (s) => {
+    studio.viewport.setSurroundings(s.surroundings);
+    saveSurroundings(s.surroundings);
+  });
 }

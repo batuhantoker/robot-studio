@@ -29,7 +29,7 @@ export class TourDirector {
   tick(dt: number): void {
     const s = this.store.state;
     if (!s.touring) {
-      this.idle += dt;
+      this.idle = s.rendering || s.selectedStop !== null ? 0 : this.idle + dt;
       if (this.idle > IDLE_SECONDS) this.store.set({ touring: true });
       return;
     }

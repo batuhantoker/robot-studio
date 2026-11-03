@@ -1,11 +1,16 @@
-/** Key light with soft shadows, sky fill, and a shadow-catching floor with a fine grid. */
+/** Key light with soft shadows, sky fill and rim, tuned per backdrop, over a floor that fades into it. */
 import * as THREE from 'three';
-import { PALETTE } from './palette';
+import { createBackdrop, setGradient } from './backdrop';
+import { createFloor } from './floor';
+import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings } from './surroundings';
 
 export interface Studio {
   group: THREE.Group;
+  /** Objects ambient occlusion must skip. */
+  aoHidden: THREE.Object3D[];
   fit(radius: number, floorZ: number): void;
   setShadowSize(size: number): void;
+  apply(s: Surroundings, scene: THREE.Scene): void;
 }
 
 export function createStudio(): Studio {
@@ -19,26 +24,13 @@ export function createStudio(): Studio {
   key.shadow.normalBias = 0.0015;
   key.shadow.radius = 3;
   const rim = new THREE.DirectionalLight('#dfe7ff', 0.6);
-  const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(1, 96),
-    new THREE.ShadowMaterial({ color: '#4c535c', opacity: 0.22, polygonOffset: true, polygonOffsetFactor: -2 }),
-  );
-  floor.receiveShadow = true;
-  const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 96), new THREE.MeshBasicMaterial({ color: PALETTE.floor }));
-  const grid = new THREE.GridHelper(2, 40, PALETTE.grid, PALETTE.grid);
-  grid.rotation.x = Math.PI / 2;
-  (grid.material as THREE.Material).transparent = true;
-  (grid.material as THREE.Material).opacity = 0.55;
-  group.add(hemi, key, key.target, rim, disc, grid, floor);
+  const floor = createFloor();
+  const backdrop = createBackdrop();
+  group.add(hemi, key, key.target, rim, floor.group, backdrop.mesh);
 
   const fit = (radius: number, floorZ: number) => {
     const r = Math.max(radius, 0.05) * 2.4;
-    for (const o of [floor, disc]) {
-      o.scale.setScalar(r);
-      o.position.z = floorZ - (o === disc ? 0.0004 * r : 0);
-    }
-    grid.scale.setScalar(r);
-    grid.position.z = floorZ - 0.0002 * r;
+    floor.fit(radius, floorZ);
     key.position.set(r * 0.7, -r * 0.9, r * 1.6 + floorZ);
     key.target.position.set(0, 0, floorZ);
     rim.position.set(-r, r * 0.8, r * 0.9);
@@ -50,9 +42,23 @@ export function createStudio(): Studio {
     cam.updateProjectionMatrix();
   };
   const setShadowSize = (size: number) => {
+    if (key.shadow.mapSize.x === size) return;
     key.shadow.mapSize.set(size, size);
     key.shadow.map?.dispose();
     key.shadow.map = null;
   };
-  return { group, fit, setShadowSize };
+  const apply = (s: Surroundings, scene: THREE.Scene) => {
+    const b = BACKDROPS[s.backdrop] ?? BACKDROPS[DEFAULT_SURROUNDINGS.backdrop];
+    hemi.color.set(b.sky);
+    hemi.groundColor.set(b.ground);
+    hemi.intensity = b.hemi;
+    key.color.set(b.key);
+    key.intensity = b.keyIntensity;
+    rim.color.set(b.rim);
+    rim.intensity = b.rimIntensity;
+    scene.environmentIntensity = b.env;
+    floor.apply(b, s.floor);
+    setGradient(backdrop.uniforms, b.top, b.bottom);
+  };
+  return { group, aoHidden: [...floor.aoHidden, backdrop.mesh], fit, setShadowSize, apply };
 }

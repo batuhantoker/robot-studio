@@ -1,11 +1,12 @@
 /** Validate and normalize robot configurations the way SerialArm.from_dict does. */
+import { DEFAULT_EFFECTOR, isEffectorKind } from '../effectors/kinds';
 import { expandDofs, secondaryAxis } from '../joints/expand';
 import { isJointKind } from '../joints/kinds';
 import { parseLimits } from './limits';
 import { isObject, normalizeAxis, number, triple } from './numbers';
 import { LINK_DEFAULTS, LINK_FIELDS, type LinkSpec, type RobotSpec, STUDIO_LINK_FIELDS, SpecError } from './types';
 
-const ROBOT_KEYS = new Set(['name', 'units', 'base', 'tool', 'payload_mass', 'links']);
+const ROBOT_KEYS = new Set(['name', 'units', 'base', 'tool', 'payload_mass', 'effector', 'links']);
 const LINK_KEYS = new Set<string>([...LINK_FIELDS, ...STUDIO_LINK_FIELDS]);
 const REQUIRED = ['name', 'axis', 'offset', 'mass'];
 const NAME_RE = /^[A-Za-z][A-Za-z0-9_]*$/;
@@ -54,12 +55,15 @@ export function parseRobot(raw: unknown): RobotSpec {
   if (new Set(dofNames).size !== dofNames.length) throw new SpecError('joint DOF names must be unique');
   const name = raw.name ?? 'serial_arm';
   if (typeof name !== 'string' || !name.trim()) throw new SpecError('name must be a nonempty string');
+  const effector = raw.effector ?? DEFAULT_EFFECTOR;
+  if (!isEffectorKind(effector)) throw new SpecError('effector must be a known end effector');
   return {
     name,
     units: 'SI',
     base: triple(raw.base ?? [0, 0, 0], 'base'),
     tool: triple(raw.tool ?? [0, 0, 0], 'tool'),
     payload_mass: number(raw.payload_mass ?? 0, 'payload_mass', { minimum: 0 }),
+    effector,
     links,
   };
 }

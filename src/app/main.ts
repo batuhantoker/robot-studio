@@ -6,6 +6,7 @@ import '@/ui/styles/layout.css';
 import '@/ui/styles/panels.css';
 import '@/ui/styles/controls.css';
 import '@/ui/styles/library.css';
+import '@/ui/styles/stage.css';
 import { createLayout } from '@/ui/shell/layout';
 import { initialState } from './bootstrap/initial-state';
 import { mountPanels } from './bootstrap/mount-panels';

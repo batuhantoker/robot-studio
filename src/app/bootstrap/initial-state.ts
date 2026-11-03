@@ -3,6 +3,7 @@ import { buildEntries } from '../library/entries';
 import { loadMine } from '../library/storage';
 import type { Catalog } from '../robots/catalog';
 import type { StudioState } from '../state/types';
+import { loadSurroundings } from '../../scene/stage/surroundings';
 
 export function initialState(catalog: Catalog | null): StudioState {
   const library = buildEntries(catalog, loadMine());
@@ -26,10 +27,17 @@ export function initialState(catalog: Catalog | null): StudioState {
     overlays: { frames: false, com: false, ellipsoid: false, trail: true, workspace: false, labels: true },
     targets: [],
     waypoints: [],
+    selectedStop: null,
+    stopOpts: [],
+    pace: 'even',
     duration: 6,
     playing: false,
     motion: { preset: null, speed: 1, size: 1 },
     time: 0,
+    rendering: false,
+    surroundings: loadSurroundings(),
     touring: false,
+    contact: null,
+    task: { pick: null, place: null, moving: 'pick' },
   };
 }

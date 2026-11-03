@@ -1,10 +1,19 @@
 /** Everything the UI can change; panels read it, controllers react to it. */
 import type { RobotSpec } from '../../core/robot/schema/types';
 import type { Vec3 } from '../../core/math/linear/vec';
+import type { Pace, StopOpts } from '../../core/trajectory/plan';
 import type { Look } from '../../scene/look/types';
+import type { Surroundings } from '../../scene/stage/surroundings';
 import type { Cut } from '../../scene/teardown/materials';
 
-export type Mode = 'pose' | 'motion' | 'ik' | 'trajectory' | 'physics' | 'workspace';
+export type Mode = 'pose' | 'motion' | 'ik' | 'trajectory' | 'physics' | 'workspace' | 'task';
+
+/** Pick and place: spots on the floor, and which one the gizmo and floor clicks move. */
+export interface TaskState {
+  pick: Vec3 | null;
+  place: Vec3 | null;
+  moving: 'pick' | 'place';
+}
 
 export interface MotionState {
   preset: string | null;
@@ -69,9 +78,21 @@ export interface StudioState {
   /** IK target per limb; null leaves that limb free. */
   targets: (Vec3 | null)[];
   waypoints: number[][];
+  /** Selected trajectory stop: the playhead holds on it and edits (gizmo, sliders) move it. */
+  selectedStop: number | null;
+  /** Per stop: pass through (via) or rest, and for how long; kept in step with `waypoints`. */
+  stopOpts: StopOpts[];
+  pace: Pace;
   duration: number;
   playing: boolean;
   motion: MotionState;
   time: number;
+  /** A video take of the trajectory is recording: playback runs once and stops at the end. */
+  rendering: boolean;
+  /** Backdrop and floor of the stage, saved in the browser. */
+  surroundings: Surroundings;
   touring: boolean;
+  /** What the last move ran into ("elbow ↔ floor"); null when nothing stopped it. */
+  contact: string | null;
+  task: TaskState;
 }

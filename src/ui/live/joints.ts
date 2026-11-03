@@ -1,5 +1,7 @@
 /** Sliders for every robot joint, grouped by limb (shared trunk joints first), with static load. */
+import { jog } from '../../app/collision/jog';
 import type { Snapshot } from '../../app/live/bus';
+import { setStopJoint } from '../../app/controller/stops';
 import type { RobotSession } from '../../app/robots/session';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
@@ -21,13 +23,20 @@ function groups(s: RobotSession): { title: string; limb: number; joints: number[
 
 export function jointRows(session: RobotSession, store: Store<StudioState>) {
   const rows: { k: number; el: HTMLElement; slider: HTMLInputElement; val: HTMLElement; torque: HTMLElement; bar: HTMLElement; scale: number; unit: string }[] = [];
+  let blocked = -1;
   const build = (k: number) => {
     const j = session.joints[k];
     const slider = h('input', { type: 'range', min: String(j.limits[0]), max: String(j.limits[1]), step: String((j.limits[1] - j.limits[0]) / 1000) });
     slider.addEventListener('input', () => {
-      const q = [...store.state.q];
-      q[k] = Number(slider.value);
-      store.set({ q, mode: store.state.mode === 'workspace' ? 'workspace' : 'pose', playing: false });
+      const { mode, selectedStop } = store.state;
+      if (mode === 'trajectory' && selectedStop !== null) return setStopJoint(store, selectedStop, k, Number(slider.value));
+      const to = [...store.state.q];
+      to[k] = Number(slider.value);
+      const { q, contact } = jog(session, store.state.q, to);
+      // Keep the thumb on the arm: dragging past a contact must not run ahead of the pose.
+      slider.value = String(q[k]);
+      blocked = contact ? k : -1;
+      store.set({ q, contact, mode: store.state.mode === 'workspace' ? 'workspace' : 'pose', playing: false });
     });
     const scale = dofScale(j.type), unit = dofUnit(j.type);
     const range = j.continuous ? 'continuous' : `${num(j.limits[0] * scale, 0)}${unit} … ${num(j.limits[1] * scale, 0)}${unit}`;
@@ -46,6 +55,7 @@ export function jointRows(session: RobotSession, store: Store<StudioState>) {
       const limited = atLimit(session.joints, s.q);
       for (const r of rows) {
         r.el.classList.toggle('at-limit', limited[r.k]);
+        r.el.classList.toggle('blocked', r.k === blocked && !!store.state.contact);
         const q = s.q[r.k];
         if (document.activeElement !== r.slider) r.slider.value = String(q);
         r.val.textContent = `${num(q * r.scale, 1)} ${r.unit}`;

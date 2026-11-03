@@ -14,14 +14,7 @@ import type { RobotSession } from '../robots/session';
 import { restTwin } from '../robots/twin-rest';
 import type { Store } from '../state/store';
 import type { LibraryEntry, StudioState, TwinRef } from '../state/types';
-
-function download(name: string, text: string, type = 'application/json') {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type }));
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
+import { download } from '../../ui/dom/download';
 
 export function persist(library: LibraryEntry[]): void {
   saveMine(library.filter((e) => e.group === 'mine' && e.spec).map((e) => ({ id: e.id, spec: e.spec!, twin: e.twin })));

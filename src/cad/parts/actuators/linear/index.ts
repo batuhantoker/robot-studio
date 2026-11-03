@@ -1,5 +1,6 @@
 /** Prismatic joint: ball-screw linear axis. Rail and motor stay; the carriage rides the DOF. */
 import * as THREE from 'three';
+import { hullBox } from '../../../common/hull';
 import { axisFrame, v3 } from '../../../common/orient';
 import { part } from '../../../common/part';
 import { block, pin } from '../../shapes/blocks';
@@ -25,6 +26,9 @@ export const linearModule: JointModuleBuilder = ({ mats, link }) => {
     part(block(r * 1.9, r * 0.9, r * 2.8).translate(-r * 0.9, y1 + r * 0.45, 0), mats, 'cap', { label: 'End block', layer: 'housing', explode: along(r * 2) }),
     part(block(r * 2.4, r * 2.6, r * 2.4).translate(-r * 1.05, y0 - r * 1.3, 0), mats, 'cap', { label: 'Stepper motor', layer: 'drive', explode: along(-r * 3) }),
     part(block(r * 2.5, r * 0.25, r * 2.5).translate(-r * 1.05, y0 - r * 0.05, 0), mats, 'alu', { label: 'Motor plate', layer: 'structure', explode: along(-r * 1.6) }),
+    hullBox(r * 1.2, length, r * 2.4, new THREE.Vector3(-r * 1.05, mid, 0)),
+    hullBox(r * 1.9, r * 0.9, r * 2.8, new THREE.Vector3(-r * 0.9, y1 + r * 0.45, 0)),
+    hullBox(r * 2.5, r * 2.85, r * 2.5, new THREE.Vector3(-r * 1.05, y0 - r * 1.2, 0)),
   );
   const ring = part(block(r * 0.08, carriage * 0.9, r * 2.62).translate(-r * 0.1, 0, 0), mats, 'accent', { label: 'Load strip', layer: 'sensor' });
   ring.material = mats.get('accent').clone();
@@ -33,6 +37,7 @@ export const linearModule: JointModuleBuilder = ({ mats, link }) => {
     part(block(r * 0.9, carriage, r * 2.6), mats, 'shell', { label: 'Carriage', layer: 'housing', explode: lift(r * 2) }),
     part(block(r * 0.5, carriage * 0.5, r * 0.8).translate(-r * 0.7, 0, 0), mats, 'brass', { label: 'Screw nut', layer: 'drive', explode: lift(r * 0.8) }),
     ring,
+    hullBox(r * 0.9, carriage, r * 2.6),
   );
   const [s0, s1] = [new THREE.Group(), new THREE.Group()];
   s0.add(fixed);

@@ -6,12 +6,12 @@ import { segmented } from '../widgets/segmented';
 import markUrl from '../brand/mark.svg';
 
 const MODES: [Mode, string][] = [
-  ['pose', 'Pose'], ['motion', 'Motion'], ['ik', 'Inverse kin.'], ['trajectory', 'Trajectory'], ['physics', 'Physics'], ['workspace', 'Workspace'],
+  ['pose', 'Pose'], ['motion', 'Motion'], ['task', 'Pick & place'], ['ik', 'Inverse kin.'], ['trajectory', 'Trajectory'], ['physics', 'Physics'], ['workspace', 'Workspace'],
 ];
 
 export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf: () => [string, string], extra: HTMLElement): void {
   const title = h('div.robot-title');
-  const modes = segmented(MODES, store.state.mode, (mode) => store.set({ mode, playing: mode === 'trajectory' || mode === 'physics' || mode === 'motion' }));
+  const modes = segmented(MODES, store.state.mode, (mode) => store.set({ mode, playing: mode === 'trajectory' || mode === 'physics' || mode === 'motion' || mode === 'task' }));
   const tour = h('div.tourchip.cap', { onclick: () => store.set({ touring: !store.state.touring }) }, h('i'), 'Auto tour');
   el.append(h('div.brand', {}, h('img', { src: markUrl, alt: '' }), 'Robot Studio'), title, extra, h('div', { style: 'flex:1' }), modes.el, tour);
   const render = () => {

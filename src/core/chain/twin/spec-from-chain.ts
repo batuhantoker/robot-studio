@@ -34,6 +34,8 @@ export function twinFromChain(chain: Chain, opts: { name: string; radius: number
     name: opts.name,
     base: f.origins[0],
     tool: [0, 0, 0],
+    // The CAD keeps its own hand; a procedural tool would double it.
+    effector: 'flange',
     links: chain.joints.map((j, k) => {
       const link: Record<string, unknown> = {
         name: safeName(j.name, k),

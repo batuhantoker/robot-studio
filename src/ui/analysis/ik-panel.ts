@@ -1,4 +1,4 @@
-/** Whole-body IK: a target per end effector; the gizmo drags the focused limb's target. */
+/** Whole-body IK: a target per end effector; the gizmo drags the focused limb's, the markers pick a limb. */
 import type { LiveBus } from '../../app/live/bus';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
@@ -12,7 +12,7 @@ export function ikPanel(store: Store<StudioState>, bus: LiveBus, ctx: AnalysisCo
   const rows = h('div');
   const result = h('div');
   const el = h('div.section', {}, h('header', {}, h('span.cap', {}, 'Inverse kinematics'), h('span.cap.mu', {}, 'whole body')),
-    h('p.note', {}, 'Give any end effectors a target (mm). One stacked DLS solve moves every joint at once, so shared joints compromise between limbs. Drag the red gizmo to move the focused limb’s target.'),
+    h('p.note', {}, 'Give any end effectors a target (mm). One stacked DLS solve moves every joint at once, so shared joints compromise between limbs. Every limb is pinned where it is: drag the red gizmo to move the focused limb, or grab another limb’s dark marker to move that one instead. Untick a limb to let it follow freely.'),
     rows, result);
   const tipOf = (limb: number): Vec3 | undefined => bus.latest?.posed.limbs[limb]?.tip.p;
   const render = (s: StudioState) => {
@@ -29,7 +29,10 @@ export function ikPanel(store: Store<StudioState>, bus: LiveBus, ctx: AnalysisCo
         h('button.tb', { onclick: () => store.set({ targets: limbs.map((_, i) => tipOf(i) ?? null), mode: 'ik' }) }, 'Target all'),
         h('button.tb', { onclick: () => store.set({ targets: [] }) }, 'Clear')) : null);
     const r = ctx.ik();
-    replace(result, r ? h('p', { class: r.success ? '' : 'accent' }, r.success
+    const blocked = ctx.ikBlocked();
+    replace(result, r ? h('p', { class: r.success && !blocked ? '' : 'accent' }, blocked
+      ? `Stopped at contact before the target: ${blocked}.`
+      : r.success
       ? `All targets reached in ${r.steps.length} iterations (worst residual ${(r.residual * 1000).toFixed(4)} mm).`
       : `Not all reachable: worst residual ${(r.residual * 1000).toFixed(2)} mm after restarts.`) : null);
   };

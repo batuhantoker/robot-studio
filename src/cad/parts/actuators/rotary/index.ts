@@ -1,5 +1,6 @@
 /** Revolute joint: a cobot-style frameless motor + strain-wave gear module about the joint axis. */
 import * as THREE from 'three';
+import { hullCylinder } from '../../../common/hull';
 import { axisFrame, cylinderExit, v3 } from '../../../common/orient';
 import { type JointModuleBuilder, moduleRadius } from '../../types';
 import { buildLoadRing, buildStator } from './stator';
@@ -11,9 +12,9 @@ export const rotaryModule: JointModuleBuilder = ({ mats, link }) => {
   const axis = v3(link.dofs[0].axis);
   const stator = axisFrame(axis);
   const ring = buildLoadRing(mats, R, L);
-  stator.add(buildStator(mats, R, L), ring);
+  stator.add(buildStator(mats, R, L), ring, hullCylinder(R, -0.5 * L, 0.14 * L));
   const rotor = axisFrame(axis);
-  rotor.add(buildRotor(mats, R, L));
+  rotor.add(buildRotor(mats, R, L), hullCylinder(R * 0.97, 0.12 * L, 0.5 * L));
   const [s0, s1] = [new THREE.Group(), new THREE.Group()];
   s0.add(stator);
   s1.add(rotor);

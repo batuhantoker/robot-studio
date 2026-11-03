@@ -14,7 +14,8 @@ function slider(label: string, min: number, max: number, value: number, onInput:
   return h('label.row', { style: 'gap:4px' }, h('span.cap.mu', {}, label), input, out);
 }
 
-export function mountMotionBar(el: HTMLElement, store: Store<StudioState>, presets: () => MotionPreset[]): void {
+/** `taskReady` sends the pick-and-place chip to the interactive Pick & place mode when the robot can grip. */
+export function mountMotionBar(el: HTMLElement, store: Store<StudioState>, presets: () => MotionPreset[], taskReady: () => boolean = () => false): void {
   const bar = h('div.toolbar.motion-bar');
   el.prepend(bar);
   let sliders: HTMLElement | null = null;
@@ -23,11 +24,13 @@ export function mountMotionBar(el: HTMLElement, store: Store<StudioState>, prese
   play.addEventListener('click', () => store.set({ playing: !store.state.playing, mode: 'motion' }));
   const render = (s: StudioState) => {
     const list = presets();
-    bar.style.display = list.length ? '' : 'none';
+    bar.style.display = list.length && s.mode !== 'trajectory' && s.mode !== 'task' ? '' : 'none';
     replace(chips, ...list.map((p) => h('button.tb', {
       class: s.mode === 'motion' && s.motion.preset === p.id ? 'on' : '',
       title: p.hint,
-      onclick: () => store.set({ mode: 'motion', playing: true, time: 0, motion: { ...store.state.motion, preset: p.id } }),
+      onclick: () => store.set(p.id === 'pick' && taskReady()
+        ? { mode: 'task', playing: true, time: 0 }
+        : { mode: 'motion', playing: true, time: 0, motion: { ...store.state.motion, preset: p.id } }),
     }, p.label)));
     const active = s.mode === 'motion' && !!s.motion.preset;
     play.textContent = active && s.playing ? '❚❚' : '▶';

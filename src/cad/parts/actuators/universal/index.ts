@@ -1,5 +1,6 @@
 /** Universal (Cardan) joint: parent yoke, cross spider on DOF a, child yoke on DOF b. */
 import * as THREE from 'three';
+import { hullBox, hullPin } from '../../../common/hull';
 import { v3 } from '../../../common/orient';
 import { part } from '../../../common/part';
 import { block, pin } from '../../shapes/blocks';
@@ -22,6 +23,8 @@ export const universalModule: JointModuleBuilder = ({ mats, link }) => {
     part(pin(s * 1.1, s * 0.5, 'z').translate(0, 0, -s * 1.9), mats, 'alu', { label: 'Parent hub', layer: 'structure', explode: out(-s * 1.5) }),
     part(block(s * 0.45, s * 0.9, s * 2.1).translate(s * 1.15, 0, -s * 0.85), mats, 'alu', { label: 'Yoke arm', layer: 'structure', explode: out(-s * 1.5) }),
     part(block(s * 0.45, s * 0.9, s * 2.1).translate(-s * 1.15, 0, -s * 0.85), mats, 'alu', { label: 'Yoke arm', layer: 'structure', explode: out(-s * 1.5) }),
+    hullPin(s * 1.1, s * 0.5, 'z', out(-s * 1.9)),
+    ...[-1, 1].map((k) => hullBox(s * 0.45, s * 0.9, s * 2.1, new THREE.Vector3(k * s * 1.15, 0, -s * 0.85))),
   );
   const ring = part(pin(s * 0.34, s * 0.62, 'z'), mats, 'accent', { label: 'Spider hub', layer: 'sensor' });
   ring.material = mats.get('accent').clone();
@@ -32,11 +35,15 @@ export const universalModule: JointModuleBuilder = ({ mats, link }) => {
     ...[-1, 1].map((k) => part(pin(s * 0.36, s * 0.3, 'x').translate(k * s * 1.15, 0, 0), mats, 'cap', { label: 'Needle-bearing cup', layer: 'bearing', explode: new THREE.Vector3(k * s, 0, 0) })),
     ...[-1, 1].map((k) => part(pin(s * 0.36, s * 0.3, 'y').translate(0, k * s * 1.15, 0), mats, 'cap', { label: 'Needle-bearing cup', layer: 'bearing', explode: new THREE.Vector3(0, k * s, 0) })),
     ring,
+    hullPin(s * 0.36, s * 2.6, 'x'),
+    hullPin(s * 0.36, s * 2.6, 'y'),
   );
   const yokeB = basis(a, b);
   yokeB.add(
     part(pin(s * 1.1, s * 0.5, 'z').translate(0, 0, s * 1.9), mats, 'alu', { label: 'Child hub', layer: 'structure', explode: out(s * 1.5) }),
     ...[-1, 1].map((k) => part(block(s * 0.9, s * 0.45, s * 2.1).translate(0, k * s * 1.15, s * 0.85), mats, 'alu', { label: 'Yoke arm', layer: 'structure', explode: out(s * 1.5) })),
+    hullPin(s * 1.1, s * 0.5, 'z', out(s * 1.9)),
+    ...[-1, 1].map((k) => hullBox(s * 0.9, s * 0.45, s * 2.1, new THREE.Vector3(0, k * s * 1.15, s * 0.85))),
   );
   const stages = [new THREE.Group(), new THREE.Group(), new THREE.Group()];
   stages[0].add(yokeA);

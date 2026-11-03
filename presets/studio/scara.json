@@ -12,6 +12,7 @@
     0.0
   ],
   "payload_mass": 0.5,
+  "effector": "suction",
   "links": [
     {
       "name": "j1",

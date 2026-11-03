@@ -1,18 +1,23 @@
 /** Procedural CAD for a studio robot: a module per joint, tubes between them, tool, pedestal. */
 import * as THREE from 'three';
-import { linkJointStart } from '../../../core/chain/model/from-spec';
+import { chainFrames } from '../../../core/chain/kinematics/frames';
+import { chainFromSpec, linkJointStart } from '../../../core/chain/model/from-spec';
 import { identityTransform } from '../../../core/math/linear/transform';
+import { homePose, reachEstimate } from '../../../core/robot/config/pose';
+import { EFFECTOR_KINDS } from '../../../core/robot/effectors/kinds';
 import type { RobotSpec } from '../../../core/robot/schema/types';
+import { lowestSolidZ } from '../../common/lowest';
 import { settle } from '../../common/part';
 import { v3 } from '../../common/orient';
 import { MaterialSet } from '../../materials/library';
 import { buildPedestal } from '../../parts/base/pedestal';
-import { buildGripper } from '../../parts/effectors/gripper';
 import { buildTube } from '../../parts/links/tube';
 import { type JointModule, moduleRadius } from '../../parts/types';
+import { EFFECTOR_BUILDERS } from '../../registry/effectors';
 import { JOINT_MODULES } from '../../registry/joint-modules';
 import { JOINT_KINDS } from '../../../core/robot/joints/kinds';
-import type { Assembly, ModuleInfo } from '../types';
+import { collectHull } from '../hull/collect';
+import type { Assembly, EffectorRig, ModuleInfo } from '../types';
 import { type Slot, poseSlots } from './slots';
 
 const tagModule = (g: THREE.Object3D, id: string) => ((g.userData.module = id), g);
@@ -31,7 +36,7 @@ export function buildSpecAssembly(spec: RobotSpec): Assembly {
     modules.push({ id, label: link.name, kind: JOINT_KINDS[link.joint].label, joints: link.dofs.map((_, i) => starts[k] + i) });
     m.stages.forEach((stage, i) => {
       const dof = starts[k] + i - 1;
-      slots.push({ group: tagModule(stage, id) as THREE.Group, frame: (f) => (i === 0 ? f.pre[starts[k]] : f.frames[dof]), before: starts[k] + i });
+      slots.push({ group: tagModule(stage, id) as THREE.Group, frame: (f) => (i === 0 ? f.pre[starts[k]] : f.frames[dof]), body: i === 0 ? starts[k] - 1 : dof, before: starts[k] + i });
       root.add(stage);
     });
     link.dofs.forEach(() => gaps.push((m.size * 1.3) / link.dofs.length));
@@ -52,18 +57,30 @@ export function buildSpecAssembly(spec: RobotSpec): Assembly {
   const flange = v3(lastLink.offset);
   const tip = flange.clone().add(v3(spec.tool));
   const approach = [v3(spec.tool), v3(lastLink.offset), v3(lastLink.dofs.at(-1)!.axis)].find((v) => v.lengthSq() > 0)!;
-  lastStage.add(tagModule(buildGripper({ mats, flange, tip, approach, size: moduleRadius(lastLink) * 0.55, payload: spec.payload_mass }), 'tool'));
-  modules.push({ id: 'tool', label: 'Gripper', kind: 'End effector', joints: [] });
+  // Thin Python-study wrists would carry millimetre tools; keep the tool in proportion to the arm.
+  const size = Math.max(moduleRadius(lastLink) * 0.55, 0.025 * reachEstimate(spec));
+  const rig = EFFECTOR_BUILDERS[spec.effector]({ mats, flange, tip, approach, size, payload: spec.payload_mass });
+  const ax = approach.clone().normalize();
+  const tool = {
+    approach: ax.toArray(),
+    side: new THREE.Vector3(1, 0, 0).applyQuaternion(rig.group.quaternion).toArray(),
+    beyond: Math.max(0, rig.reach - tip.clone().sub(flange).dot(ax)),
+  };
+  const effector: EffectorRig = { ...rig, kind: spec.effector, size, tool };
+  lastStage.add(tagModule(effector.group, 'tool'));
+  modules.push({ id: 'tool', label: EFFECTOR_KINDS[spec.effector].label, kind: 'End effector', joints: [] });
 
   const R0 = moduleRadius(spec.links[0]);
   const base = v3(spec.base);
   const drop = built[0].exit(new THREE.Vector3(0, 0, -1));
   const top = base.z - Math.min(drop, R0 * 3) * 0.9;
-  const floorZ = Math.min(0, top - R0 * 0.5);
+  // Measured at home, so a first module reaching below the column (a gantry's motor plate) still stands on the floor.
+  poseSlots(slots, chainFrames(chainFromSpec(spec), homePose(spec)), gaps, 0);
+  const floorZ = Math.min(0, top - R0 * 0.5, lowestSolidZ(root));
   const baseSlot = new THREE.Group();
   baseSlot.add(buildPedestal(mats, base, floorZ, top, R0));
   root.add(tagModule(baseSlot, 'base'));
-  slots.push({ group: baseSlot, frame: () => identityTransform(), before: 0 });
+  slots.push({ group: baseSlot, frame: () => identityTransform(), body: -1, before: 0 });
   modules.unshift({ id: 'base', label: 'Pedestal', kind: 'Base', joints: [] });
   settle(root);
 
@@ -75,6 +92,8 @@ export function buildSpecAssembly(spec: RobotSpec): Assembly {
     modules,
     indicators,
     floorZ,
+    hull: collectHull(slots, chainFromSpec(spec)),
+    effector,
     update: (limbs, explode) => poseSlots(slots, limbs[0], gaps, explode),
     dispose() {
       root.traverse((o) => (o as THREE.Mesh).geometry?.dispose());

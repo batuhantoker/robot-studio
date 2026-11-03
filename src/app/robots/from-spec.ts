@@ -3,10 +3,12 @@ import { buildSpecAssembly } from '../../cad/assembly/spec/build';
 import { chainFromSpec } from '../../core/chain/model/from-spec';
 import { singleLimb } from './single-limb';
 import { toMjcf } from '../../core/mjcf/writer/serial-arm';
-import { homePose, specDofs } from '../../core/robot/config/pose';
+import { homePose, reachEstimate, specDofs } from '../../core/robot/config/pose';
 import type { RobotSpec } from '../../core/robot/schema/types';
+import { hullChecker } from '../../physics/collision/from-hull';
 import { ModelHandle } from '../../physics/model/handle';
 import { OBJ, arrays, state } from '../../physics/runtime/arrays';
+import { contactTol, moduleLabel } from './contact';
 import type { RobotSession } from './session';
 
 export async function sessionFromSpec(id: string, title: string, spec: RobotSpec): Promise<RobotSession> {
@@ -15,6 +17,11 @@ export async function sessionFromSpec(id: string, title: string, spec: RobotSpec
   const site = handle.id(OBJ.site, 'end_effector');
   const qposAdr = specDofs(spec).map((d) => m.jnt_qposadr[handle.id(OBJ.joint, d.name)]);
   const assembly = buildSpecAssembly(spec);
+  const chain = chainFromSpec(spec);
+  const home = homePose(spec);
+  const collision = await hullChecker(chain, assembly.hull ?? [], {
+    home, floorZ: assembly.floorZ, tol: contactTol(reachEstimate(spec)), label: moduleLabel(assembly),
+  });
   return {
     id,
     title,
@@ -22,20 +29,22 @@ export async function sessionFromSpec(id: string, title: string, spec: RobotSpec
     category: 'arm',
     base: 'fixed',
     spec,
-    ...singleLimb(chainFromSpec(spec)),
+    ...singleLimb(chain),
     defaultFocus: 0,
     handle,
     assembly,
     qposAdr,
     dofAdr: specDofs(spec).map((d) => m.jnt_dofadr[handle.id(OBJ.joint, d.name)]),
-    home: homePose(spec),
+    home,
     torqueLimits: spec.links.flatMap((l) => l.dofs.map(() => l.torque_limit)),
     rest: Float64Array.from(m.qpos0),
+    collision,
     mujocoTips: () => {
       const x = state(handle.data).site_xpos;
       return [[x[3 * site], x[3 * site + 1], x[3 * site + 2]]];
     },
     dispose() {
+      collision?.dispose();
       assembly.dispose();
       handle.dispose();
     },

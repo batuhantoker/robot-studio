@@ -3,6 +3,7 @@
  * kinematic layer, which makes the Euler-angle singularity (gimbal lock) visible.
  */
 import * as THREE from 'three';
+import { hullCylinder, hullSphere } from '../../../common/hull';
 import { lathe } from '../../../common/lathe';
 import { axisFrame, v3 } from '../../../common/orient';
 import { part } from '../../../common/part';
@@ -33,6 +34,8 @@ export const sphericalModule: JointModuleBuilder = ({ mats, link }) => {
   socket.add(
     part(lathe(socketProfile(R), 48), mats, 'shell', { label: 'Socket', layer: 'housing', explode: up(-R * 1.6) }),
     part(pin(R * 0.45, R * 1.2, 'y').translate(0, -R * 1.65, 0), mats, 'alu', { label: 'Socket stem', layer: 'structure', explode: up(-R * 1.6) }),
+    hullSphere(R * 1.18),
+    hullCylinder(R * 0.45, -R * 2.25, -R * 1.05),
   );
   const axes = [link.dofs[0].axis, link.dofs[1].axis, link.dofs[2].axis].map(v3);
   const colors = ['#3d8fe0', '#f05a23', '#2e9d6a'];
@@ -50,6 +53,8 @@ export const sphericalModule: JointModuleBuilder = ({ mats, link }) => {
     part(new THREE.SphereGeometry(R * 0.98, 40, 28), mats, 'steel', { label: 'Ball', layer: 'drive', explode: up(R * 0.9) }),
     part(pin(R * 0.42, R * 1.4, 'y').translate(0, R * 1.3, 0), mats, 'alu', { label: 'Neck', layer: 'structure', explode: up(R * 1.3) }),
     glow,
+    hullSphere(R * 0.98),
+    hullCylinder(R * 0.42, R * 0.6, R * 2),
   );
   glow.position.set(0, -R * 0.75, 0);
   const stages = [new THREE.Group(), new THREE.Group(), new THREE.Group(), new THREE.Group()];

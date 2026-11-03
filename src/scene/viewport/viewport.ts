@@ -5,9 +5,12 @@ import { moduleOf } from '../../cad/assembly/types';
 import { createStudio } from '../stage/lights';
 import { type Post, createPost } from '../stage/post';
 import { QualityGovernor, TIERS, type Tier } from '../stage/quality';
+import { GroundContactOverlay } from '../overlays/contact/overlay';
 import { type Grounding, groundRobot } from './floor-lift';
 import { renderFrame } from './render-frame';
 import { type Stage, createStage } from '../stage/renderer';
+import { BACKDROP_LAYER } from '../stage/backdrop';
+import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings, backdropCss } from '../stage/surroundings';
 import { Cutaway } from '../teardown/cutaway';
 import { explodeParts } from '../teardown/explode';
 import type { Look } from '../look/types';
@@ -34,23 +37,43 @@ export class Viewport {
     this.studio.setShadowSize(t.shadowSize);
   });
   private floorZ = 0;
+  private scale = 0.5;
   private grounding: Grounding = 'bolted';
+  private readonly contacts = new GroundContactOverlay();
   private last = performance.now();
+  private clock = performance.now();
   private view: TeardownView = { cut: 'solid', look: 'studio', explode: 0, isolate: null };
-  private readonly listeners: (() => void)[] = [];
+  private readonly listeners: ((dt: number) => void)[] = [];
+  /** Hidden while ambient occlusion samples the scene. */
+  readonly aoHidden: THREE.Object3D[] = [this.overlay, ...this.studio.aoHidden];
+  private offline: { width: number; height: number; pixelRatio: number } | null = null;
 
   constructor(host: HTMLElement) {
     this.stage = createStage(host);
     this.stage.scene.add(this.studio.group);
+    this.stage.camera.layers.enable(BACKDROP_LAYER);
+    this.setSurroundings(DEFAULT_SURROUNDINGS);
     // Overlays ride with the robot so markers stay on it when a floating base settles.
     this.holder.add(this.overlay);
+    this.overlay.add(this.contacts.group);
     this.stage.root.add(this.holder);
-    this.post = createPost(this.stage.renderer, this.stage.scene, this.stage.camera, [this.overlay]);
+    this.post = createPost(this.stage.renderer, this.stage.scene, this.stage.camera, this.aoHidden);
     this.stage.renderer.setAnimationLoop(() => this.tick());
   }
 
-  onFrame(fn: () => void): void {
+  /** Runs before each frame is drawn, with the seconds since the last one. */
+  onFrame(fn: (dt: number) => void): void {
     this.listeners.push(fn);
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this.stage.renderer.domElement;
+  }
+
+  /** Backdrop (the canvas is transparent over it) and floor, with the light rig to match. */
+  setSurroundings(s: Surroundings): void {
+    this.studio.apply(s, this.stage.scene);
+    this.canvas.style.background = backdropCss(BACKDROPS[s.backdrop]);
   }
 
   setAssembly(assembly: Assembly, grounding: Grounding = 'bolted'): void {
@@ -82,9 +105,12 @@ export class Viewport {
   /** Frame the camera on the assembly as currently posed. */
   fit(): void {
     if (!this.assembly) return;
+    this.floorZ = this.grounding === 'settle' ? 0 : this.assembly.floorZ;
+    groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
+    this.holder.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(this.assembly.root);
     const sphere = box.getBoundingSphere(new THREE.Sphere());
-    this.floorZ = this.grounding === 'settle' ? 0 : Math.min(this.assembly.floorZ, box.min.z);
+    this.scale = sphere.radius;
     this.studio.fit(sphere.radius, this.floorZ);
     this.stage.frame(sphere.radius, sphere.center);
   }
@@ -111,28 +137,92 @@ export class Viewport {
     }, 1100);
   }
 
-  /** Module id under a canvas pixel, for click-to-isolate. */
-  pick(x: number, y: number): string | null {
-    if (!this.assembly) return null;
+  /** Reframe on `frame` plus the robot, but only when one of `check` is off-screen. */
+  keepInView(check: THREE.Vector3[], frame = check): void {
+    const off = check.some((p) => {
+      const n = p.clone().project(this.stage.camera);
+      return Math.abs(n.x) > 0.92 || Math.abs(n.y) > 0.88 || n.z > 1;
+    });
+    if (off) this.fitBox(new THREE.Box3().setFromPoints(frame));
+  }
+
+  /** Camera ray through a client pixel. */
+  ray(x: number, y: number): THREE.Raycaster {
     const rect = this.stage.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, this.stage.camera);
-    const hit = ray.intersectObject(this.assembly.root, true).find((h) => (h.object as THREE.Mesh).visible);
+    return ray;
+  }
+
+  /** Module id under a canvas pixel, for click-to-isolate. */
+  pick(x: number, y: number): string | null {
+    if (!this.assembly) return null;
+    const hit = this.ray(x, y).intersectObject(this.assembly.root, true).find((h) => (h.object as THREE.Mesh).visible);
     return hit ? moduleOf(hit.object) : null;
   }
 
-  private tick(): void {
-    for (const fn of this.listeners) fn();
+  /** Stop the live loop and draw every frame at exactly width × height, with AO and full shadows. */
+  beginOffline(width: number, height: number): void {
+    if (this.offline) return;
+    this.offline = { width, height, pixelRatio: this.stage.renderer.getPixelRatio() };
+    this.studio.setShadowSize(TIERS[0].shadowSize);
+  }
+
+  /** One offline frame: the clock advances by exactly `dt`; `prepare` runs after the frame's state is set, before drawing. */
+  stepOffline(dt: number, prepare?: () => void): void {
+    const o = this.offline;
+    if (!o) return;
+    const { renderer, camera } = this.stage;
+    // Re-asserted every frame: a window resize mid-render would otherwise resize the frames.
+    if (renderer.getPixelRatio() !== 1) renderer.setPixelRatio(1);
+    if (renderer.domElement.width !== o.width || renderer.domElement.height !== o.height) renderer.setSize(o.width, o.height, false);
+    camera.aspect = o.width / o.height;
+    camera.updateProjectionMatrix();
+    this.post.setSize(o.width, o.height, 1);
+    this.advance(dt);
+    prepare?.();
+    if (this.transparentView()) renderer.render(this.stage.scene, camera);
+    else this.post.composer.render();
+  }
+
+  endOffline(): void {
+    const o = this.offline;
+    if (!o) return;
+    this.offline = null;
+    this.stage.renderer.setPixelRatio(o.pixelRatio);
+    this.stage.resize();
+    this.studio.setShadowSize(this.tier.shadowSize);
+    this.clock = this.last = performance.now();
+  }
+
+  private transparentView(): boolean {
+    // Glass and ghosts are transparent; AO would darken them as if they were solid.
+    return this.view.cut === 'glass' || !!this.view.isolate;
+  }
+
+  private advance(dt: number): void {
+    for (const fn of this.listeners) fn(dt);
     if (this.view.cut === 'section' && this.cutaway) {
       this.cutaway.aim(this.stage.controls.target, this.stage.camera);
     }
-    if (this.assembly) groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
+    if (this.assembly) {
+      const solids = groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
+      // Solids were measured with the holder at rest, the frame the overlay lives in.
+      this.contacts.update(solids, this.floorZ - this.holder.position.z, this.scale);
+    }
     this.post.setClipping(this.view.cut === 'section' && this.cutaway ? [this.cutaway.plane] : null);
     this.stage.controls.update();
-    renderFrame(this.stage, this.post, this.tier, this.view.cut === 'glass' || !!this.view.isolate);
+  }
+
+  private tick(): void {
+    if (this.offline) return;
     const now = performance.now();
-    this.governor.frame(now - this.last);
-    this.last = now;
+    this.advance((now - this.clock) / 1000);
+    this.clock = now;
+    renderFrame(this.stage, this.post, this.tier, this.transparentView());
+    const end = performance.now();
+    this.governor.frame(end - this.last);
+    this.last = end;
   }
 }

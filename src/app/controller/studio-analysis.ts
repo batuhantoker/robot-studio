@@ -1,14 +1,15 @@
 /** Analysis services for the panels: trajectory profiles, physics histories, workspace studies. */
-import { chainFrames } from '../../core/chain/kinematics/frames';
+import type { Vec3 } from '../../core/math/linear/vec';
 import type { WorkspaceMetric } from '../../scene/overlays/workspace';
 import type { AnalysisContext } from '../../ui/analysis/context';
 import { focusLimb, jointLimits } from '../robots/focus';
-import { type PathProfile, profile } from './modes/trajectory';
+import { type PathProfile, dragStop, planOf, profile, stopTips } from './modes/trajectory';
 import { type WorkspaceStudy, runStudy, studyKey } from './workspace/study';
 import type { Studio } from './studio';
 
 export class StudioAnalysis implements AnalysisContext {
   private path: PathProfile | null = null;
+  private tips: Vec3[] = [];
   private study: WorkspaceStudy | null = null;
   private metric: WorkspaceMetric = 'manipulability';
   private listeners: ((s: WorkspaceStudy | null) => void)[] = [];
@@ -25,7 +26,9 @@ export class StudioAnalysis implements AnalysisContext {
   }
 
   ik = () => this.studio.ik.result;
+  ikBlocked = () => this.studio.ik.blocked;
   profile = () => this.path;
+  stopTips = () => this.tips;
 
   physics() {
     const p = this.studio.physics;
@@ -36,8 +39,22 @@ export class StudioAnalysis implements AnalysisContext {
     const s = this.studio.session;
     const st = this.studio.store.state;
     if (!s || !s.joints.length || st.waypoints[0]?.length !== s.joints.length) return;
-    this.path = profile(jointLimits(s), focusLimb(s, st.focus), st.waypoints, st.duration);
+    this.path = profile(jointLimits(s), focusLimb(s, st.focus), planOf(st));
     if (st.mode === 'trajectory') this.studio.overlays.trail.setPath(this.path.tool);
+  }
+
+  /** Move stop i so the focused tool point goes to `point` (overlay frame); drags pass a small budget. */
+  moveStop(i: number, point: Vec3, maxIter = 200): void {
+    const s = this.studio.session;
+    const st = this.studio.store.state;
+    if (s && st.waypoints[i]) this.studio.store.set({ waypoints: dragStop(s.limbs, s.joints, st.focus, st.waypoints, i, point, maxIter) });
+  }
+
+  refreshStops(): void {
+    const s = this.studio.session;
+    const st = this.studio.store.state;
+    this.tips = s && st.waypoints[0]?.length === s.joints.length ? stopTips(jointLimits(s), focusLimb(s, st.focus), st.waypoints) : [];
+    this.studio.overlays.stops.show(this.tips, st.selectedStop);
   }
 
   workspace = () => this.study;
@@ -71,15 +88,12 @@ export class StudioAnalysis implements AnalysisContext {
     this.metric = metric;
     const st = this.study;
     if (!st) return;
-    const s = this.studio.session;
-    const base = s?.limbs[0]?.chain;
-    const axis = base ? chainFrames(base, base.joints.map((j) => j.q0)).origins[0] ?? base.base.p : ([0, 0, 0] as const);
-    this.studio.overlays.workspace.show(st.samples, metric, this.studio.overlays.reach * 0.02, [axis[0], axis[1], axis[2]]);
+    this.studio.overlays.workspace.show(st.samples, st.shell, metric, this.studio.overlays.reach * 0.02);
   }
 
   restartPhysics(): void {
     const st = this.studio.store.state;
-    this.studio.physics?.reset(st.waypoints, st.duration);
+    this.studio.physics?.reset(planOf(st));
     this.studio.overlays.trail.clear();
   }
 }

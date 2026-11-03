@@ -9,11 +9,13 @@ import { focusLimb, jointLimits } from '../robots/focus';
 import { type RobotSession, mujocoBias, pose } from '../robots/session';
 import type { Store } from '../state/store';
 import type { StudioState } from '../state/types';
+import { playbackGuard } from '../collision/playback';
 import { updateIndicators } from './indicators';
 import type { MotionClip } from '../../core/motion/types';
+import type { TaskClip } from '../../core/task/types';
 import type { IkMode } from './modes/ik';
 import type { PhysicsMode } from './modes/physics';
-import { stateAt } from './modes/trajectory';
+import { planOf, player } from './modes/trajectory';
 
 export interface LoopDeps {
   store: Store<StudioState>;
@@ -23,6 +25,7 @@ export interface LoopDeps {
   physics: () => PhysicsMode | null;
   ik: IkMode;
   motion: () => MotionClip | null;
+  task: () => TaskClip | null;
   focusJoint: () => number;
 }
 
@@ -32,34 +35,47 @@ function chooseQ(d: LoopDeps, s: RobotSession, st: StudioState, dt: number) {
   let q = st.q;
   let time = st.time;
   if (st.mode === 'trajectory' && st.waypoints[0]?.length === s.joints.length) {
-    if (st.playing) d.store.set({ time: (time = (st.time + dt) % st.duration) });
-    q = stateAt(jointLimits(s), st.waypoints, st.duration, time).q;
+    if (st.playing) d.store.set({ time: (time = st.rendering ? Math.min(st.time + dt, st.duration) : (st.time + dt) % st.duration) });
+    q = player(jointLimits(s), planOf(st))(time).q;
   } else if (st.mode === 'motion') {
     const clip = d.motion();
     if (clip) {
       if (st.playing) d.store.set({ time: (time = st.time + dt * st.motion.speed) });
       q = clip.at(time);
     }
+  } else if (st.mode === 'task') {
+    const clip = d.task();
+    if (clip) {
+      if (st.playing) d.store.set({ time: (time = (st.time + dt * st.motion.speed) % clip.period) });
+      q = clip.at(time).q;
+    }
   } else if (simulating) {
-    q = st.playing ? physics!.advance(dt, st.waypoints, st.duration) ?? q : physics!.sim!.q();
+    q = st.playing ? physics!.advance(dt, planOf(st)) ?? q : physics!.sim!.q();
     time = physics!.sim!.time % st.duration;
   } else if (st.mode === 'ik') {
     const replay = d.ik.next();
     if (replay) q = replay.q;
-    if (replay?.done) d.store.set({ q: replay.q });
+    if (replay?.done) d.store.set({ q: replay.q, contact: d.ik.blocked });
   }
   return { q, time, simulating };
 }
 
 export function frameLoop(d: LoopDeps): (dt: number) => void {
+  const guard = playbackGuard();
   return (dt) => {
     const s = d.session();
     if (!s || d.store.state.q.length !== s.joints.length) return;
     const st = d.store.state;
     const chosen = chooseQ(d, s, st, dt);
-    const { time, simulating } = chosen;
+    const { simulating } = chosen;
+    let time = chosen.time;
     // MuJoCo's own state is shown as is while simulating; every other source is held to the ranges.
-    const q = simulating ? chosen.q : enforceLimits(s.joints, chosen.q);
+    let q = simulating ? chosen.q : enforceLimits(s.joints, chosen.q);
+    const stop = simulating ? null : guard(s, st.mode, q, time, st.playing);
+    if (stop) {
+      d.store.set({ playing: false, time: stop.time, contact: stop.contact });
+      ({ q, time } = stop);
+    }
     const posed = pose(s, q, st.explode, st.focus, !simulating);
     const limb = focusLimb(s, st.focus);
     const limbs = s.limbs.map((l) => {
@@ -75,7 +91,7 @@ export function frameLoop(d: LoopDeps): (dt: number) => void {
       dexterity: limbs[s.limbs.indexOf(limb)],
       limbs,
     };
-    d.overlays.update(snap, st.overlays, d.focusJoint(), st.mode === 'ik');
+    d.overlays.update(snap, st.overlays, d.focusJoint(), st.mode);
     if (st.mode === 'physics' && st.playing) d.overlays.trail.push(posed.frames.tip.p);
     updateIndicators(s.assembly.indicators, sim?.applied ?? snap.bias, s.torqueLimits);
     d.bus.publish(snap);

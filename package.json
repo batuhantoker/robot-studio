@@ -24,6 +24,7 @@
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@mujoco/mujoco": "^3.17.0",
     "katex": "^0.19.1",
+    "mediabunny": "^1.65.1",
     "three": "^0.187.0"
   },
   "devDependencies": {

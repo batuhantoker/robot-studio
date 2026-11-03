@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import type { Snapshot } from '../../app/live/bus';
 import type { RobotSession } from '../../app/robots/session';
-import type { Overlays as Flags } from '../../app/state/types';
+import type { Overlays as Flags, Mode } from '../../app/state/types';
 import type { ChainFrames } from '../../core/chain/model/types';
 import type { Vec3 } from '../../core/math/linear/vec';
 import type { Stage } from '../stage/renderer';
@@ -10,6 +10,7 @@ import { AxesOverlay } from './axes';
 import { ComOverlay } from './com';
 import { EffectorsOverlay } from './effectors';
 import { EllipsoidOverlay } from './ellipsoid';
+import { StopsOverlay } from './stops';
 import { TargetOverlay } from './target';
 import { TrailOverlay } from './trail';
 import { WorkspaceOverlay } from './workspace';
@@ -34,17 +35,15 @@ export class OverlaySet {
   readonly ellipsoids = new THREE.Group();
   private ellipsoidList: EllipsoidOverlay[] = [];
   readonly trail = new TrailOverlay();
+  readonly stops = new StopsOverlay();
   readonly workspace = new WorkspaceOverlay();
   readonly target: TargetOverlay;
   reach = 0.5;
   private comCount = -1;
 
-  private readonly camera: THREE.Camera;
-
   constructor(stage: Stage, onTarget: (p: Vec3) => void) {
-    this.camera = stage.camera;
     this.target = new TargetOverlay(stage.camera, stage.renderer.domElement, stage.controls, onTarget);
-    this.group.add(this.axes.group, this.com.group, this.effectors.group, this.ellipsoids, this.trail.group, this.workspace.group, this.target.group);
+    this.group.add(this.axes.group, this.com.group, this.effectors.group, this.ellipsoids, this.trail.group, this.stops.group, this.workspace.group, this.target.group);
   }
 
   rebuild(session: RobotSession, reach: number): void {
@@ -59,19 +58,21 @@ export class OverlaySet {
       return e;
     });
     this.target.setScale(reach);
+    this.stops.setScale(reach);
     this.comCount = -1;
     this.trail.clear();
     this.workspace.clear();
   }
 
-  update(snap: Snapshot, flags: Flags, focusJoint: number, ikMode: boolean): void {
+  update(snap: Snapshot, flags: Flags, focusJoint: number, mode: Mode): void {
     this.axes.group.visible = flags.frames;
     this.com.group.visible = flags.com;
     this.ellipsoids.visible = flags.ellipsoid;
     this.trail.group.visible = flags.trail;
     this.workspace.group.visible = flags.workspace;
-    if (flags.workspace) this.workspace.face(this.camera);
-    this.target.group.visible = ikMode;
+    // Hidden, the gizmo must not catch drags; disabled mid-drag, it would swallow the release and keep orbit locked.
+    if (!this.target.gizmo.dragging) this.target.group.visible = this.target.gizmo.enabled = mode === 'ik';
+    this.stops.group.visible = mode === 'trajectory';
     const limbs = snap.posed.limbs;
     this.effectors.update(limbs, snap.focus);
     if (flags.frames) {

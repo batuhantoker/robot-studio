@@ -7,6 +7,8 @@ import { setFromTransform } from '../../common/orient';
 export interface Slot {
   group: THREE.Group;
   frame: (f: ChainFrames) => Transform;
+  /** Chain joint whose moved frame carries this slot rigidly; -1 is the world. */
+  body: number;
   /** Chain joints whose motion precedes this slot; their axes set the explode direction. */
   before: number;
 }

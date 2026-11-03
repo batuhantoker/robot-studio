@@ -1,12 +1,13 @@
 /**
  * Robot configuration shared with `four_dof_arm.serial_arm.SerialArm` (SI units).
  * Studio extensions (`joint` kinds other than revolute, `axis2`, per-DOF limits) make a robot
- * studio/MJCF-only; Python export is refused for those.
+ * studio/MJCF-only; Python export is refused for those. `effector` is visual only, so Python export drops it.
  */
 import type { Vec3 } from '../../math/linear/vec';
 
 export type JointKind = 'revolute' | 'prismatic' | 'cylindrical' | 'universal' | 'spherical' | 'planar';
 export type DofType = 'hinge' | 'slide';
+export type EffectorKind = 'parallel' | 'three_finger' | 'suction' | 'torch' | 'spindle' | 'flange';
 
 /** One elementary degree of freedom; its axis is in the frame left by the previous DOF. */
 export interface DofSpec {
@@ -39,6 +40,8 @@ export interface RobotSpec {
   base: Vec3;
   tool: Vec3;
   payload_mass: number;
+  /** What the last link carries; the tool point stays `tool`. */
+  effector: EffectorKind;
   links: LinkSpec[];
 }
 

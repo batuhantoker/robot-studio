@@ -23,10 +23,17 @@ export function axisFrame(axis: THREE.Vector3, side?: THREE.Vector3): THREE.Grou
   return g;
 }
 
+export const matrixOf = ({ R, p }: Transform): THREE.Matrix4 =>
+  new THREE.Matrix4().set(R[0], R[1], R[2], p[0], R[3], R[4], R[5], p[1], R[6], R[7], R[8], p[2], 0, 0, 0, 1);
+
+/** Rigid part of a matrix (three.js stores it column-major). */
+export function transformOf(m: THREE.Matrix4): Transform {
+  const e = m.elements;
+  return { R: [e[0], e[4], e[8], e[1], e[5], e[9], e[2], e[6], e[10]], p: [e[12], e[13], e[14]] };
+}
+
 export function setFromTransform(o: THREE.Object3D, t: Transform): void {
-  const R = t.R;
-  const m = new THREE.Matrix4().set(R[0], R[1], R[2], t.p[0], R[3], R[4], R[5], t.p[1], R[6], R[7], R[8], t.p[2], 0, 0, 0, 1);
-  m.decompose(o.position, o.quaternion, o.scale);
+  matrixOf(t).decompose(o.position, o.quaternion, o.scale);
 }
 
 /** Distance from a cylinder's centre to its surface along a unit direction (axis = local Y). */

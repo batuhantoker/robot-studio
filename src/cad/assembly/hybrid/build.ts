@@ -1,6 +1,6 @@
 /** Assembly for an edited CAD twin: real meshes where the link is unchanged, procedural elsewhere. */
 import * as THREE from 'three';
-import { linkJointStart } from '../../../core/chain/model/from-spec';
+import { chainFromSpec, linkJointStart } from '../../../core/chain/model/from-spec';
 import type { Twin } from '../../../core/chain/twin/spec-from-chain';
 import { identityTransform } from '../../../core/math/linear/transform';
 import type { RobotSpec } from '../../../core/robot/schema/types';
@@ -11,6 +11,7 @@ import { settle, tag } from '../../common/part';
 import { MaterialSet } from '../../materials/library';
 import { meshGeometry, primitiveGeometry } from '../mjcf/geometry';
 import { type Slot, poseSlots } from '../spec/slots';
+import { collectHull } from '../hull/collect';
 import type { Assembly, ModuleInfo } from '../types';
 import { type BoundGeom, bindGeoms } from './bind';
 import { cadPlan } from './match';
@@ -47,7 +48,7 @@ export function buildHybridAssembly(spec: RobotSpec, rest: Twin, h: ModelHandle,
   const baseGroup = cadGroup(h, mats, bound.base, null, 'base');
   baseGroup.userData.module = 'base';
   root.add(baseGroup);
-  slots.push({ group: baseGroup, frame: () => identityTransform(), before: 0 });
+  slots.push({ group: baseGroup, frame: () => identityTransform(), body: -1, before: 0 });
   spec.links.forEach((link, k) => {
     const plan = cadPlan(link, k, rest);
     const id = `joint:${link.name}`;
@@ -55,7 +56,7 @@ export function buildHybridAssembly(spec: RobotSpec, rest: Twin, h: ModelHandle,
       const g = cadGroup(h, mats, bound.links[k], plan, link.name);
       g.userData.module = id;
       root.add(g);
-      slots.push({ group: g, frame: (f) => f.frames[starts[k]], before: starts[k] + 1 });
+      slots.push({ group: g, frame: (f) => f.frames[starts[k]], body: starts[k], before: starts[k] + 1 });
       modules.push({ id, label: link.name, kind: plan.length !== plan.restLength ? 'CAD · stretched' : 'CAD', joints: [starts[k]] });
       gaps.push(scale * 0.07);
       indicators.push(null);
@@ -69,6 +70,7 @@ export function buildHybridAssembly(spec: RobotSpec, rest: Twin, h: ModelHandle,
   settle(root);
   return {
     kind: 'cad', root, mats, modules, indicators, floorZ: 0,
+    hull: collectHull(slots, chainFromSpec(spec)),
     update: (limbs, explode) => poseSlots(slots, limbs[0], gaps, explode),
     dispose() {
       root.traverse((o) => {

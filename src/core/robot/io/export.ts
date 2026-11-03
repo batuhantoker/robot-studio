@@ -1,4 +1,5 @@
 /** Serialize specs for `serial-arm-analyze` (strict) or the studio (all joint kinds). */
+import { DEFAULT_EFFECTOR } from '../effectors/kinds';
 import { JOINT_KINDS } from '../joints/kinds';
 import { parseRobot } from '../schema/parse';
 import { LINK_FIELDS, type LinkSpec, type RobotSpec, SpecError } from '../schema/types';
@@ -23,6 +24,7 @@ const robotDict = (spec: RobotSpec, studio: boolean) => ({
   base: [...spec.base],
   tool: [...spec.tool],
   payload_mass: spec.payload_mass,
+  ...(studio && spec.effector !== DEFAULT_EFFECTOR ? { effector: spec.effector } : {}),
   links: spec.links.map((l) => linkDict(l, studio)),
 });
 

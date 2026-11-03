@@ -6,17 +6,14 @@ import * as THREE from 'three';
 import type { ChainFrames } from '../../../core/chain/model/types';
 import type { ModelChain } from '../../../physics/extract/chain/from-model';
 import type { BodyInfo } from '../../../physics/extract/bodies';
-import { type GeomInfo, readGeoms, readMesh } from '../../../physics/extract/geoms';
+import { readGeoms, readMesh, visibleGeom } from '../../../physics/extract/geoms';
 import type { ModelHandle } from '../../../physics/model/handle';
-import { GEOM, OBJ, state } from '../../../physics/runtime/arrays';
+import { OBJ, state } from '../../../physics/runtime/arrays';
 import { tag } from '../../common/part';
 import { MaterialSet } from '../../materials/library';
 import type { Assembly, ModuleInfo } from '../types';
 import { meshGeometry, primitiveGeometry } from './geometry';
 import { inertiaBox } from './inertia';
-
-/** Menagerie convention: groups 0–2 are visual, 3+ collision. */
-const visible = (g: GeomInfo) => g.group <= 2 && g.type !== GEOM.plane && g.rgba[3] > 0;
 
 /** Each body explodes with the limb in which it sits deepest (the trunk stays with no limb). */
 function owners(bodies: BodyInfo[], limbs: ModelChain[]) {
@@ -40,7 +37,7 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
     root.add(g);
     return g;
   });
-  for (const geom of readGeoms(h).filter(visible)) {
+  for (const geom of readGeoms(h).filter(visibleGeom)) {
     let geometry = geom.mesh >= 0 ? cache.get(geom.mesh) : primitiveGeometry(geom);
     if (geom.mesh >= 0 && !geometry) cache.set(geom.mesh, (geometry = meshGeometry(readMesh(h, geom.mesh))));
     if (!geometry) continue;
