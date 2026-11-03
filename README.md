@@ -10,13 +10,12 @@
 </p>
 
 <p align="center">
-  <a href="__LIVE_URL__"><b>Open the live studio</b></a>
+  <a href="https://robotics-studio-one.vercel.app"><b>Open the live studio</b></a>
   &nbsp;·&nbsp; <a href="#run-it-locally">Run locally</a>
-  &nbsp;·&nbsp; <a href="#what-is-verified-and-what-is-approximate">What is verified</a>
-  &nbsp;·&nbsp; <a href="https://github.com/batuhantoker/4dof-robotic-arm">The 4-DOF study</a>
 </p>
 
 <p align="center">
+  <a href="https://robotics-studio-one.vercel.app"><img src="https://img.shields.io/badge/live%20demo-robotics--studio--one.vercel.app-d6182b?style=flat-square&logo=vercel&logoColor=white" alt="Live demo"></a>
   <a href="https://github.com/batuhantoker/robotics-studio/actions/workflows/ci.yml"><img src="https://github.com/batuhantoker/robotics-studio/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/TypeScript-strict-16181b?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/three.js-r187-16181b?style=flat-square&logo=threedotjs&logoColor=white" alt="three.js">
@@ -25,14 +24,17 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/simulation.gif" width="100%" alt="MuJoCo drives a six-joint arm through a quintic trajectory while applied torque and tracking error plot live">
-  <br><sub>MuJoCo (WebAssembly) drives the <code>spatial_6link</code> preset through a quintic trajectory; applied torque and tracking error plot live.</sub>
+  <a href="https://robotics-studio-one.vercel.app"><img src="docs/media/simulation.gif" width="100%" alt="MuJoCo drives a six-joint arm through a quintic trajectory while applied torque and tracking error plot live"></a>
+  <br><sub>MuJoCo (WebAssembly) drives the <code>spatial_6link</code> preset through a quintic trajectory; applied torque and tracking error plot live. <a href="https://robotics-studio-one.vercel.app">Try it in your browser.</a></sub>
 </p>
 
 You build an arm from a catalogue of joints, or open a real robot's CAD. The studio
 poses it, explains its kinematics with live numbers, simulates it in MuJoCo, and takes
 it apart teardown-style. MuJoCo is the official WebAssembly build (`@mujoco/mujoco`),
 so everything runs client-side.
+
+**Try it now at [robotics-studio-one.vercel.app](https://robotics-studio-one.vercel.app).** It needs no install and no
+account, and runs in any modern browser with WebGL.
 
 ## A look inside
 
@@ -78,6 +80,8 @@ so everything runs client-side.
 </table>
 
 ## Run it locally
+
+To skip the install, open the same build at [robotics-studio-one.vercel.app](https://robotics-studio-one.vercel.app).
 
 ```bash
 npm install
@@ -214,16 +218,10 @@ To add a new kind of joint hardware, write a `JointModuleBuilder` in
 
 `npm run build` produces a static site. It needs no special headers, because it uses
 the single-threaded WASM build. `vercel.json` sets up the build, so importing the repo
-into Vercel needs no other settings. The site is static, with no functions, so the
+into Vercel needs no other settings. The live site,
+[robotics-studio-one.vercel.app](https://robotics-studio-one.vercel.app), redeploys from `main` on every push. The site is static, with no functions, so the
 free Hobby plan covers it.
 
 Third-party robot CAD is not part of the build. The deployed site has the presets, the
 builder and physics. Serving CAD publicly would mean fetching each model from its
 upstream source under its own license.
-
-## Origins
-
-Robot Studio grew out of the [4-DOF robotic arm study](https://github.com/batuhantoker/4dof-robotic-arm):
-Kane's-method kinematics, a Simscape model, and a Python kinematics and MuJoCo package.
-That arm is the `original_4dof` preset, and that package is the ground truth the tests
-check against.
