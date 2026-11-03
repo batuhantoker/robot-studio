@@ -2,6 +2,7 @@
  * Every section header, bar label and legend title folds its block. Panels rebuild their DOM
  * freely, so folds are keyed by scope and title and re-applied to whatever gets added.
  */
+import { isMobile, onMobileChange } from '../mobile/media';
 import { isFolded, setFolded } from './memory';
 
 // Math sections open and close their own bodies; the stop editor's label names the stop being edited.
@@ -17,9 +18,10 @@ function keyOf(handle: Element): string {
   return `${scope}:${block.classList[0]}:${title}`;
 }
 
+/** Untouched blocks marked `data-fold-phone` start folded on phones. */
 function restore(block: Element): void {
   const handle = [...block.children].find((c) => c.matches(HANDLE));
-  if (handle) block.classList.toggle('folded', isFolded(keyOf(handle)));
+  if (handle) block.classList.toggle('folded', isFolded(keyOf(handle), isMobile() && block.hasAttribute('data-fold-phone')));
 }
 
 function restoreWithin(node: Element): void {
@@ -37,6 +39,7 @@ export function mountBlockFolding(root: HTMLElement): void {
     setFolded(keyOf(handle), block.classList.toggle('folded'));
   });
   restoreWithin(root);
+  onMobileChange(() => restoreWithin(root));
   new MutationObserver((records) => {
     for (const r of records) r.addedNodes.forEach((n) => n instanceof Element && restoreWithin(n));
   }).observe(root, { childList: true, subtree: true });

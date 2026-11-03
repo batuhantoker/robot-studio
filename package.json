@@ -1,5 +1,5 @@
 {
-  "name": "robotics-studio",
+  "name": "robot-studio",
   "version": "0.1.0",
   "private": true,
   "description": "Interactive serial-robot builder with live kinematics, MuJoCo physics, and teardown views",

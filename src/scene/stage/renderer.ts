@@ -54,7 +54,9 @@ export function createStage(host: HTMLElement): Stage {
   resize();
 
   const frame = (radius: number, center: THREE.Vector3) => {
-    const distance = (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) * 0.82;
+    // On a portrait screen the horizontal field is the narrower one; fit whichever is tighter.
+    const half = Math.min(THREE.MathUtils.degToRad(camera.fov / 2), Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect));
+    const distance = (radius / Math.sin(half)) * 0.82;
     const dir = new THREE.Vector3(0.62, -0.68, 0.42).normalize();
     controls.target.copy(center);
     camera.position.copy(center).addScaledVector(dir, distance);

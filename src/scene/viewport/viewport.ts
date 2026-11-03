@@ -47,6 +47,8 @@ export class Viewport {
   /** Hidden while ambient occlusion samples the scene. */
   readonly aoHidden: THREE.Object3D[] = [this.overlay, ...this.studio.aoHidden];
   private offline: { width: number; height: number; pixelRatio: number } | null = null;
+  private inset = { bottom: 0, left: 0 };
+  private insetNow = { bottom: 0, left: 0 };
 
   constructor(host: HTMLElement) {
     this.stage = createStage(host);
@@ -162,9 +164,29 @@ export class Viewport {
     return hit ? moduleOf(hit.object) : null;
   }
 
+  /** Keep the scene centred in what a bottom sheet or side bars leave of the stage; eases like they slide. */
+  setInsets(bottom: number, left: number): void {
+    this.inset = { bottom: Math.max(0, bottom), left: Math.max(0, left) };
+  }
+
+  private applyInset(dt: number): void {
+    const k = Math.min(1, dt * 14);
+    for (const side of ['bottom', 'left'] as const) {
+      this.insetNow[side] += (this.inset[side] - this.insetNow[side]) * k;
+      if (Math.abs(this.inset[side] - this.insetNow[side]) < 0.5) this.insetNow[side] = this.inset[side];
+    }
+    const { camera, renderer } = this.stage;
+    const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
+    const { bottom, left } = this.insetNow;
+    // The view window moves half an inset, which centres the scene in the uncovered part.
+    if ((bottom > 0 || left > 0) && h > 0) camera.setViewOffset(w, h, -left / 2, bottom / 2, w, h);
+    else if (camera.view?.enabled) camera.clearViewOffset();
+  }
+
   /** Stop the live loop and draw every frame at exactly width × height, with AO and full shadows. */
   beginOffline(width: number, height: number): void {
     if (this.offline) return;
+    this.stage.camera.clearViewOffset();
     this.offline = { width, height, pixelRatio: this.stage.renderer.getPixelRatio() };
     this.studio.setShadowSize(TIERS[0].shadowSize);
   }
@@ -219,6 +241,7 @@ export class Viewport {
     if (this.offline) return;
     const now = performance.now();
     this.advance((now - this.clock) / 1000);
+    this.applyInset((now - this.clock) / 1000);
     this.clock = now;
     renderFrame(this.stage, this.post, this.tier, this.transparentView());
     const end = performance.now();

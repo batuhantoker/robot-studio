@@ -91,7 +91,7 @@ export function mountTrajectoryBar(el: HTMLElement, store: Store<StudioState>, b
       h('span.cap', {}, `${via ? 'Via' : 'Stop'} ${i + 1}`),
       end ? null : h('div.seg', { title: 'Stop: come to rest here. Via: pass through without stopping.' }, kind(false), kind(true)),
       via ? null : h('span.cap.mu', {}, 'Hold'),
-      via ? null : h('div', { style: 'width:46px' }, numberInput(s.stopOpts[i]?.hold ?? 0, (hold) => setStopOpts(store, i, { hold: Math.max(hold, 0) }), { step: 0.1, digits: 2 })),
+      via ? null : h('div.hold', { style: 'width:46px' }, numberInput(s.stopOpts[i]?.hold ?? 0, (hold) => setStopOpts(store, i, { hold: Math.max(hold, 0) }), { step: 0.1, digits: 2 })),
       via ? null : h('span.mu', {}, 's'),
       h('div.stop-xyz', {}, vecInput(tip, (v) => ctx.moveStop(i, v as Vec3), { scale: 1000, step: 5, digits: 0 })),
       h('span.mu', {}, 'mm'),

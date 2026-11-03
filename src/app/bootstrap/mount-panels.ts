@@ -26,6 +26,7 @@ import { canRenderVideo } from '../controller/render/recorder';
 import { mountRenderOverlay } from '../../ui/render/overlay';
 import { mountStageSettings } from '../../ui/stage/settings';
 import { saveSurroundings } from '../../scene/stage/surroundings';
+import { bindMobileStage } from '../controller/mobile-stage';
 import type { Studio } from '../controller/studio';
 
 export function mountPanels(layout: Layout, studio: Studio): void {
@@ -62,6 +63,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   mountPartsCard(layout.hudTop, store, () => studio.session?.assembly ?? null, (o) => studio.viewport.flash(o));
   mountRenderOverlay(layout.stage, studio.recorder);
   mountStageSettings(layout.stage, store);
+  bindMobileStage(studio);
   studio.viewport.setSurroundings(store.state.surroundings);
   store.on(['surroundings'], (s) => {
     studio.viewport.setSurroundings(s.surroundings);

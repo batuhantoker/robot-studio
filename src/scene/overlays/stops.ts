@@ -60,8 +60,9 @@ export class StopsOverlay {
   private sprites: { sprite: THREE.Sprite; stops: number[] }[] = [];
   private size = 0.02;
 
-  setScale(reach: number): void {
-    this.size = reach * 0.04;
+  /** `touch` enlarges the badges so a fingertip can land on one. */
+  setScale(reach: number, touch = 1): void {
+    this.size = reach * 0.04 * touch;
   }
 
   show(tips: Vec3[], selected: number | null, via: (i: number) => boolean = () => false): void {
@@ -94,6 +95,18 @@ export class StopsOverlay {
         entry.sprite.material.needsUpdate = true;
       }
     });
+  }
+
+  /** Stops on the badge nearest a screen point, within `radius` px: fingers miss small targets. */
+  near(toScreen: (local: THREE.Vector3) => [number, number] | null, x: number, y: number, radius: number): number[] | null {
+    if (!this.group.visible) return null;
+    let best: number[] | null = null, closest = radius;
+    for (const s of this.sprites) {
+      const p = toScreen(s.sprite.position);
+      const d = p ? Math.hypot(p[0] - x, p[1] - y) : Infinity;
+      if (d < closest) [closest, best] = [d, s.stops];
+    }
+    return best;
   }
 
   /** Stops on the badge under the ray, or null. */

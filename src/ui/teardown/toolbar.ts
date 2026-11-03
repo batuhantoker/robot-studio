@@ -20,8 +20,8 @@ export function mountToolbar(el: HTMLElement, store: Store<StudioState>): HTMLEl
     return [key, b] as const;
   });
   const stack = h('div.toolbar-stack', {},
-    h('div.toolbar', {}, h('span.cap', {}, 'Look'), look.el),
-    h('div.toolbar', {}, h('span.cap', {}, 'Teardown'), cut.el, h('span.cap.mu', {}, 'Explode'), slider, h('div.seg', {}, ...toggles.map(([, b]) => b))));
+    h('div.toolbar', { dataset: { foldPhone: '' } }, h('span.cap', {}, 'Look'), look.el),
+    h('div.toolbar', { dataset: { foldPhone: '' } }, h('span.cap', {}, 'Teardown'), cut.el, h('span.cap.mu', {}, 'Explode'), slider, h('div.seg', {}, ...toggles.map(([, b]) => b))));
   el.append(stack);
   store.on(['cut', 'look', 'explode', 'overlays'], (s) => {
     cut.set(s.cut);

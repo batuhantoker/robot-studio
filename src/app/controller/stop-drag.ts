@@ -11,6 +11,8 @@ import type { StudioState } from '../state/types';
 import { selectStop } from './stops';
 
 const SLOP = 3;
+/** How far from a badge a fingertip may land and still grab it, px. */
+const FINGER = 24;
 
 interface Press {
   id: number;
@@ -23,10 +25,19 @@ interface Press {
 export function bindStopDrag(viewport: Viewport, overlays: OverlaySet, store: Store<StudioState>, tips: () => Vec3[], move: (i: number, p: Vec3) => void): void {
   const canvas = viewport.stage.renderer.domElement;
   let press: Press | null = null;
-  const hit = (x: number, y: number) => (store.state.mode === 'trajectory' ? overlays.stops.hit(viewport.ray(x, y)) : null);
+  const toScreen = (local: THREE.Vector3): [number, number] | null => {
+    const v = overlays.group.localToWorld(local.clone()).project(viewport.stage.camera);
+    if (v.z > 1) return null;
+    const r = canvas.getBoundingClientRect();
+    return [r.left + ((v.x + 1) / 2) * r.width, r.top + ((1 - v.y) / 2) * r.height];
+  };
+  const hit = (x: number, y: number, finger = false) => {
+    if (store.state.mode !== 'trajectory') return null;
+    return overlays.stops.hit(viewport.ray(x, y)) ?? (finger ? overlays.stops.near(toScreen, x, y, FINGER) : null);
+  };
 
   canvas.addEventListener('pointerdown', (e) => {
-    const stops = e.button === 0 ? hit(e.clientX, e.clientY) : null;
+    const stops = e.button === 0 ? hit(e.clientX, e.clientY, e.pointerType === 'touch') : null;
     if (!stops) return;
     // A press on a badge is ours alone: orbit, the gizmo and click-to-isolate must not see it.
     e.stopImmediatePropagation();

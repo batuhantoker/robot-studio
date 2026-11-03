@@ -15,6 +15,8 @@ import { TargetOverlay } from './target';
 import { TrailOverlay } from './trail';
 import { WorkspaceOverlay } from './workspace';
 
+const TOUCH = 1.7;
+
 /** One origin/axis per robot joint, taken from the first limb that contains it. */
 function jointFrames(session: RobotSession, limbs: ChainFrames[]): ChainFrames {
   const origins: Vec3[] = [], axes: Vec3[] = [], frames = [] as ChainFrames['frames'];
@@ -39,11 +41,19 @@ export class OverlaySet {
   readonly workspace = new WorkspaceOverlay();
   readonly target: TargetOverlay;
   reach = 0.5;
+  private touch = false;
   private comCount = -1;
 
   constructor(stage: Stage, onTarget: (p: Vec3) => void) {
     this.target = new TargetOverlay(stage.camera, stage.renderer.domElement, stage.controls, onTarget);
     this.group.add(this.axes.group, this.com.group, this.effectors.group, this.ellipsoids, this.trail.group, this.stops.group, this.workspace.group, this.target.group);
+  }
+
+  /** Touch screens get larger handles: stop badges and the IK gizmo. */
+  setTouch(on: boolean): void {
+    this.touch = on;
+    this.stops.setScale(this.reach, on ? TOUCH : 1);
+    this.target.gizmo.setSize(on ? 1.1 : 0.7);
   }
 
   rebuild(session: RobotSession, reach: number): void {
@@ -58,7 +68,7 @@ export class OverlaySet {
       return e;
     });
     this.target.setScale(reach);
-    this.stops.setScale(reach);
+    this.stops.setScale(reach, this.touch ? TOUCH : 1);
     this.comCount = -1;
     this.trail.clear();
     this.workspace.clear();

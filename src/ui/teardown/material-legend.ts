@@ -7,7 +7,7 @@ import type { StudioState } from '../../app/state/types';
 import { h, replace } from '../dom/h';
 
 export function mountMaterialLegend(el: HTMLElement, store: Store<StudioState>, assembly: () => Assembly | null): void {
-  const card = h('div.pn.legend', { style: 'display:none' });
+  const card = h('div.pn.legend', { style: 'display:none', dataset: { foldPhone: '' } });
   el.append(card);
   const render = (s: StudioState) => {
     const a = assembly();
