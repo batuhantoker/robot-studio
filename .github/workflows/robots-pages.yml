@@ -1,0 +1,57 @@
+name: Robot pack
+
+# Builds the publishable robot CAD and serves it from GitHub Pages, where the deployed studio loads it.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["scripts/robots/**", ".github/workflows/robots-pages.yml"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.5"
+      - name: Install
+        run: npm ci
+      # Upstream clones and converted robots; fetch skips robots already built from the same inputs.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .cache/armor
+            .cache/menagerie
+            .cache/four-dof-arm
+            public/robots
+          key: robots-${{ hashFiles('scripts/robots/**') }}
+          restore-keys: robots-
+      - name: Fetch and convert robots
+        run: npm run robots:fetch -- --jobs 4
+      - name: Every model compiles in MuJoCo
+        run: npm run robots:verify
+      - name: Pack publishable robots
+        run: npm run robots:pack
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .cache/pages
+      - id: deploy
+        uses: actions/deploy-pages@v4

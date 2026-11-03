@@ -158,8 +158,25 @@ sources:
 
 - Each robot keeps its upstream LICENSE, and the manifest records each robot's license.
 - Models with no upstream license are marked local-use only.
-- Fetched files are gitignored and excluded from `npm run build`, so nothing
-  third-party is committed or deployed.
+- Fetched files are gitignored, so nothing third-party is committed.
+
+### The published robot pack
+
+The live site loads its 116 CAD robots from a pack on GitHub Pages, not from the
+Vercel build. The pack's [attribution page](https://batuhantoker.github.io/robotics-studio/)
+lists every robot with its license and upstream source.
+
+- [`robots-pages.yml`](.github/workflows/robots-pages.yml) runs `robots:fetch`,
+  `robots:verify` and `npm run robots:pack` on GitHub Actions.
+- The pack holds only robots whose upstream states a license, plus Montaj1, the
+  author's own CAD. Each ships with its LICENSE.
+- The 17 robots whose upstream states no license stay local-only.
+- Every file is gzipped: about 520 MB instead of 1.4 GB, under Pages' 1 GB limit. The
+  studio inflates the files in the browser.
+- Production builds point at the pack through `VITE_ROBOTS_BASE` in `.env.production`;
+  `npm run dev` keeps reading `public/robots/`.
+- The workflow runs on changes to `scripts/robots/` or by hand
+  (`gh workflow run robots-pages.yml`).
 
 ## What is verified, and what is approximate
 
@@ -222,6 +239,6 @@ into Vercel needs no other settings. The live site,
 [robotics-studio-one.vercel.app](https://robotics-studio-one.vercel.app), redeploys from `main` on every push. The site is static, with no functions, so the
 free Hobby plan covers it.
 
-Third-party robot CAD is not part of the build. The deployed site has the presets, the
-builder and physics. Serving CAD publicly would mean fetching each model from its
-upstream source under its own license.
+Robot CAD is not part of the Vercel build. The deployed studio loads it at runtime from
+the [published robot pack](#the-published-robot-pack) on GitHub Pages, which is also
+free for public repositories.
