@@ -32,6 +32,8 @@ export interface SceneControls {
   previewBase(key: string, base: Base): void;
   setBase(key: string, base: Base): void;
   frameAll(): void;
+  /** Room the open panel takes on the right of the stage (px), so the view centres beside it. */
+  inset(right: number): void;
   robotAt(clientX: number, clientY: number): string | null;
   robotRoot(key: string): THREE.Object3D | null;
   onChange(fn: () => void): void;
@@ -41,15 +43,15 @@ const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 const MM = { scale: 1000, step: 10, digits: 0 }, DEG = { scale: 180 / Math.PI, step: 5, digits: 0 };
 
 export function mountSceneRobots(stageEl: HTMLElement, stage: Stage, store: Store<StudioState>, scene: SceneControls, onFrame: (fn: () => void) => void): void {
-  const button = h('button.stage-gear.stage-robots', { title: 'Robots on the stage', 'aria-label': 'Robots on the stage', 'aria-expanded': 'false' });
+  const button = h('button.stage-gear.stage-robots', { title: 'On stage', 'aria-label': 'On stage', 'aria-expanded': 'false' });
   button.innerHTML = ICON;
   const count = h('span.cap.mu');
   const list = h('div.scene-list');
   const picker = h('div.scene-picker', { hidden: true });
   const addButton = h('button.tb', {}, '+ Add robot');
   const moveButton = h('button.tb', { title: 'Show arrows and a ring on the robot to slide and turn it' }, 'Move');
-  const panel = h('div.stage-settings.scene-panel', { hidden: true, role: 'dialog', 'aria-label': 'Robots on the stage' },
-    h('div.stage-settings-head', {}, h('h4', {}, 'Robots'), h('div.row', {}, count, h('button.tb', { onclick: () => scene.frameAll(), title: 'Fit every robot in view' }, 'Frame all'))),
+  const panel = h('div.stage-settings.scene-panel', { hidden: true, role: 'dialog', 'aria-label': 'On stage' },
+    h('div.stage-settings-head', {}, h('h4', {}, 'On stage'), h('div.row', {}, count, h('button.tb', { onclick: () => scene.frameAll(), title: 'Fit every robot in view' }, 'Frame all'))),
     list,
     h('div.row.scene-actions', {}, addButton, moveButton),
     picker,
@@ -91,6 +93,15 @@ export function mountSceneRobots(stageEl: HTMLElement, stage: Stage, store: Stor
     }
   };
   button.addEventListener('click', () => open(panel.hidden !== false));
+  // On desktop the open panel covers the stage's top right, where added robots stand; with one robot the view stays put.
+  const updateInset = () => {
+    const on = !panel.hidden && !document.documentElement.classList.contains('mobile') && scene.robots().length > 1;
+    const canvas = stage.renderer.domElement.getBoundingClientRect();
+    scene.inset(on ? Math.max(0, canvas.right - panel.getBoundingClientRect().left + 8) : 0);
+  };
+  // The tool cluster also hides the panel when another of its popovers opens.
+  new MutationObserver(updateInset).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
+  addEventListener('resize', updateInset);
   // The stage stays usable while the list is open: dragging the arrows and clicking robots happen there.
   addEventListener('pointerdown', (e) => {
     const t = e.target as Node;
@@ -154,6 +165,7 @@ export function mountSceneRobots(stageEl: HTMLElement, stage: Stage, store: Stor
     }));
     if (moving) gizmo.show(activeKey());
     if (!picker.hidden) renderPicker();
+    updateInset();
   };
   scene.onChange(render);
   store.on(['library'], render);

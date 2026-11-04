@@ -29,7 +29,10 @@ export class TourDirector {
   tick(dt: number): void {
     const s = this.store.state;
     if (!s.touring) {
-      this.idle = s.rendering || s.selectedStop !== null ? 0 : this.idle + dt;
+      // Piloting is attended even while the robot stands still and the driver looks around.
+      // An open guide is being read, not abandoned.
+      const reading = document.documentElement.classList.contains('modal-open');
+      this.idle = s.rendering || s.selectedStop !== null || s.mode === 'pilot' || reading ? 0 : this.idle + dt;
       if (this.idle > IDLE_SECONDS) this.store.set({ touring: true });
       return;
     }

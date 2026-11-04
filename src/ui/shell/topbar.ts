@@ -1,30 +1,38 @@
-/** Brand, the active robot, and the interaction modes. */
+/** Brand and the active robot, the mode switch, the tour and the guide. */
 import type { Mode, StudioState } from '../../app/state/types';
 import type { Store } from '../../app/state/store';
 import { h, replace } from '../dom/h';
-import { segmented } from '../widgets/segmented';
 import markUrl from '../brand/mark.svg';
-
-const MODES: [Mode, string][] = [
-  ['pose', 'Pose'], ['motion', 'Motion'], ['pilot', 'Pilot'], ['task', 'Pick & place'], ['ik', 'Inverse kin.'], ['trajectory', 'Trajectory'], ['physics', 'Physics'], ['workspace', 'Workspace'],
-];
+import { ICON, icon } from './icons';
+import { modeMenu, modeSwitch } from './modes';
+import { reveal } from './reveal';
 
 /** `enabled` greys out modes the loaded robot cannot use (Pilot needs legs or wheels). */
-export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf: () => [string, string], extra: HTMLElement, enabled: (m: Mode) => boolean = () => true): void {
-  const title = h('div.robot-title');
-  const modes = segmented(MODES, store.state.mode, (mode) => store.set({ mode, playing: mode === 'trajectory' || mode === 'physics' || mode === 'motion' || mode === 'task' }));
-  const tour = h('div.tourchip.cap', { onclick: () => store.set({ touring: !store.state.touring }) }, h('i'), 'Auto tour');
-  el.append(h('div.brand', {}, h('img', { src: markUrl, alt: '' }), 'Robot Studio'), title, extra, h('div', { style: 'flex:1' }), modes.el, tour);
+export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf: () => [string, string], extra: HTMLElement,
+  enabled: (m: Mode) => boolean = () => true, onHelp: () => void = () => undefined): void {
+  const name = h('b');
+  const detail = h('small');
+  const title = h('button.robot-title', { title: 'Choose a robot', onclick: () => reveal('robots') }, name, detail, icon(ICON.chevron, 'ico chev'));
+  const toggleTour = () => store.set({ touring: !store.state.touring });
+  const tour = h('button.tourchip', { onclick: toggleTour, title: 'A guided tour of the loaded robot' }, h('i.dot'), h('span', {}, 'Auto tour'));
+  const help = h('button.icon-btn.help', { onclick: onHelp, title: 'Guide and shortcuts  ( ? )', 'aria-label': 'Guide' }, icon(ICON.help));
+  const modes = modeSwitch(store);
+  const phoneTour = h('button.tb', { onclick: toggleTour });
+  const menu = modeMenu(store, [phoneTour, h('button.tb', { onclick: onHelp }, icon(ICON.help), 'Guide')]);
+  el.append(
+    h('div.top-left', {}, h('div.brand', {}, h('img', { src: markUrl, alt: '' }), h('span', {}, 'Robot Studio')), title, extra),
+    modes.el,
+    h('div.top-right', {}, menu.button, tour, help),
+    menu.el);
   const render = () => {
-    const [name, detail] = titleOf();
-    replace(title, name, h('small.mu', {}, detail));
-    modes.set(store.state.mode);
-    for (const b of modes.el.querySelectorAll<HTMLButtonElement>('button')) {
-      b.disabled = !enabled(b.dataset.v as Mode);
-      b.title = b.disabled && b.dataset.v === 'pilot' ? 'Pilot needs a robot with legs or wheels' : '';
-    }
+    const [n, d] = titleOf();
+    name.textContent = n;
+    replace(detail, d);
+    modes.render(enabled);
+    menu.render(enabled);
     tour.classList.toggle('on', store.state.touring);
+    phoneTour.textContent = store.state.touring ? 'Stop tour' : 'Auto tour';
   };
-  store.on(['activeId', 'mode', 'touring', 'loading', 'draft', 'sessionVersion'], render);
+  store.on(['activeId', 'mode', 'touring', 'loading', 'draft', 'sessionVersion', 'library'], render);
   render();
 }

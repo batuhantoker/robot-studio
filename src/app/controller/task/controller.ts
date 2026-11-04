@@ -11,7 +11,16 @@ import type { Studio } from '../studio';
 import { bindFloorClicks } from './floor-click';
 import { reachJob } from './reach-job';
 import { TaskStands } from '../../../scene/task/stands';
-import { type TaskSetup, arrange, taskSetup, wholeBody } from './setup';
+import { type TaskSetup, arrange, partPick, taskSetup, wholeBody } from './setup';
+import type { Prop } from '../../../scene/stage/environment';
+import * as THREE from 'three';
+
+/** A part's footprint centre on the surface it stands on. */
+const baseOf = (p: Prop) => {
+  const b = new THREE.Box3().setFromObject(p.object), c = b.getCenter(new THREE.Vector3());
+  const paint = ((p.object as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined)?.color;
+  return { label: p.label, size: p.size, base: [c.x, c.y, b.min.z] as Vec3, color: paint ? `#${paint.getHexString()}` : undefined };
+};
 import { workingArm } from './limb-setup';
 import { bodyFor } from '../../robots/body';
 
@@ -19,6 +28,8 @@ export class TaskController {
   clip: TaskClip | null = null;
   problem: PlanProblem | null = null;
   setup: TaskSetup | null = null;
+  /** The setting's loose part the pick starts from, hidden while the planned object stands in for it. */
+  private part: Prop | null = null;
   /** Set when no floor or stand height gives this arm a contact-free grasp. */
   private noLayout: string | null = null;
   private reach: ReachCell[] = [];
@@ -38,7 +49,7 @@ export class TaskController {
     viewport.overlay.add(this.pads.group);
     viewport.stage.root.add(this.prop.group, this.stands.group);
     bindFloorClicks(viewport.stage, () => (store.state.mode === 'task' && this.setup && !this.pads.gizmo.axis ? this.setup : null),
-      () => studio.session?.assembly.root ?? null, (ray) => viewport.sceneryHit(ray), (p) => this.move(store.state.task.moving, p, true));
+      () => viewport.robotBodies(), (ray) => viewport.sceneryHit(ray), (p) => this.move(store.state.task.moving, p, true));
     // The viewport fits the setting to a new robot after this event; spots are chosen against that.
     store.on(['sessionVersion'], () => setTimeout(() => this.load(), 0));
     // On a multi-limb robot the focused arm is the one that works.
@@ -78,6 +89,16 @@ export class TaskController {
     if (found && arranged && !arranged.spots) Object.assign(arranged, arrange(found));
     const before = this.setup?.surfaceZ;
     const t = (this.setup = arranged?.setup ?? null);
+    this.showPart(null);
+    // Start from a real part on the bench when one is in reach; a hand takes its size and name.
+    const parts = this.studio.viewport.props().all();
+    const real = t && arranged?.spots && parts.length ? partPick(t, arranged.spots, parts.map(baseOf)) : null;
+    if (t && real && arranged?.spots) {
+      arranged.spots[0] = real.pick;
+      t.object = real.object;
+      this.part = parts[real.index];
+      reset = true;
+    }
     this.prop.set(t?.object ?? null);
     this.pads.setReach([], 0);
     this.reach = [];
@@ -106,7 +127,8 @@ export class TaskController {
   /** A new setting that buries a spot gets fresh, clear ones; spots it leaves clear stay where the user put them. */
   private reseat(): void {
     const t = this.setup, { pick, place } = this.studio.store.state.task;
-    if (t && pick && place && !(this.clear(pick, t) && this.clear(place, t))) this.load(true);
+    // A new setting with loose parts starts from one of them; otherwise only buried spots move.
+    if (t && (this.studio.viewport.props().all().length || (pick && place && !(this.clear(pick, t) && this.clear(place, t))))) this.load(true);
   }
 
   private schedule(): void {
@@ -141,6 +163,11 @@ export class TaskController {
     if (store.state.mode === 'task') store.set({ playing: true });
   }
 
+  private showPart(next: Prop | null): void {
+    if (this.part) this.part.object.visible = true;
+    this.part = next;
+  }
+
   private refresh(): void {
     const st = this.studio.store.state;
     const t = this.setup;
@@ -149,6 +176,7 @@ export class TaskController {
     this.pads.show(on);
     this.prop.group.visible = on;
     this.stands.group.visible = on;
+    if (this.part) this.part.object.visible = !on;
     const rig = this.studio.session?.assembly.effector;
     if (rig?.payload) rig.payload.visible = !on;
     if (!on) rig?.grip?.set(rig.grip.rest);

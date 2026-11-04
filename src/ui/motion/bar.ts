@@ -24,7 +24,7 @@ export function mountMotionBar(el: HTMLElement, store: Store<StudioState>, prese
   play.addEventListener('click', () => store.set({ playing: !store.state.playing, mode: 'motion' }));
   const render = (s: StudioState) => {
     const list = presets();
-    bar.style.display = list.length && s.mode !== 'trajectory' && s.mode !== 'task' && s.mode !== 'pilot' ? '' : 'none';
+    bar.style.display = list.length && (s.mode === 'pose' || s.mode === 'motion') ? '' : 'none';
     replace(chips, ...list.map((p) => h('button.tb', {
       class: s.mode === 'motion' && s.motion.preset === p.id ? 'on' : '',
       title: p.hint,

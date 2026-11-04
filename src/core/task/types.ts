@@ -14,6 +14,8 @@ export interface TaskObject {
   open: number;
   /** Working-end height above the floor while grasping. */
   graspZ: number;
+  /** Paint of a part taken from the setting, so the stand-in matches it. */
+  color?: string;
 }
 
 /** The tool as the planner sees it, in the last chain frame. */

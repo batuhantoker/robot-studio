@@ -10,7 +10,7 @@ const paint = (color: string, roughness: number, metalness = 0) => new THREE.Mes
 
 function meshes(o: TaskObject): THREE.Mesh[] {
   const [x, y, z] = o.size;
-  if (o.kind === 'block') return [new THREE.Mesh(block(x, y, z), paint('#e0782e', 0.45))];
+  if (o.kind === 'block') return [new THREE.Mesh(block(x, y, z), paint(o.color ?? '#e0782e', 0.45))];
   if (o.kind === 'can') {
     const body = new THREE.CylinderGeometry(x / 2, x / 2, z, 40).rotateX(Math.PI / 2);
     const band = new THREE.CylinderGeometry(x / 2 + 1e-4, x / 2 + 1e-4, z * 0.45, 40, 1, true).rotateX(Math.PI / 2);

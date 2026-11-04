@@ -12,10 +12,12 @@ const LAYER_LABEL: Record<Layer, string> = {
   housing: 'Housing', structure: 'Structure', drive: 'Drive', bearing: 'Bearing', fastener: 'Fastener', sensor: 'Sensing', cable: 'Cabling', kinematic: 'Kinematic',
 };
 
-export function mountPartsCard(el: HTMLElement, store: Store<StudioState>, assembly: () => Assembly | null, flash: (o: THREE.Object3D) => void): void {
+/** The card goes in `el`; the module picker in `pickerHost` (the View menu). */
+export function mountPartsCard(el: HTMLElement, store: Store<StudioState>, assembly: () => Assembly | null, flash: (o: THREE.Object3D) => void, pickerHost: HTMLElement = el): void {
   const card = h('div.pn.parts', { style: 'display:none' });
-  const chips = h('div.row', { style: 'max-width:520px' });
-  el.append(h('div', { style: 'display:flex;flex-direction:column;gap:8px;align-items:flex-start' }, chips, card));
+  const chips = h('div.chips-wrap');
+  pickerHost.append(chips);
+  el.append(card);
   const render = (s: StudioState) => {
     const a = assembly();
     if (!a) return;
@@ -38,7 +40,8 @@ export function mountPartsCard(el: HTMLElement, store: Store<StudioState>, assem
     for (const p of parts) byLayer.set(partOf(p)!.layer, [...(byLayer.get(partOf(p)!.layer) ?? []), p]);
     card.style.display = '';
     replace(card,
-      h('div.row.spread', {}, h('b', { style: 'font-size:13px' }, mod.label), h('span.chip.accent', {}, mod.kind)),
+      h('div.row.spread', {}, h('b', { style: 'font-size:13px' }, mod.label),
+        h('div.row', {}, h('span.chip.accent', {}, mod.kind), h('button.icon-btn.sm', { title: 'Close', 'aria-label': 'Close', onclick: () => store.set({ isolate: null }) }, '×'))),
       h('p.note', {}, `${parts.length} parts · click one to find it · raise Explode to open the module`),
       ...[...byLayer].map(([layer, list]) => h('div', { style: 'margin-top:8px' },
         h('div.cap.mu', {}, LAYER_LABEL[layer]),

@@ -82,6 +82,32 @@ export const cylinder = (r: number, h: number, m: THREE.Material, segments = 32,
 /** Scenery that moves: a click on it does not set a pick or place spot. */
 export const moving = <T extends THREE.Object3D>(o: T): T => ((o.userData.moving = true), o);
 
+/** A loose object a hand or gripper can take away; `size` is its full extent (m). */
+export const prop = <T extends THREE.Object3D>(o: T, label: string, size: [number, number, number]): T =>
+  ((o.userData.prop = { label, size }), o);
+
+export type PartKind = 'carton' | 'block' | 'can';
+
+/** A loose part to pick up, standing on `z` at (x, y) of `parent`: a carton, a machined block or a can, sized from `s`. */
+export function loosePart(parent: THREE.Object3D, s: number, kind: PartKind, color: string, x: number, y: number, z: number, yaw = 0): THREE.Mesh {
+  const size: [number, number, number] = kind === 'carton' ? [0.16 * s, 0.12 * s, 0.1 * s] : kind === 'block' ? [0.09 * s, 0.09 * s, 0.09 * s] : [0.075 * s, 0.075 * s, 0.11 * s];
+  const m = kind === 'can'
+    ? cylinder(size[0] / 2, size[2], paint(color, 0.3, 0.6), 28)
+    : box(size[0], size[1], size[2], paint(color, kind === 'carton' ? 0.85 : 0.45, kind === 'block' ? 0.1 : 0));
+  m.position.set(x, y, z + size[2] / 2);
+  m.rotation.z = yaw;
+  parent.add(m);
+  return prop(m, kind === 'carton' ? 'Carton' : kind === 'block' ? 'Block' : 'Can', size);
+}
+
+/** A small stand-alone table with its top at `top`, for parts to wait on. */
+export function sideTable(parent: THREE.Object3D, s: number, x: number, y: number, top: number): void {
+  const w = 0.5 * s, d = 0.42 * s, t = 0.025 * s, leg = 0.03 * s;
+  const frame = paint('#59626e', 0.45, 0.5);
+  block(parent, w, d, t, paint('#d9dde2', 0.35, 0.2), x, y, top - t);
+  for (const [a, b] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) block(parent, leg, leg, top - t, frame, x + a * (w / 2 - leg), y + b * (d / 2 - leg));
+}
+
 /** Paint on the floor: not a surface a spot stands on. */
 const marking = <T extends THREE.Object3D>(o: T): T => ((o.userData.marking = true), o);
 

@@ -10,6 +10,8 @@ import '@/ui/styles/stage.css';
 import '@/ui/styles/fold.css';
 import '@/ui/styles/mobile/shell.css';
 import '@/ui/styles/mobile/stage.css';
+import '@/ui/styles/guide.css';
+import '@/ui/styles/pilot.css';
 import { mountFolding } from '@/ui/shell/fold';
 import { mountMobileDock } from '@/ui/shell/mobile/dock';
 import { createLayout } from '@/ui/shell/layout';

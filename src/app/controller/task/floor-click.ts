@@ -1,10 +1,10 @@
-/** A click on the floor or on top of the scenery (not a drag, not on the robot) moves the selected pick or place spot there. */
+/** A click on the floor or on top of the scenery (not a drag, not on a robot) moves the selected pick or place spot there. */
 import * as THREE from 'three';
 import type { Vec3 } from '../../../core/math/linear/vec';
 import type { Stage } from '../../../scene/stage/renderer';
 import type { TaskSetup } from './setup';
 
-export function bindFloorClicks(stage: Stage, active: () => TaskSetup | null, robot: () => THREE.Object3D | null,
+export function bindFloorClicks(stage: Stage, active: () => TaskSetup | null, robots: () => THREE.Object3D[],
   sceneryHit: (ray: THREE.Ray) => { point: THREE.Vector3; top: boolean } | null, onPick: (p: Vec3) => void): void {
   const dom = stage.renderer.domElement;
   const ray = new THREE.Raycaster();
@@ -27,8 +27,7 @@ export function bindFloorClicks(stage: Stage, active: () => TaskSetup | null, ro
     const hit = onTop ? first.point : floor;
     // A deliberate click on a bench or belt a little out of reach still lands, so the plan can say why it fails.
     if (!hit || Math.hypot(hit.x - t.base[0], hit.y - t.base[1]) > t.radius * (onTop ? 2 : 1.2)) return;
-    const body = robot();
-    const onRobot = body ? ray.intersectObject(body, true)[0] : undefined;
+    const onRobot = ray.intersectObjects(robots(), true)[0];
     if (onRobot && onRobot.distance < ray.ray.origin.distanceTo(hit)) return;
     onPick([hit.x, hit.y, hit.z]);
   });

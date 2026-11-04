@@ -1,26 +1,29 @@
-.search { height: 32px !important; margin-top: 10px; font-family: var(--sans) !important; font-size: 12.5px !important; }
+/* The robot library: search, filter chips, and the list. */
+.search { height: 34px !important; margin-top: 10px; padding-left: 32px !important; border-radius: var(--r) !important; font-family: var(--sans) !important; font-size: 12.5px !important;
+  background: var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237b8189' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4 4'/%3E%3C/svg%3E") no-repeat 10px center / 15px !important; }
 .filters { margin: 8px 0 6px; }
-.chip-row { display: grid; grid-template-columns: 52px 1fr; align-items: start; gap: 6px; margin: 5px 0; }
-.chip-row > .cap { padding-top: 5px; }
+.chip-row { display: grid; grid-template-columns: 52px 1fr; align-items: start; gap: 6px; margin: 6px 0; }
+.chip-row > .cap { padding-top: 6px; color: var(--mute); }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.fchip { height: 22px; padding: 0 7px; border: 1px solid var(--line); background: #fff; cursor: pointer; font: 500 11px var(--sans); display: inline-flex; align-items: center; gap: 5px; }
+.fchip { height: 24px; padding: 0 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); cursor: pointer; font: 500 11.5px var(--sans); display: inline-flex; align-items: center; gap: 5px; }
 .fchip i { font: 500 9.5px var(--mono); color: var(--mute); font-style: normal; }
 .fchip:hover { border-color: var(--faint); }
 .fchip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 .fchip.on i { color: #c9ccd0; }
 .fchip.empty { opacity: 0.4; }
 a.clear { color: var(--accent); text-decoration: none; }
-.robot-list { border-top: 1px solid var(--line); margin-top: 6px; }
-.robot-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 7px 8px; border-bottom: 1px solid #eef0f2; cursor: pointer; border-left: 2px solid transparent; }
-.robot-row:hover { background: #fff; }
-.robot-row.on { background: #fff; border-left-color: var(--accent); }
+.robot-list { display: flex; flex-direction: column; gap: 1px; margin: 8px -6px 0; }
+.robot-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 10px; border-radius: var(--r); cursor: pointer; }
+.robot-row:hover { background: var(--hover); }
+.robot-row.on { background: var(--accent-soft); }
+.robot-row.on .robot-main b { color: var(--accent-ink); }
 .robot-main { min-width: 0; }
 .robot-main b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .robot-main small { color: var(--mute); white-space: nowrap; }
 .robot-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
 .robot-meta .dof { font: 600 12px var(--mono); }
 .robot-meta .dof em { font: 500 8.6px var(--sans); letter-spacing: 0.8px; color: var(--mute); font-style: normal; }
-.robot-meta .src { font: 600 8px var(--sans); letter-spacing: 0.9px; text-transform: uppercase; color: var(--mute); }
+.robot-meta .src { font: 600 8.4px var(--sans); letter-spacing: 0.9px; text-transform: uppercase; color: var(--mute); }
 .robot-meta .src.mine { color: var(--accent); }
 .limb-group > summary { cursor: pointer; padding: 6px 0 2px; list-style: none; color: var(--mute); }
 .limb-group > summary::-webkit-details-marker { display: none; }
@@ -28,8 +31,8 @@ a.clear { color: var(--accent); text-decoration: none; }
 table.effectors tr { cursor: pointer; }
 table.effectors tr.on td { background: #fff4f4; font-weight: 600; }
 table.effectors tr.warn td:last-child { color: var(--accent); }
-.ik-row { padding: 6px 0; border-bottom: 1px solid #f0f1f3; }
+.ik-row { padding: 7px 0; border-bottom: 1px solid var(--line-2); }
 .ik-row.on b { color: var(--accent); }
 .ik-row b { cursor: pointer; }
-.ik-row .vec { margin-top: 4px; }
+.ik-row .vec { margin-top: 5px; }
 .section.lib-filters { margin-top: 10px; }

@@ -3,7 +3,7 @@
  * carries parcels in through the fence and out past the robot, between curtained hoods at its ends.
  */
 import * as THREE from 'three';
-import { type Scenery, type Stance, YELLOW, blink, block, box, canvasTexture, cycle, floorStrip, hazardTexture, moving, paint, stackLight, tapeMaterial } from './kit';
+import { type Scenery, type Stance, YELLOW, blink, block, box, canvasTexture, cycle, floorStrip, hazardTexture, loosePart, moving, paint, sideTable, stackLight, tapeMaterial } from './kit';
 
 // Welded wire mesh: opaque wires, open cells.
 const meshAlpha = () => canvasTexture(64, 64, (g) => {
@@ -144,6 +144,12 @@ export function buildCell(s: number, _drop = 0, stance?: Stance): Scenery {
   if (standing) lamp.group.position.set(gap[1], a, h);
   else lamp.group.position.set(-a, gap[1], h);
   group.add(lamp.group);
+
+  // A parts table at the robot's right, its top level with the belt: work to load onto the line.
+  const [tx, ty] = standing ? [(stance.front ?? 0.3 * s) - 0.1 * s, -0.62 * s] : [0.55 * s, -0.75 * s];
+  sideTable(group, s, tx, ty, ch);
+  loosePart(group, s, 'carton', '#c39a6b', tx - 0.1 * s, ty, ch, 0.15);
+  loosePart(group, s, 'block', '#2f6fd0', tx + 0.12 * s, ty + 0.05 * s, ch, -0.3);
 
   // Hazard tape around the cell.
   const tapeMat = tapeMaterial(hazardTexture());

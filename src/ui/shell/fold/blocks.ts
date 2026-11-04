@@ -18,10 +18,11 @@ function keyOf(handle: Element): string {
   return `${scope}:${block.classList[0]}:${title}`;
 }
 
-/** Untouched blocks marked `data-fold-phone` start folded on phones. */
+/** Untouched blocks marked `data-fold` start folded, and those marked `data-fold-phone` start folded on phones. */
 function restore(block: Element): void {
   const handle = [...block.children].find((c) => c.matches(HANDLE));
-  if (handle) block.classList.toggle('folded', isFolded(keyOf(handle), isMobile() && block.hasAttribute('data-fold-phone')));
+  const fallback = block.hasAttribute('data-fold') || (isMobile() && block.hasAttribute('data-fold-phone'));
+  if (handle) block.classList.toggle('folded', isFolded(keyOf(handle), fallback));
 }
 
 function restoreWithin(node: Element): void {

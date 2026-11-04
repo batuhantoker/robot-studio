@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { type Scenery, type Stance, YELLOW, block, blink, cycle, cylinder, ease, floorStrip, hazardTexture, moving, paint, seeded, tapeMaterial } from './kit';
+import { type Scenery, type Stance, YELLOW, block, blink, cycle, cylinder, ease, floorStrip, hazardTexture, loosePart, moving, paint, seeded, tapeMaterial } from './kit';
 
 const Z = new THREE.Vector3(0, 0, 1);
 const X = new THREE.Vector3(1, 0, 0);
@@ -164,6 +164,9 @@ function station(parent: THREE.Object3D, s: number, hand: number, front: number)
   openTote(parent, s, '#59626e', front + depth - 0.18 * s, width / 2 - 0.23 * s, hand, Math.PI / 2);
   openTote(parent, s, '#2f6fd0', cx, -0.27 * s, 0.195 * s, Math.PI / 2);
   openTote(parent, s, '#2f6fd0', cx, 0.27 * s, 0.195 * s, Math.PI / 2);
+  // Cartons waiting to be packed, on the free part of the top.
+  loosePart(parent, s, 'carton', '#c39a6b', front + 0.16 * s, -0.3 * s, hand, 0.2);
+  loosePart(parent, s, 'carton', '#c39a6b', front + 0.2 * s, -0.02 * s, hand, -0.1);
 }
 
 /** Back and forth along a lane of `length`: drive, dwell, pivot half a turn, and back. */
@@ -207,6 +210,7 @@ export function buildWarehouse(s: number, _drop = 0, stance?: Stance): Scenery {
   group.add(a.group, b.group);
   // A standing robot picks at a station in front of it; a bolted arm works the floor around it.
   if (stance?.standing) station(group, s, stance.hand, stance.front ?? 0.3 * s);
+  else for (const [x, y, yaw] of [[0.55, -0.42, 0.3], [0.62, 0.36, -0.2]]) loosePart(group, s, 'carton', '#c39a6b', x * s, y * s, 0, yaw);
 
   return {
     group,

@@ -60,6 +60,27 @@ export function taskSetup(s: RobotSession, focus = 0): TaskSetup | null {
   };
 }
 
+/**
+ * A loose part of the setting to start from: the one nearest `spots[0]` whose whole cycle to `spots[1]` plans.
+ * A hand takes it as it is; a gripper keeps the object sized to its jaws, standing in the part's place.
+ */
+export function partPick(t: TaskSetup, spots: [Vec3, Vec3], parts: { label: string; size: [number, number, number]; base: Vec3; color?: string }[]):
+  { pick: Vec3; object: TaskObject; index: number } | null {
+  const near = parts.map((p, index) => ({ ...p, index }))
+    .filter((p) => Math.hypot(p.base[0] - t.base[0], p.base[1] - t.base[1]) < 1.2 * t.radius)
+    .sort((a, b) => Math.hypot(a.base[0] - spots[0][0], a.base[1] - spots[0][1]) - Math.hypot(b.base[0] - spots[0][0], b.base[1] - spots[0][1]))
+    .slice(0, 4);
+  for (const p of near) {
+    const object: TaskObject = t.rig
+      ? { ...t.object, color: t.object.kind === 'block' ? p.color : undefined }
+      : { kind: 'block', label: p.label, size: p.size, hold: 0, open: 0, graspZ: 1.05 * p.size[2], color: p.color };
+    if (isClip(planTask({ ctx: t.ctx, home: t.home, pick: p.base, place: spots[1], object, lift: t.lift, base: t.base }, t.probe))) {
+      return { pick: p.base, object, index: p.index };
+    }
+  }
+  return null;
+}
+
 /** A clip planned on one arm's chain, played as whole-robot poses. */
 export const wholeBody = (clip: TaskClip, expand: (q: number[]) => number[]): TaskClip =>
   ({ ...clip, at: (t) => { const p = clip.at(t); return { q: expand(p.q), gap: p.gap }; } });

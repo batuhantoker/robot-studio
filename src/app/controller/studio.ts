@@ -11,16 +11,18 @@ import type { Catalog } from '../robots/catalog';
 import { jointLimits } from '../robots/focus';
 import { type RobotSession, pose } from '../robots/session';
 import { stanceOf } from '../robots/body';
+import { ORIGIN, relativeBase } from '../scene/frame';
 import { pinAll, withTarget } from './targets';
 import type { Store } from '../state/store';
-import type { StudioState } from '../state/types';
+import type { LibraryEntry, RobotBase, SceneRobot, StudioState } from '../state/types';
+import { addToScene } from './scene';
 import { frameLoop } from './frame-loop';
 import { addMine, persist } from './library-actions';
 import { IkMode } from './modes/ik';
 import { MotionPlayer } from './motion/player';
 import { PhysicsMode } from './modes/physics';
 import { TrajectoryRecorder } from './render/recorder';
-import { RobotLoader } from './robots';
+import { MAX_ROBOTS, RobotLoader } from './robots';
 import { bindLimbDrag } from './limb-drag';
 import { planOf } from './modes/trajectory';
 import { bindStopDrag } from './stop-drag';
@@ -31,6 +33,8 @@ import { TaskController } from './task/controller';
 import { PilotController } from './pilot/controller';
 import { wireTeardownHud } from './tour/wire';
 import { bindPicking } from './viewport-input';
+
+const groundingOf = (s: RobotSession) => (s.base === 'fixed' ? 'bolted' : 'settle');
 
 export class Studio {
   readonly bus = new LiveBus();
@@ -45,12 +49,19 @@ export class Studio {
   physics: PhysicsMode | null = null;
   private readonly loader: RobotLoader;
   private rebuildTimer = 0;
+  /** Bystanders still loading, by placement, so a sync doesn't start them twice. */
+  private readonly loading = new Map<string, LibraryEntry>();
+  /** Frame every robot once they all stand: after an add, and when a saved stage comes back. */
+  private frameNext: boolean;
 
   constructor(host: HTMLElement, readonly store: Store<StudioState>, catalog: () => Catalog | null, private readonly status: (s: string | null) => void) {
     this.viewport = new Viewport(host);
     this.overlays = new OverlaySet(this.viewport.stage, (point) => store.set({ targets: withTarget(store.state.targets, store.state.focus, point) }));
     this.viewport.overlay.add(this.overlays.group);
     this.loader = new RobotLoader(catalog);
+    this.loader.activeKey = store.state.activeKey;
+    this.viewport.activeKey = store.state.activeKey;
+    this.frameNext = store.state.scene.length > 1;
     this.analysis = new StudioAnalysis(this);
     this.task = new TaskController(this);
     this.pilot = new PilotController(this);
@@ -66,7 +77,9 @@ export class Studio {
       tick(dt);
       hud(dt);
     });
-    store.on(['activeId'], () => void this.activate(true));
+    // A switch changes activeKey (and usually activeId) in one update; a library pick changes only activeId.
+    store.on(['activeId', 'activeKey'], (s, changed) => void (changed.has('activeKey') ? this.activate(s.q.length === 0, false, true) : this.activate(true)));
+    store.on(['scene', 'library'], () => this.syncBystanders());
     store.on(['focus'], (s) => {
       this.analysis.refreshProfile();
       this.pinLimbs(s, false);
@@ -142,24 +155,34 @@ export class Studio {
     if (check.length) this.viewport.keepInView(check.map(world), tips.map(world));
   }
 
-  async activate(refit: boolean): Promise<void> {
+  /**
+   * Drive the active placement's robot. `refit` starts it from its defaults (else from the restored fields), `frame`
+   * fits the camera to it, and `switched` means another robot was driven before.
+   */
+  async activate(refit: boolean, frame = refit, switched = false): Promise<void> {
+    const key = this.store.state.activeKey;
     const entry = this.store.state.library.find((e) => e.id === this.store.state.activeId);
     if (!entry) return;
     const keep = this.store.state.q;
-    let session;
-    try {
-      session = await this.loader.load(entry, this.status);
-    } catch (e) {
-      this.store.set({ draftError: (e as Error).message });
-      return;
+    this.loader.activeKey = key;
+    let session = this.loader.has(key, entry) ? this.loader.get(key) : null;
+    if (!session) {
+      try {
+        session = await this.loader.load(entry, this.status, key);
+      } catch (e) {
+        this.store.set({ draftError: (e as Error).message });
+        return;
+      }
     }
     if (!session) return;
+    // Another robot took over while this one loaded: it stands by instead.
+    if (this.store.state.activeKey !== key) return this.syncBystanders();
     this.bus.latest = null;
     const limits = jointLimits(session);
     const n = limits.length;
     const q = !refit && keep.length === n ? keep.map((v, k) => Math.min(Math.max(v, limits[k][0]), limits[k][1])) : [...session.home];
     const focus = refit ? session.defaultFocus : Math.min(this.store.state.focus, session.limbs.length - 1);
-    this.viewport.setAssembly(session.assembly, session.base === 'fixed' ? 'bolted' : 'settle', stanceOf(session));
+    this.swapIn(key, session);
     this.analysis.clearWorkspace();
     this.physics = new PhysicsMode(session);
     this.motion.load(session, q);
@@ -170,14 +193,102 @@ export class Studio {
       q, draft: entry.spec ?? null, draftError: null, time: 0, contact: null, sessionVersion: this.store.state.sessionVersion + 1,
       selectedStop: fresh ? null : this.store.state.selectedStop,
       ...(fresh ? defaultPlan(session, duration) : {}),
-      focus, targets: refit ? [] : this.store.state.targets.slice(0, session.limbs.length), isolate: refit ? null : this.store.state.isolate,
+      focus, targets: refit ? [] : this.store.state.targets.slice(0, session.limbs.length), isolate: refit || switched ? null : this.store.state.isolate,
     });
     this.analysis.refreshProfile();
     pose(session, q, this.store.state.explode, focus);
-    if (refit) this.viewport.fit();
+    if (frame) this.viewport.fit();
+    else this.viewport.refitStage();
     this.overlays.rebuild(session, this.viewport.radius());
     this.analysis.refreshStops();
     this.pinLimbs(this.store.state, true);
+    this.syncBystanders();
+  }
+
+  /** Put `session` in the holder; the robot it replaces stands by at its placement, if it is still on the stage. */
+  private swapIn(key: string, session: RobotSession): void {
+    const outgoing = this.viewport.activeKey;
+    const previous = outgoing !== key ? this.loader.get(outgoing) : null;
+    this.viewport.removeBystander(key);
+    this.viewport.setAssembly(session.assembly, groundingOf(session), stanceOf(session));
+    this.viewport.activeKey = key;
+    const placed = this.store.state.scene.find((r) => r.key === outgoing);
+    if (previous && placed) this.standBy(placed, previous);
+    else if (outgoing !== key) this.loader.remove(outgoing);
+    this.viewport.setAnchor(this.store.state.scene.find((r) => r.key === key)?.base ?? ORIGIN);
+  }
+
+  private standBy(r: SceneRobot, s: RobotSession): void {
+    const q = r.parked?.q.length === s.joints.length ? r.parked.q : s.home;
+    pose(s, q, 0, r.parked?.focus ?? s.defaultFocus);
+    this.viewport.addBystander(r.key, s.assembly, groundingOf(s), r.base);
+  }
+
+  /** Bring the robots that aren't driven in line with the scene: load, stand, move and remove them. */
+  syncBystanders(): void {
+    const s = this.store.state;
+    const others = s.scene.filter((r) => r.key !== s.activeKey);
+    for (const key of this.viewport.bystanderKeys()) if (!others.some((r) => r.key === key)) this.viewport.removeBystander(key);
+    // The robot still in the holder goes when the next one swaps in.
+    for (const key of this.loader.keys()) if (key !== this.viewport.activeKey && !s.scene.some((r) => r.key === key)) this.loader.remove(key);
+    let moved = false;
+    for (const r of others) {
+      const entry = s.library.find((e) => e.id === r.entryId);
+      if (!entry || r.key === this.viewport.activeKey) continue;
+      if (!this.loader.has(r.key, entry)) {
+        void this.loadBystander(r.key, entry);
+      } else if (this.viewport.bystanderKeys().includes(r.key)) {
+        this.viewport.placeBystander(r.key, r.base);
+        moved = true;
+      } else {
+        this.standBy(r, this.loader.get(r.key)!);
+        moved = true;
+      }
+    }
+    const active = s.scene.find((r) => r.key === s.activeKey);
+    const here = this.viewport.placement;
+    if (active && this.viewport.activeKey === active.key && (active.base.x !== here.x || active.base.y !== here.y || active.base.yaw !== here.yaw)) {
+      this.viewport.setAnchor(active.base);
+      moved = true;
+    }
+    if (moved) this.viewport.refitStage();
+    this.frameWhenAllStand();
+  }
+
+  /** Frame every robot once all of them stand on the stage, after one was added or a saved stage came back. */
+  private frameWhenAllStand(): void {
+    if (!this.frameNext || !this.session || this.viewport.bystanderKeys().length < this.store.state.scene.length - 1) return;
+    this.frameNext = false;
+    this.viewport.frameAll();
+  }
+
+  private async loadBystander(key: string, entry: LibraryEntry): Promise<void> {
+    if (this.loading.get(key) === entry) return;
+    this.loading.set(key, entry);
+    try {
+      await this.loader.load(entry, this.status, key);
+    } catch (e) {
+      this.store.set({ draftError: (e as Error).message });
+    } finally {
+      if (this.loading.get(key) === entry) this.loading.delete(key);
+    }
+    this.syncBystanders();
+  }
+
+  /** Move a robot live while it is dragged; the scene's setBase saves it. */
+  previewBase(key: string, base: RobotBase): void {
+    if (key === this.viewport.activeKey) this.viewport.previewActive(relativeBase(this.viewport.placement, base));
+    else this.viewport.placeBystander(key, base);
+  }
+
+  /** Put another robot on the stage and drive it; returns why not, if it can't. */
+  addRobot(entryId: string): string | null {
+    if (this.store.state.scene.length >= MAX_ROBOTS) return `The stage holds up to ${MAX_ROBOTS} robots.`;
+    const why = this.loader.roomForAnother();
+    if (why) return why;
+    this.frameNext = true;
+    addToScene(this.store, entryId);
+    return null;
   }
 
   /** Validate a builder edit; presets fork into "My robots" on their first change. */

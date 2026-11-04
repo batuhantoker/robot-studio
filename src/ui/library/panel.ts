@@ -36,7 +36,7 @@ export function mountLibrary(el: HTMLElement, store: Store<StudioState>, actions
       file),
     search,
     h('div.note', { style: 'margin:4px 0 2px' }, 'Try ', h('span.mono', {}, 'kuka'), ' · ', h('span.mono', {}, 'humanoid'), ' · ', h('span.mono', {}, 'dof:6-7'), ' · ', h('span.mono', {}, 'dof>20')),
-    h('div.section.lib-filters', {}, h('header', {}, h('span.cap', {}, 'Filters'), tally), filters), list);
+    h('div.section.lib-filters', { dataset: { fold: '' } }, h('header', {}, h('span.cap', {}, 'Filters'), tally), filters), list);
   let shown: StudioState['library'] = [];
   const render = (s: StudioState) => {
     shown = applyFilter(s.library, filter);

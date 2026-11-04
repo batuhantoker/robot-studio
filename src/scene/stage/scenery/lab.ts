@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { type Scenery, type Stance, block, canvasTexture, cycle, cylinder, ease, glass, moving, paint, spin, standBefore } from './kit';
+import { type Scenery, type Stance, block, canvasTexture, cycle, cylinder, ease, glass, loosePart, moving, paint, spin, standBefore } from './kit';
 
 const WELLS = ['#3d8fe0', '#2e9d6a', '#e0782e', '#d6182b', '#8f5bd6', '#f2b51d'];
 
@@ -168,6 +168,11 @@ export function buildLab(s: number, height: number, stance?: Stance): Scenery {
     neck.position.set(x * s, y * s, h * s + 0.015 * s);
     bottles.add(amber, neck);
   });
+
+  // Sample boxes and a reagent bottle left near the front edge, to be carried to the instruments.
+  loosePart(group, s, 'carton', '#f4f6f8', 0.38 * s, -0.42 * s, 0, 0.15);
+  loosePart(group, s, 'can', '#6b3d14', 0.0, -0.48 * s, 0);
+  loosePart(group, s, 'carton', '#3d8fe0', -0.36 * s, -0.4 * s, 0, -0.2);
 
   const period = 14;
   return standBefore({

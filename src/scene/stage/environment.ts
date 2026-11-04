@@ -46,6 +46,26 @@ export interface Environment {
   supportBelow(x: number, y: number, z: number): number;
   /** Where a ray first meets still scenery, and whether that is a top a spot can stand on. */
   hit(ray: THREE.Ray): { point: THREE.Vector3; top: boolean } | null;
+  /** The setting's loose objects, for hands and grippers to take. */
+  props: PropShelf;
+}
+
+/** A loose object in a setting: what to call it and its full size (m). */
+export interface Prop {
+  object: THREE.Object3D;
+  label: string;
+  size: [number, number, number];
+}
+
+export interface PropShelf {
+  /** Loose objects still in the setting (not held). */
+  all(): Prop[];
+  /** The one nearest a world point, within `reach` of its surface. */
+  near(p: THREE.Vector3, reach: number): Prop | null;
+  /** Give it to `holder`, which it then rides with; it keeps its place in the world. */
+  take(prop: Prop, holder: THREE.Object3D): void;
+  /** Back into the setting, upright on whatever stands below it. */
+  put(prop: Prop): void;
 }
 
 /** Moving parts and floor paint are never where a spot stands. */
@@ -60,7 +80,42 @@ export function createEnvironment(): Environment {
   let stance: Stance | undefined;
   let time = 0;
   let built: Scenery | null = null;
+  let loose: Prop[] = [];
   const caster = new THREE.Raycaster();
+  const box = new THREE.Box3(), spot = new THREE.Vector3();
+  const inSetting = (o: THREE.Object3D) => { for (let n: THREE.Object3D | null = o; n; n = n.parent) if (n === group) return true; return false; };
+  const props: PropShelf = {
+    all: () => loose.filter((p) => inSetting(p.object)),
+    near(p, reach) {
+      let best: Prop | null = null, d = reach;
+      for (const q of props.all()) {
+        const gap = box.setFromObject(q.object).distanceToPoint(p);
+        if (gap <= d) [best, d] = [q, gap];
+      }
+      return best;
+    },
+    take(prop, holder) {
+      holder.attach(prop.object);
+    },
+    put(prop) {
+      // Dropped after its setting was rebuilt: there is nothing left to put it back into.
+      if (!loose.includes(prop)) {
+        prop.object.removeFromParent();
+        dispose(prop.object);
+        return;
+      }
+      group.updateMatrixWorld(true);
+      group.attach(prop.object);
+      const o = prop.object;
+      o.rotation.set(0, 0, new THREE.Euler().setFromQuaternion(o.quaternion, 'ZYX').z);
+      o.updateMatrixWorld(true);
+      box.setFromObject(o).getCenter(spot);
+      o.removeFromParent();
+      const below = env.supportBelow(spot.x, spot.y, box.min.z);
+      group.attach(o);
+      o.position.z += (below - box.min.z) / Math.max(group.getWorldScale(spot).z, 1e-9);
+    },
+  };
 
   const hits = (ray: THREE.Ray) => {
     group.updateMatrixWorld(true);
@@ -114,6 +169,7 @@ export function createEnvironment(): Environment {
       const first = built ? hits(ray)[0] : undefined;
       return first ? { point: first.point.clone(), top: up(first) } : null;
     },
+    props,
   };
   const rebuild = () => {
     for (const c of [...group.children, ...seeThrough.children]) {
@@ -121,6 +177,7 @@ export function createEnvironment(): Environment {
       dispose(c);
     }
     built = null;
+    loose = [];
     const kind = id === 'open' ? null : KINDS[id];
     const standing = !!stance?.standing;
     // A raised setting's unit puts its table at the bench height, as tableHeight does for a bolted robot.
@@ -132,6 +189,7 @@ export function createEnvironment(): Environment {
       group.add(built.group);
       for (const o of built.seeThrough ?? []) seeThrough.add(o);
       built.pose?.(time);
+      built.group.traverse((o) => o.userData.prop && loose.push({ object: o, ...o.userData.prop }));
     }
     group.position.z = seeThrough.position.z = floorZ;
     group.rotation.z = seeThrough.rotation.z = stance?.facing ?? 0;

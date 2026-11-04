@@ -92,6 +92,19 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
 `npm test` runs the cross-validation suite, `npm run typecheck` checks types, and
 `npm run build` writes a static site to `dist/`.
 
+## Getting around
+
+- **Top bar:** the robot's name opens the library, and the modes sit in the middle.
+  On a phone, one button opens every mode as a card.
+- **Under the robot:** a single bar for the current mode, such as motion presets,
+  trajectory stops, Pilot keys and hands, or pick and place.
+- **Top right of the stage:** robots on the stage (add up to four), the View menu
+  (looks, cutaways, explode, overlays, isolate a part) and the surroundings.
+- **Side panels** (bottom sheets on phones): Robots and Build on the left; Live, Math
+  and Analysis on the right. Analysis shows the current mode's tools.
+- **`?` opens the guide:** a short recipe for each task, plus the shortcuts. It opens
+  by itself on a first visit.
+
 ## What it does
 
 - **Build robots from a joint catalogue.** There are six joint kinds: revolute,
@@ -116,7 +129,7 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - march, squat, wave and reach for humanoids;
   - drive or spin for wheeled and aerial robots;
   - a joint wave for anything.
-- **Teardown.** The toolbar switches between solid, glass and section views.
+- **Teardown.** The View menu (the eye over the stage) switches between solid, glass and section views.
   - The explode control opens each joint along its own axis.
   - Isolating a module shows its bill of parts, layered callouts with leaders, and a
     load ring that glows with |τ|/τ_max.

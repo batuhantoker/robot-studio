@@ -1,7 +1,7 @@
 /** The motion presets that suit a robot, from its limbs' roles (legs, arms, wheels). */
 import type { Vec3 } from '../math/linear/vec';
 import { bodyOf } from './body';
-import { drive, jointWave } from './generators/analytic';
+import { drive, jointWave, ripple } from './generators/analytic';
 import { slalom, wheelsOf } from './generators/steer';
 import { taskClip } from './generators/task';
 import * as arm from './paths/arm';
@@ -37,6 +37,27 @@ function task(id: string, label: string, hint: string, period: number, paths: Li
       return taskClip(robot, ready, (s) => robot.limbs.map((_, i) => byLimb.get(i)?.(s) ?? null), period, 48, { level: soles(robot, q0, byLimb.keys()) });
     },
   };
+}
+
+/**
+ * The arm pair's own joints, left hand to left shoulder then right shoulder to right hand, each turned the way
+ * that carries its hand out, forward and up from the body. The waist and legs hold.
+ */
+function armRipple(robot: MotionRobot, q0: number[], body: ReturnType<typeof bodyOf>): { i: number; dir: number }[] {
+  const w = benchFrame(robot, q0, body)!;
+  const own = (limb: number) => robot.limbs[limb].index.filter((i) => !w.shared.includes(i));
+  const hand = (limb: number, q: number[]) => chainFrames(robot.limbs[limb].chain, limbQ(robot.limbs[limb], q)).tip.p;
+  const way = (limb: number, i: number, out: number) => {
+    const q = [...q0];
+    q[i] += 1e-3;
+    const d = hand(limb, q).map((v, k) => v - hand(limb, q0)[k]);
+    const score = out * (d[0] * w.side[0] + d[1] * w.side[1]) + 0.5 * (d[0] * w.forward[0] + d[1] * w.forward[1]) + 0.3 * d[2];
+    return Math.sign(score) || 1;
+  };
+  return [
+    ...own(w.left.limb).reverse().map((i) => ({ i, dir: way(w.left.limb, i, 1) })),
+    ...own(w.right.limb).map((i) => ({ i, dir: way(w.right.limb, i, -1) })),
+  ];
 }
 
 /** Both hands of an arm pair on keyed targets; legs stay where they stand. */
@@ -119,6 +140,10 @@ export function presetsFor(robot: MotionRobot, q0: number[], category: string): 
     out.push(task('eight', 'Figure 8', 'Tool traces a lemniscate', 4, each(isArm, arm.figureEight)));
     out.push(task('pick', 'Pick & place', 'Down at A, carry, down at B', 4, each(isArm, arm.pickAndPlace)));
   }
-  out.push({ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple through every joint', build: (r, q, s) => jointWave(r, q, s) });
+  // On legs a whole-body ripple tips the feet and rocks the robot; a pair of arms carries it hand to hand instead,
+  // and a biped with no arms has nothing else to ripple.
+  const ripples = arms >= 2 && (biped || category === 'humanoid') && !!benchFrame(robot, q0, body);
+  if (ripples) out.push({ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple from one hand across the shoulders to the other', build: (r, q, s) => ripple(r, q, armRipple(r, q, bodyOf(r, q, 'humanoid')), s) });
+  else if (!(legs === 2 && !arms)) out.push({ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple through every joint', build: (r, q, s) => jointWave(r, q, s) });
   return out;
 }

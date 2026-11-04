@@ -15,10 +15,16 @@ import type { Layout } from '../../ui/shell/layout';
 import { mountTopbar } from '../../ui/shell/topbar';
 import { focusPicker } from '../../ui/shell/focus-picker';
 import { mountPartsCard } from '../../ui/teardown/parts-card';
-import { mountToolbar } from '../../ui/teardown/toolbar';
+import { mountViewMenu } from '../../ui/teardown/toolbar';
+import { mountAnalysisPane } from '../../ui/shell/analysis-pane';
+import { mountGuide } from '../../ui/shell/guide';
+import { mountModeBar } from '../../ui/shell/mode-bar';
+import { enterMode } from '../../ui/shell/modes';
+import { h } from '../../ui/dom/h';
 import { mountMotionBar } from '../../ui/motion/bar';
 import { mountTaskBar } from '../../ui/task/bar';
 import { mountPilotBar } from '../../ui/pilot/bar';
+import { mountPilotPad } from '../../ui/pilot/touch-pad';
 import { mountTrajectoryBar } from '../../ui/trajectory/bar';
 import { mountMaterialLegend } from '../../ui/teardown/material-legend';
 import { libraryActions } from '../controller/library-actions';
@@ -26,14 +32,18 @@ import { exportTrajectory } from '../controller/render/export';
 import { canRenderVideo } from '../controller/render/recorder';
 import { mountRenderOverlay } from '../../ui/render/overlay';
 import { mountStageSettings } from '../../ui/stage/settings';
+import { mountSceneRobots } from '../../ui/stage/scene-robots';
 import { saveSurroundings } from '../../scene/stage/surroundings';
 import { bindMobileStage } from '../controller/mobile-stage';
+import { sceneControls } from '../controller/scene-controls';
 import type { Studio } from '../controller/studio';
+import type { StudioState } from '../state/types';
 
 export function mountPanels(layout: Layout, studio: Studio): void {
   const { store } = studio;
   const active = () => store.state.library.find((e) => e.id === store.state.activeId);
-  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => m !== 'pilot' || studio.pilot.available());
+  const guide = mountGuide(document.body, (m) => enterMode(store, m));
+  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => m !== 'pilot' || studio.pilot.available(), guide.open);
   const left = mountLeftTabs(layout.left);
   const base = libraryActions(store, (m) => store.set({ draftError: m }), () => studio.session);
   const actions = { ...base, create: () => (base.create(), left.show('build')) };
@@ -43,32 +53,37 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   const panes = mountRightTabs(layout.right, store);
   mountLive(panes.live, store, studio.bus);
   mountMath(panes.math, store, studio.bus, () => studio.ik.result);
-  panes.analysis.append(
-    ikPanel(store, studio.bus, studio.analysis),
-    trajectoryPanel(store, studio.bus, studio.analysis),
-    trajectoryExportPanel(store, {
+  mountAnalysisPane(panes.analysis, store, [
+    { modes: ['ik'], el: ikPanel(store, studio.bus, studio.analysis) },
+    { modes: ['trajectory'], el: trajectoryPanel(store, studio.bus, studio.analysis) },
+    { modes: ['trajectory'], el: trajectoryExportPanel(store, {
       canRender: canRenderVideo(),
       render: (settings) => studio.recorder.start(settings),
       cancel: () => studio.recorder.cancel(),
       onProgress: (fn) => studio.recorder.onProgress(fn),
       exportData: (format, rate) => exportTrajectory(studio.session, store.state, format, rate),
-    }),
-    physicsPanel(store, studio.bus, studio.analysis),
-    workspacePanel(store, studio.analysis),
-  );
-  const stack = mountToolbar(layout.hudBottom, store);
+    }) },
+    { modes: ['physics'], el: physicsPanel(store, studio.bus, studio.analysis) },
+    { modes: ['workspace'], el: workspacePanel(store, studio.analysis) },
+  ]);
+  const stack = h('div.toolbar-stack.dock-stack');
+  layout.hudBottom.append(stack);
+  mountModeBar(stack, store, studio.analysis);
+  const view = mountViewMenu(layout.tools, store);
   mountMotionBar(stack, store, () => studio.motion.presets, studio.task.available);
   mountTaskBar(stack, store, studio.task);
   mountPilotBar(stack, store, studio.pilot, studio.bus);
+  mountPilotPad(layout.stage, store, studio.pilot);
   mountTrajectoryBar(stack, store, studio.bus, studio.analysis, { list: () => studio.trajectoryPresets(), load: (id) => studio.loadTrajectoryPreset(id) });
-  mountMaterialLegend(layout.hudBottom, store, () => studio.session?.assembly ?? null);
-  mountPartsCard(layout.hudTop, store, () => studio.session?.assembly ?? null, (o) => studio.viewport.flash(o));
+  mountMaterialLegend(layout.hudTop, store, () => studio.session?.assembly ?? null);
+  mountPartsCard(layout.hudTop, store, () => studio.session?.assembly ?? null, (o) => studio.viewport.flash(o), view.parts);
   mountRenderOverlay(layout.stage, studio.recorder);
-  mountStageSettings(layout.stage, store);
+  mountStageSettings(layout.tools, store);
+  mountSceneRobots(layout.tools, studio.viewport.stage, store, sceneControls(studio), (fn) => studio.viewport.onFrame(() => fn()));
   bindMobileStage(studio);
-  studio.viewport.setSurroundings(store.state.surroundings);
-  store.on(['surroundings'], (s) => {
-    studio.viewport.setSurroundings(s.surroundings);
-    saveSurroundings(s.surroundings);
-  });
+  // The settings are built around one robot; a stage of several stays open.
+  const surroundings = (s: StudioState) => ({ ...s.surroundings, environment: s.scene.length > 1 ? 'open' as const : s.surroundings.environment });
+  studio.viewport.setSurroundings(surroundings(store.state));
+  store.on(['surroundings', 'scene'], (s) => studio.viewport.setSurroundings(surroundings(s)));
+  store.on(['surroundings'], (s) => saveSurroundings(s.surroundings));
 }

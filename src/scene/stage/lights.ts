@@ -1,7 +1,7 @@
 /** Key light with soft shadows, sky fill and rim, tuned per backdrop, over a floor that fades into it, plus the setting around the robot. */
 import * as THREE from 'three';
 import { createBackdrop, setGradient } from './backdrop';
-import { createEnvironment } from './environment';
+import { type PropShelf, createEnvironment } from './environment';
 import type { Stance } from './scenery/kit';
 import { createFloor } from './floor';
 import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings } from './surroundings';
@@ -21,6 +21,8 @@ export interface Studio {
   supportBelow(x: number, y: number, z: number): number;
   /** Where a ray first meets still scenery, and whether it is a top. */
   sceneryHit(ray: THREE.Ray): { point: THREE.Vector3; top: boolean } | null;
+  /** The setting's loose objects. */
+  props: PropShelf;
 }
 
 export function createStudio(): Studio {
@@ -97,5 +99,6 @@ export function createStudio(): Studio {
     },
     supportBelow: (x, y, z) => environment.supportBelow(x, y, z),
     sceneryHit: (ray) => environment.hit(ray),
+    props: environment.props,
   };
 }

@@ -1,6 +1,6 @@
 /** A desk the robot is bolted to, or stands at, with an indexing turntable presenting parts beside it. */
 import * as THREE from 'three';
-import { type Scenery, type Stance, block, box, cycle, cylinder, ease, moving, paint, standBefore } from './kit';
+import { type Scenery, type Stance, block, box, cycle, cylinder, ease, loosePart, moving, paint, standBefore } from './kit';
 
 export function buildDesk(s: number, height: number, stance?: Stance): Scenery {
   const group = new THREE.Group();
@@ -45,6 +45,11 @@ export function buildDesk(s: number, height: number, stance?: Stance): Scenery {
     const part = block(platter, 0.085 * s, 0.085 * s, 0.085 * s, paint(c, 0.45), 0.6 * R * Math.cos(a), 0.6 * R * Math.sin(a), 0.034 * s);
     part.rotation.z = a;
   });
+
+  // Loose blocks along the front of the top: in reach of a bolted arm, and of both hands of a robot standing at it.
+  loosePart(group, s, 'block', '#d6182b', 0.55 * s, -0.45 * s, 0, 0.3);
+  loosePart(group, s, 'block', '#2f6fd0', 0.12 * s, -0.55 * s, 0, -0.2);
+  loosePart(group, s, 'block', '#e0782e', -0.32 * s, -0.5 * s, 0, 0.1);
 
   // Turns a third, then dwells, like a part presenter waiting for the next pick.
   const index = 3.4, turn = 1.1;

@@ -44,7 +44,7 @@ export function mountStageSettings(stage: HTMLElement, store: Store<StudioState>
     h('h4', {}, 'Backdrop'), backdrops,
     h('h4', {}, 'Floor'), floors,
     h('div.stage-settings-head', {}, h('h4', {}, 'Setting'), motion), settings,
-    h('p.hint', {}, 'Applies to the viewport and to rendered video. The setting is scenery: the robot is not checked against it. In pick and place, click the top of a bench, table or belt to stand a spot on it.'));
+    h('p.hint', {}, 'Applies to the viewport and to rendered video. Pilot stops short of the scenery, and its loose parts can be picked up. In Pick & place, click the top of a bench, table or belt to stand a spot on it.'));
   stage.append(gear, panel);
 
   const open = (on: boolean) => {

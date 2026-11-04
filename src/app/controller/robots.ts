@@ -20,6 +20,7 @@ export class RobotLoader {
   /** The placement the studio drives. */
   activeKey = 'main';
   private readonly sessions = new Map<string, RobotSession>();
+  private readonly entries = new Map<string, LibraryEntry>();
   private readonly tokens = new Map<string, number>();
   private pending = 0;
 
@@ -31,6 +32,15 @@ export class RobotLoader {
 
   get(key: string): RobotSession | null {
     return this.sessions.get(key) ?? null;
+  }
+
+  /** Whether the placement already holds this entry; an edited robot is a new entry object, so it loads again. */
+  has(key: string, entry: LibraryEntry): boolean {
+    return this.sessions.has(key) && this.entries.get(key) === entry;
+  }
+
+  keys(): string[] {
+    return [...this.sessions.keys()];
   }
 
   /** Why no further robot fits on the stage, or null when one does. */
@@ -57,6 +67,7 @@ export class RobotLoader {
     }
     this.retire(this.sessions.get(key));
     this.sessions.set(key, session);
+    this.entries.set(key, entry);
     return session;
   }
 
@@ -65,6 +76,7 @@ export class RobotLoader {
     this.bump(key);
     this.retire(this.sessions.get(key));
     this.sessions.delete(key);
+    this.entries.delete(key);
   }
 
   private bump(key: string): number {

@@ -3,7 +3,7 @@
  * spindle plunges and traverses; a stack light tells the two apart. A parts table stands within reach.
  */
 import * as THREE from 'three';
-import { type Scenery, type Stance, YELLOW, blink, block, canvasTexture, cycle, cylinder, ease, floorStrip, glass, moving, paint, spin, stackLight } from './kit';
+import { type Scenery, type Stance, YELLOW, blink, block, canvasTexture, cycle, cylinder, ease, floorStrip, glass, moving, paint, prop, spin, stackLight } from './kit';
 
 const screenTexture = () => canvasTexture(128, 96, (g) => {
   g.fillStyle = '#0e1a2b';
@@ -139,7 +139,7 @@ export function buildMachine(s: number, _drop = 0, stance?: Stance): Scenery {
       if ((i * 3 + j) % 5 === 1) continue;
       const blank = cylinder(0.034 * s, 0.07 * s, paint('#cdd2d8', 0.28, 0.9), 24);
       blank.position.set((i - 1.5) * 0.13 * s, (j - 1) * 0.13 * s, th + 0.02 * s + 0.035 * s);
-      table.add(blank);
+      table.add(prop(blank, 'Blank', [0.068 * s, 0.068 * s, 0.07 * s]));
     }
   }
 

@@ -5,11 +5,15 @@
 import * as THREE from 'three';
 import { type Vec3, add, norm, scale } from '../../../core/math/linear/vec';
 import { type Command, STILL, Stepper, advanceBase, fitCommand, wheelState } from '../../../core/motion/locomotion';
+import { chainFrames } from '../../../core/chain/kinematics/frames';
+import { limbQ } from '../../../core/chain/limbs/types';
 import { type IkTarget, solveWholeBody } from '../../../core/solvers/ik/multi';
+import type { Prop } from '../../../scene/stage/environment';
 import { bodyFor } from '../../robots/body';
 import type { RobotSession } from '../../robots/session';
 import type { Studio } from '../studio';
 import { type HandAction, blendOf, handActions } from './actions';
+import { Hands, type Side } from './hands';
 import { PilotInput } from './input';
 import { type PilotRig, pilotRig } from './rig';
 
@@ -27,10 +31,15 @@ export class PilotController {
   cmd: Command = { ...STILL };
   /** Milliseconds the last step took, for keeping an eye on the frame budget. */
   cost = 0;
-  /** Set while scenery stands in the way of the commanded motion. */
-  blocked = false;
+  /** When scenery last stood in the way of the commanded motion (ms). */
+  private blockedAt = -Infinity;
   private hands: ReturnType<typeof handActions> = null;
   private act: { action: HandAction; t: number } | null = null;
+  /** Hands driven directly (humanoids): targets nudged by keys or the pad, and a grip. */
+  private handCtl: Hands | null = null;
+  /** What each hand holds, riding a group kept on that hand's frame. */
+  private readonly held: [Prop | null, Prop | null] = [null, null];
+  private readonly grasps: [THREE.Group, THREE.Group] = [new THREE.Group(), new THREE.Group()];
   /** Ground radius the body sweeps, and its height, for stopping short of scenery. */
   private footprint = 0.3;
   private height = 1;
@@ -51,7 +60,7 @@ export class PilotController {
   constructor(private readonly studio: Studio) {
     const { store, viewport } = studio;
     this.input = new PilotInput(viewport.canvas, () => store.state.mode === 'pilot' && !!this.rig, () => this.toggleCamera(), () => this.camera === 'pov',
-      (n) => { const a = this.actions()[n - 1]; if (a) this.play(a.id); });
+      (n) => { const a = this.actions()[n - 1]; if (a) this.play(a.id); }, (code) => this.press(code));
     store.on(['mode'], (s) => (s.mode === 'pilot' ? this.enter() : this.exit()));
     store.on(['sessionVersion'], (s) => {
       this.exit();
@@ -62,6 +71,11 @@ export class PilotController {
   }
 
   onChange = (fn: () => void) => void this.listeners.push(fn);
+
+  /** Held a moment past the last block: creeping up to an edge would otherwise flicker it. */
+  get blocked(): boolean {
+    return performance.now() - this.blockedAt < 400;
+  }
 
   /** Legs or wheels to move on; flying robots and fixed arms have neither. */
   available(): boolean {
@@ -86,6 +100,94 @@ export class PilotController {
 
   playing(): string | null {
     return this.act?.action.id ?? null;
+  }
+
+  /** The hand the controls move, whether it grips, and whether the hands are off their swing. */
+  handState(): { side: Side; closed: boolean; fingers: boolean; holding: string | null; moved: boolean } | null {
+    const h = this.handCtl;
+    return h && { side: h.side, closed: h.closed[h.side], fingers: h.hasFingers(h.side), holding: this.held[h.side]?.label ?? null, moved: !!(h.targets[0] || h.targets[1]) };
+  }
+
+  setHand(side: Side): void {
+    if (!this.handCtl) return;
+    this.handCtl.side = side;
+    this.listeners.forEach((fn) => fn());
+  }
+
+  toggleGrip(): void {
+    const h = this.handCtl, s = this.studio.session;
+    if (!h || !s) return;
+    const side = h.side;
+    h.closed[side] = !h.closed[side];
+    if (h.closed[side]) this.grab(s, side);
+    else this.letGo(side);
+    this.listeners.forEach((fn) => fn());
+  }
+
+  /** Close on the loose object nearest the hand, if one is within a hand's span of it. */
+  private grab(s: RobotSession, side: Side): void {
+    const h = this.handCtl!;
+    this.followHands(s);
+    const at = this.studio.viewport.overlay.localToWorld(new THREE.Vector3(...h.tip(this.q, side)));
+    const prop = this.studio.viewport.props().near(at, 0.25 * h.arm(side).length);
+    if (!prop) return;
+    this.studio.viewport.props().take(prop, this.grasps[side]);
+    this.held[side] = prop;
+  }
+
+  private letGo(side: Side): void {
+    const prop = this.held[side];
+    if (!prop) return;
+    this.held[side] = null;
+    this.studio.viewport.props().put(prop);
+  }
+
+  /** Keep each grasp group on its hand's frame (robot frame, so it rides the robot as the world moves). */
+  private followHands(s: RobotSession): void {
+    const h = this.handCtl;
+    if (!h) return;
+    for (const side of [0, 1] as Side[]) {
+      const g = this.grasps[side];
+      if (g.parent !== this.studio.viewport.overlay) this.studio.viewport.overlay.add(g);
+      const l = s.limbs[h.limb(side)], T = chainFrames(l.chain, limbQ(l, this.q)).tip, R = T.R;
+      g.matrix.set(R[0], R[1], R[2], T.p[0], R[3], R[4], R[5], T.p[1], R[6], R[7], R[8], T.p[2], 0, 0, 0, 1);
+      g.matrix.decompose(g.position, g.quaternion, g.scale);
+      g.updateMatrixWorld(true);
+    }
+  }
+
+  restHands(): void {
+    this.handCtl?.reset();
+    this.listeners.forEach((fn) => fn());
+  }
+
+  /** Touch driving: the stick (x right, y forward), side step (+1 left), and running. */
+  steer(x: number, y: number): void {
+    this.input.stick = { x, y };
+  }
+
+  sideStep(v: number): void {
+    this.input.side = v;
+  }
+
+  get running(): boolean {
+    return this.input.run;
+  }
+
+  set running(on: boolean) {
+    this.input.run = on;
+    this.listeners.forEach((fn) => fn());
+  }
+
+  /** Hold an on-screen hand button: (forward, left, up), or null to let go. */
+  nudge(dir: [number, number, number] | null): void {
+    this.input.pad = dir ?? [0, 0, 0];
+  }
+
+  private press(code: string): void {
+    if (code === 'Tab' && this.handCtl) this.setHand(this.handCtl.side === 0 ? 1 : 0);
+    if (code === 'Space') this.toggleGrip();
+    if (code === 'KeyR') this.restHands();
   }
 
   play(id: string): void {
@@ -124,8 +226,9 @@ export class PilotController {
     this.spun = rig.drive.kind === 'wheels' ? rig.drive.wheels.map(() => 0) : [];
     this.stepper = rig.drive.kind === 'legs' ? new Stepper(rig.drive.gait) : null;
     this.hands = s.category === 'humanoid' && rig.drive.kind === 'legs' ? handActions(s, rig.ready, bodyFor(s)) : null;
+    this.handCtl = this.hands ? new Hands(s, rig.ready, this.hands.frame, bodyFor(s)) : null;
     this.act = null;
-    this.blocked = false;
+    this.blockedAt = -Infinity;
     this.footprint = this.measureFootprint(s, rig);
     const { camera, controls } = this.studio.viewport.stage;
     this.saved ??= { position: camera.position.clone(), target: controls.target.clone(), near: camera.near, fov: camera.fov };
@@ -136,6 +239,10 @@ export class PilotController {
 
   private exit(): void {
     this.input.release();
+    // Set down what the hands hold while the world is still where they carried it to.
+    this.letGo(0);
+    this.letGo(1);
+    if (this.handCtl) this.handCtl.closed[0] = this.handCtl.closed[1] = false;
     this.studio.viewport.setWorldShift(0, 0, 0);
     this.pose = { x: 0, y: 0, yaw: 0 };
     this.cmd = { ...STILL };
@@ -199,7 +306,14 @@ export class PilotController {
       this.act = null;
       this.listeners.forEach((fn) => fn());
     }
-    if (!was && !this.stepper.walking && !act) return;
+    const ctl = this.handCtl, nudge = this.input.hand();
+    if (ctl && (nudge[0] || nudge[1] || nudge[2])) {
+      ctl.move(this.q, nudge, dt, this.input.fast ? 0.45 : 0.22);
+      // Taking a hand over ends a canned move.
+      if (act && act.t > 0.2) this.act = null;
+    }
+    const steering = !!ctl && (!!ctl.targets[0] || !!ctl.targets[1] || ctl.grip[0] !== +ctl.closed[0] || ctl.grip[1] !== +ctl.closed[1]);
+    if (!was && !this.stepper.walking && !act && !steering) return;
     const targets: IkTarget[] = drive.legs.map((limb, i) => ({ limb, point: feet[i], level: drive.level[i] }));
     const u = act ? Math.min(act.t / act.action.period, 1) : 0;
     const moves = act ? act.action.at(u) : null;
@@ -210,12 +324,18 @@ export class PilotController {
       const swing = 0.6 * ((f[0] - h[0]) * fw[0] + (f[1] - h[1]) * fw[1]);
       const free: Vec3 = [a.home[0] + fw[0] * swing, a.home[1] + fw[1] * swing, a.home[2]];
       const hand = a.limb === this.hands?.frame.left.limb ? 0 : a.limb === this.hands?.frame.right.limb ? 1 : null;
-      const move = moves && hand !== null ? moves[hand] : null;
-      targets.push({ limb: a.limb, point: move ? add(scale(free, 1 - k), scale(move, k)) : free });
+      const move = this.act && moves && hand !== null ? moves[hand] : null;
+      const own = hand !== null ? ctl?.targets[hand] : null;
+      targets.push({ limb: a.limb, point: own ?? (move ? add(scale(free, 1 - k), scale(move, k)) : free) });
     }
-    // The torso holds still while the hands work, as in the presets.
-    const fixed = act && this.hands ? new Set(this.hands.frame.shared) : undefined;
-    this.q = solveWholeBody(s.limbs, s.joints, targets, this.q, { restarts: 0, maxIter: act ? 10 : 6, tol: 5e-5, fixed }).q;
+    // The torso holds still while the hands work, as in the presets; fingers follow the grip, not the IK.
+    const working = !!this.act || !!ctl?.targets[0] || !!ctl?.targets[1];
+    const fixed = new Set([...(working && this.hands ? this.hands.frame.shared : []), ...(ctl?.fingerJoints() ?? [])]);
+    this.q = solveWholeBody(s.limbs, s.joints, targets, this.q, { restarts: 0, maxIter: working ? 10 : 6, tol: 5e-5, fixed }).q;
+    if (ctl) {
+      this.q = ctl.fingers(this.q, dt);
+      this.followHands(s);
+    }
   }
 
   private wheels(rig: PilotRig, v: number, curvature: number, turn: number, dt: number): void {
@@ -238,10 +358,9 @@ export class PilotController {
   private clear(s: RobotSession, rig: PilotRig, cmd: Command): Command {
     const left: Vec3 = [-rig.forward[1], rig.forward[0], 0];
     const v = add(scale(rig.forward, cmd.forward), scale(left, cmd.lateral)), speed = norm(v);
-    const was = this.blocked;
-    this.blocked = speed > 1e-4 && this.obstructed(s, scale(v, 1 / speed), this.footprint + 0.25 * speed + 0.02);
-    if (was !== this.blocked) this.listeners.forEach((fn) => fn());
-    return this.blocked ? { ...cmd, forward: 0, lateral: 0 } : cmd;
+    if (speed < 1e-4 || !this.obstructed(s, scale(v, 1 / speed), this.footprint + 0.25 * speed + 0.02)) return cmd;
+    this.blockedAt = performance.now();
+    return { ...cmd, forward: 0, lateral: 0 };
   }
 
   private obstructed(s: RobotSession, dir: Vec3, reach: number): boolean {

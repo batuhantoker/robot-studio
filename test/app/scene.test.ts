@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addToScene, bindScene, removeFromScene, setBase, switchTo } from '@/app/controller/scene';
-import { ORIGIN, relativeBase, stageBase } from '@/app/scene/frame';
+import { ORIGIN, reanchorPoint, relativeBase, sceneRadius, stageBase } from '@/app/scene/frame';
 import { freshRobot } from '@/app/scene/parked';
 import { restoreScene, saveScene } from '@/app/scene/storage';
 import { Store } from '@/app/state/store';
@@ -146,6 +146,21 @@ describe('scene frames', () => {
     expect(r.x).toBeCloseTo(1);
     expect(r.y).toBeCloseTo(0);
     expect(r.yaw).toBeCloseTo(0);
+  });
+
+  it('keeps a point still on the stage when the active robot changes', () => {
+    const a = { x: 0, y: 0, yaw: 0 }, b = { x: 2, y: 1, yaw: Math.PI / 2 };
+    const [x, y] = reanchorPoint(a, b, 2, 2);
+    // (2, 2) on the stage is 1 ahead of b along its heading (+y) and 0 to the side.
+    expect(x).toBeCloseTo(1);
+    expect(y).toBeCloseTo(0);
+    const [bx, by] = reanchorPoint(b, a, x, y);
+    expect([bx, by].map((v) => +v.toFixed(9))).toEqual([2, 2]);
+  });
+
+  it('sizes the stage to the furthest robot', () => {
+    expect(sceneRadius(0.5, [])).toBe(0.5);
+    expect(sceneRadius(0.5, [{ x: 3, y: 4, r: 1 }, { x: 0, y: 1, r: 0.2 }])).toBe(6);
   });
 
   it('round-trips between the stage and a robot frame', () => {
