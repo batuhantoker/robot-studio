@@ -1,7 +1,7 @@
 /**
  * Dactyl in the studio: a Motion preset that bolts a hand palm up to a wall and solves a scrambled cube with
- * Kociemba's two-phase solution, one top turn or regrip at a time. The Shadow hand was made for it; every other hand
- * tries, and the bar says how close its fingertips came. Only while the preset plays is the hand shown palm up; the
+ * Kociemba's two-phase solution, one top turn or regrip at a time. The Shadow hand was made for it; other dexterous
+ * hands try, and the bar says how close their fingertips came. Only while the preset plays is the hand shown palm up; the
  * model, its collision checks and its floor stay in the upright frame they were built in.
  */
 import * as THREE from 'three';
@@ -127,7 +127,7 @@ export class RubikController {
     return [{
       id: RUBIK_PRESET,
       label: 'Rubik’s cube',
-      hint: 'Palm up like OpenAI’s Dactyl: solves a scramble with Kociemba’s two-phase algorithm, turning only the top face and regripping between turns. Choreographed: the cube is animated, not simulated, and hands that can’t reach their marks show how far off they are.',
+      hint: 'Palm up like OpenAI’s Dactyl: solves a scramble with Kociemba’s two-phase algorithm, turning only the top face and regripping between turns. Choreographed: the cube is animated, not simulated; the bar shows how close the fingertips come.',
       build: () => clip,
     }];
   }

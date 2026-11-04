@@ -78,7 +78,10 @@ const shadowSide = (map: MotorMap): 'rh' | 'lh' | null => {
   return null;
 };
 
-/** Every hand with a thumb and two or more fingers on a motor map can try. */
+/**
+ * Hands that can place a fingertip anywhere near the cube: a thumb and two or more fingers, each moved by three or more
+ * motors of its own. A hand closed by one synergy, or fingers that only curl, can't turn a layer.
+ */
 export function handRig(s: RobotSession): HandRig | null {
   const map = s.prosthesis;
   if (!map) return null;
@@ -98,6 +101,7 @@ export function handRig(s: RobotSession): HandRig | null {
     fingers: limbs.map((_, i) => i).filter((i) => find(i) === root),
     motors: fingersOf.map((fs, m) => (fs.length && find(fs[0]) === root ? m : -1)).filter((m) => m >= 0),
   })).filter((g) => g.motors.length);
+  if (groups.length !== limbs.length || groups.some((g) => g.motors.length < 3)) return null;
 
   const shadow = shadowSide(map);
   const open = map.grips.find((g) => g.name === 'open');
