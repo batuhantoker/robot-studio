@@ -4,7 +4,7 @@
  */
 import type { Move } from './cube';
 import { type HandStep, handSteps, regripRotation } from './plan';
-import { FACE_NORMALS, IDENTITY, type Mat3, type Piece, mul, rotation, solvedPieces, transpose, turnAll, turnPieces } from './pieces';
+import { FACE_NORMALS, IDENTITY, type Mat3, type Piece, mul, rotation, solvedPieces, turnAll, turnPieces } from './pieces';
 
 /** One quarter of hand work; half turns and half yaws are two of them. */
 export type Primitive = 'cw' | 'ccw' | 'yawL' | 'yawR' | 'flipFar' | 'flipNear';
@@ -65,20 +65,17 @@ function quarters(step: HandStep): Primitive[] {
 
 const topFace = (O: Mat3) => FACE_NORMALS.findIndex((n) => O[6] * n[0] + O[7] * n[1] + O[8] * n[2] === 1);
 
-/** Rotation taking `from` to `to` as an axis and angle, for turning the cube smoothly between two ways of sitting. */
-function between(from: Mat3, to: Mat3): { axis: number[]; angle: number } {
-  const d = mul(to, transpose(from));
-  const angle = Math.acos(Math.min(1, Math.max(-1, (d[0] + d[4] + d[8] - 1) / 2)));
-  if (angle < 1e-9) return { axis: [0, 0, 1], angle: 0 };
-  if (Math.PI - angle < 1e-6) {
-    // Half turn: the axis is the column of d + I with the largest diagonal entry.
-    const k = [0, 4, 8].reduce((best, i) => (d[i] > d[best] ? i : best), 0) / 4;
-    const v = [0, 1, 2].map((r) => d[3 * r + k] + (r === k ? 1 : 0));
-    const n = Math.hypot(...v);
-    return { axis: v.map((x) => x / n), angle };
+/** How far a part-turned layer's corners would dip below the cube's bottom, so it can rock up off the palm by that. */
+function dip(O: Mat3, face: number, angle: number): number {
+  const turn = mul(O, rotation(FACE_NORMALS[face], angle));
+  const n = FACE_NORMALS[face];
+  let low = 0;
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+    const c = [x, y, z];
+    if (c[0] * n[0] + c[1] * n[1] + c[2] * n[2] !== 1) continue;
+    low = Math.min(low, (turn[6] * x + turn[7] * y + turn[8] * z) * HALF);
   }
-  const s = 2 * Math.sin(angle);
-  return { axis: [(d[7] - d[5]) / s, (d[2] - d[6]) / s, (d[3] - d[1]) / s], angle };
+  return Math.max(0, -low - HALF);
 }
 
 export interface SolveClip {
@@ -90,18 +87,17 @@ export interface SolveClip {
 }
 
 export function solveClip(scramble: Move[], solution: Move[], start: Mat3 = IDENTITY): SolveClip {
-  const { steps, end } = handSteps(solution, start);
+  const { steps } = handSteps(solution, start);
   const segments: Segment[] = [];
   let t = 0;
   let pieces = solvedPieces();
-  let O = end;
+  let O = start;
   const push = (beat: Beat, move: number, duration = TIMING[beat.kind].duration) => {
     segments.push({ beat, start: t, duration, pieces, O, move });
     t += duration;
   };
   push({ kind: 'scramble', moves: scramble }, -1);
   pieces = turnAll(pieces, scramble);
-  O = start;
   push({ kind: 'hold' }, -1, 0.8);
   let move = -1;
   for (const step of steps) {
@@ -127,16 +123,15 @@ export function solveClip(scramble: Move[], solution: Move[], start: Mat3 = IDEN
     const b = s.beat;
     if (b.kind === 'hold') return base;
     if (b.kind === 'scramble') {
-      // Turned from how the last solve left it to how the next one starts, hopping clear of the fingers.
+      // The cube shuffles itself on the open palm, rocking up only as far as a turning side layer needs.
       const n = b.moves.length, x = f * n, k = Math.min(Math.floor(x), n);
-      const r = between(s.O, start);
       const m = b.moves[k];
+      const angle = m && x > k ? (-m.turns * Math.PI) / 2 * smoother(x - k) : 0;
       return {
         ...base,
         pieces: turnAll(s.pieces, b.moves.slice(0, k)),
-        turning: m && x > k ? { face: m.face, angle: (-m.turns * Math.PI) / 2 * smoother(x - k) } : null,
-        R: f >= 1 ? start : mul(rotation(r.axis, r.angle * f), s.O),
-        lift: 0.024 * Math.sin(Math.PI * Math.min(1, Math.max(0, (phase - 0.08) / 0.84))),
+        turning: angle ? { face: m.face, angle } : null,
+        lift: angle ? dip(s.O, m.face, angle) : 0,
       };
     }
     if (b.kind === 'cw' || b.kind === 'ccw') {

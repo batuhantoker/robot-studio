@@ -77,7 +77,10 @@ export function faceAlong(O: Mat3, dir: readonly number[]): number {
   });
 }
 
-/** Regrips and top twists for `solution`, starting with the cube sitting as `start`; the fewest, cheapest regrips overall. */
+/**
+ * Regrips and top twists for `solution`, starting with the cube sitting as `start` and ending the same way up (the
+ * solved cube presented as it came); the fewest, cheapest regrips overall.
+ */
 export function handSteps(solution: Move[], start: Mat3 = IDENTITY): { steps: HandStep[]; end: Mat3 } {
   const g = (graph ??= orientationGraph());
   const s0 = g.index.get(key(start));
@@ -97,12 +100,14 @@ export function handSteps(solution: Move[], start: Mat3 = IDENTITY): { steps: Ha
     }
     layer = next;
   }
-  const finish = [...layer.values()].reduce((a, b) => (b.cost < a.cost ? b : a));
+  const home = (o: number, v: { cost: number }) => v.cost + g.routes[o].cost[s0];
+  const [last, finish] = [...layer.entries()].reduce((a, b) => (home(...b) < home(...a) ? b : a));
   const steps: HandStep[] = [];
   let at = s0;
   finish.back.forEach((o, i) => {
     steps.push(...g.routes[at].via[o], { kind: 'twist', move: solution[i] });
     at = o;
   });
-  return { steps, end: g.all[at] };
+  steps.push(...g.routes[last].via[s0]);
+  return { steps, end: start };
 }

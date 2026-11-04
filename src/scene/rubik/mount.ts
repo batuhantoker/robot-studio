@@ -4,14 +4,14 @@ import { block, pin } from '../../cad/parts/shapes/blocks';
 
 export class WallMount {
   readonly group = new THREE.Group();
-  private readonly panel = new THREE.MeshPhysicalMaterial({ color: '#d3d6db', roughness: 0.85 });
+  private readonly panel = new THREE.MeshPhysicalMaterial({ color: '#c3c7cd', roughness: 0.8 });
   private readonly anodised = new THREE.MeshPhysicalMaterial({ color: '#2b2e33', roughness: 0.42, metalness: 0.45, clearcoat: 0.2 });
   private readonly steel = new THREE.MeshPhysicalMaterial({ color: '#a7adb5', roughness: 0.3, metalness: 0.9 });
 
-  /** A forearm of `radius` leaving the wall at `base` along +y; the panel stands on `floor`. */
+  /** A hand of `radius` at its base leaving the wall at `base` along +y; the panel stands on `floor`. */
   set(base: THREE.Vector3, radius: number, floor: number): void {
     this.clear();
-    const t = 0.024, width = radius * 5, top = base.z + radius * 2.2;
+    const t = 0.03, width = Math.max(radius * 7.5, 0.4), top = base.z + Math.max(radius * 3.2, 0.16);
     const wall = new THREE.Mesh(block(width, t, top - floor, 0.006), this.panel);
     wall.position.set(base.x, base.y - t / 2 - 0.012, (top + floor) / 2);
     const flange = new THREE.Mesh(pin(radius * 1.28, 0.014, 'y', 64), this.anodised);

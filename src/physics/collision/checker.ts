@@ -27,6 +27,8 @@ export class CollisionChecker {
   private readonly data: MjData;
   private readonly designed = new Set<number>();
   private readonly floorGeoms: number[];
+  /** Off while the robot is shown other than its model stands (a hand bolted palm up to a wall has no floor below it). */
+  floorTest = true;
 
   constructor(private readonly handle: ModelHandle, readonly opts: CheckerOptions, private readonly owned: boolean) {
     // An owned model is ours alone; a shared one (imported CAD) gets a private MjData beside the session's.
@@ -44,7 +46,7 @@ export class CollisionChecker {
       if (found || dist >= -this.opts.tol || this.designed.has(pairKey(g1, g2))) return;
       found = { a: this.opts.label(g1), b: this.opts.label(g2) };
     });
-    if (found) return found;
+    if (found || !this.floorTest) return found;
     const z = this.opts.floor?.z ?? 0;
     const g = this.floorGeoms.find((geom) => this.low(geom) < z - this.opts.tol);
     return g === undefined ? null : { a: this.opts.label(g), b: 'floor' };

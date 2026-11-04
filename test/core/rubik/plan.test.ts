@@ -36,6 +36,7 @@ describe('hand steps', () => {
       const done = perform(turnAll(solvedPieces(), s), IDENTITY, steps);
       expect(piecesSolved(done.pieces)).toBe(true);
       expect(done.O).toEqual(end);
+      expect(end).toEqual(IDENTITY);
       expect(steps.filter((x) => x.kind === 'twist')).toHaveLength(moves.length);
       const regrips = steps.length - moves.length;
       expect(regrips).toBeLessThanOrEqual(2 * moves.length);
