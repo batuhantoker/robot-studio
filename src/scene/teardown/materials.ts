@@ -30,11 +30,10 @@ export class MaterialVariants {
     return v;
   }
 
-  /** Clip every material against the section plane (and draw back faces so cuts show walls). */
+  /** Clip every material against the section plane; the cutaway's caps close what the cut opens. */
   clip(materials: Iterable<THREE.Material>, on: boolean): void {
     for (const m of materials) {
       m.clippingPlanes = on ? [this.plane] : null;
-      if (!this.glass.has(m) && !(m as THREE.MeshBasicMaterial).isMeshBasicMaterial) m.side = on ? THREE.DoubleSide : THREE.FrontSide;
       m.needsUpdate = true;
     }
   }

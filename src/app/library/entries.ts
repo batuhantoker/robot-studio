@@ -1,4 +1,4 @@
-/** One list for presets, fetched CAD robots, and the user's own designs, with filter facets. */
+/** One list for presets, fetched CAD robots, prostheses, and the user's own designs, with filter facets. */
 import { specDofs } from '../../core/robot/config/pose';
 import { JOINT_KINDS } from '../../core/robot/joints/kinds';
 import type { RobotSpec } from '../../core/robot/schema/types';
@@ -25,7 +25,19 @@ function specEntry(id: string, group: 'preset' | 'mine', spec: RobotSpec, twin?:
   };
 }
 
+function prosthesisEntry(r: CatalogRobot, motors: number): LibraryEntry {
+  const maker = r.vendor ?? r.maker;
+  return {
+    id: `prosthesis:${r.id}`, title: r.title, group: 'prosthesis', catalogId: r.id,
+    subtitle: `${maker} · ${motors === 1 ? '1 motor drives' : `${motors} motors drive`} ${r.joints_total ?? r.dof} joints`,
+    dof: motors, chainDof: motors, category: 'hand', maker,
+    tags: [...new Set([...(r.tags ?? []), 'prosthesis'])],
+    localOnly: !r.license.spdx,
+  };
+}
+
 function cadEntry(r: CatalogRobot): LibraryEntry {
+  if (r.prosthesis) return prosthesisEntry(r, r.prosthesis.motors.length);
   const maker = r.vendor ?? r.maker;
   const chainDof = r.chain ? r.dof : 0;
   return {

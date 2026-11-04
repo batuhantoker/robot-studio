@@ -5,6 +5,7 @@ import type { Pace, StopOpts } from '../../core/trajectory/plan';
 import type { Look } from '../../scene/look/types';
 import type { Surroundings } from '../../scene/stage/surroundings';
 import type { Cut } from '../../scene/teardown/materials';
+import type { Section } from '../../scene/teardown/section';
 
 export type Mode = 'pose' | 'motion' | 'pilot' | 'ik' | 'trajectory' | 'physics' | 'workspace' | 'task';
 
@@ -25,7 +26,7 @@ export type RightTab = 'live' | 'math' | 'analysis';
 export interface LibraryEntry {
   id: string;
   title: string;
-  group: 'preset' | 'cad' | 'mine';
+  group: 'preset' | 'cad' | 'mine' | 'prosthesis';
   subtitle: string;
   /** Movable DOF of the whole robot (all limbs, fingers). */
   dof: number;
@@ -74,6 +75,8 @@ export interface StudioState {
   look: Look;
   explode: number;
   isolate: string | null;
+  /** Where the section view cuts; set to suit each robot as it loads. */
+  section: Section;
   overlays: Overlays;
   /** IK target per limb; null leaves that limb free. */
   targets: (Vec3 | null)[];

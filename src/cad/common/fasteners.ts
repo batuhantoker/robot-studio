@@ -26,6 +26,25 @@ export function boltCircle(
   return mesh;
 }
 
+/** Instanced hex-head screws at given points, heads facing ±`axis`. */
+export function screwsAt(
+  mats: MaterialSet,
+  points: THREE.Vector3[],
+  head: number,
+  axis: 'x' | 'y' | 'z',
+  facing: 1 | -1,
+  opts: PartOptions,
+): THREE.InstancedMesh {
+  const geometry = new THREE.CylinderGeometry(head, head, head * 0.7, 6).translate(0, facing * head * 0.35, 0);
+  if (axis === 'x') geometry.rotateZ(-Math.PI / 2);
+  if (axis === 'z') geometry.rotateX(Math.PI / 2);
+  const mesh = new THREE.InstancedMesh(geometry, mats.get('steel'), points.length);
+  points.forEach((p, i) => mesh.setMatrixAt(i, new THREE.Matrix4().makeTranslation(p)));
+  mesh.castShadow = true;
+  tag(mesh, opts, 'steel');
+  return mesh;
+}
+
 /** A ring of identical boxes (stator teeth, magnets, encoder ticks) around local Y. */
 export function ringOf(
   geometry: THREE.BufferGeometry,

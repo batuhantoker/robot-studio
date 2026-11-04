@@ -98,6 +98,8 @@ const gait = (kind: 'trot' | 'walk' | 'tripod' | 'march', withArms = false): Lim
 };
 
 export function presetsFor(robot: MotionRobot, q0: number[], category: string): MotionPreset[] {
+  // A hand's fingers are not arms: tool paths and pick and place make no sense on a fingertip.
+  if (category === 'hand') return [{ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple through every finger', build: (r, q, s) => jointWave(r, q, s) }];
   const roles = limbRoles(robot, q0);
   const body = bodyOf(robot, q0, category);
   // One limb per real end effector: a hand's fingertip chains would fight over the same arm joints.

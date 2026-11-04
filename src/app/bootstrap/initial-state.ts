@@ -29,6 +29,7 @@ export function initialState(catalog: Catalog | null): StudioState {
     look: 'studio',
     explode: 0,
     isolate: null,
+    section: { axis: 'y', offset: 0 },
     overlays: { frames: false, com: false, ellipsoid: false, trail: true, workspace: false, labels: true },
     playing: false,
     time: 0,

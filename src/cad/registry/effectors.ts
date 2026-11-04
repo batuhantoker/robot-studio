@@ -3,7 +3,9 @@ import type { EffectorKind } from '../../core/robot/schema/types';
 import { parallelGripper } from '../parts/effectors/parallel';
 import { suctionCup } from '../parts/effectors/suction';
 import { threeFingerGripper } from '../parts/effectors/three-finger';
-import { millingSpindle, toolFlange, weldingTorch } from '../parts/effectors/tools';
+import { toolFlange } from '../parts/effectors/flange';
+import { millingSpindle } from '../parts/effectors/spindle';
+import { weldingTorch } from '../parts/effectors/torch';
 import type { EffectorBuilder } from '../parts/effectors/types';
 
 export const EFFECTOR_BUILDERS: Record<EffectorKind, EffectorBuilder> = {

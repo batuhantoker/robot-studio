@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Builds public/robots/: pinned MuJoCo Menagerie arms, the repository's Montaj1 CAD arm, and every robot of the
-// ARMOR gallery fetched from its own upstream repository; then writes public/robots/index.json.
+// ARMOR gallery fetched from its own upstream repository, prosthetic hands from their makers' repositories; then
+// writes public/robots/index.json.
 //
-//   node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|montaj1] [--skip-montaj]
+//   node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|montaj1|prosthetics] [--skip-montaj]
 //                                 [--force] [--jobs N]
 import fs from 'node:fs';
 import { ARMOR_IDS, ARMOR_ROBOTS, armorId } from './armor/catalog/index.mjs';
@@ -17,16 +18,18 @@ import { ensureMenagerie, MENAGERIE_COMMIT } from './menagerie/checkout.mjs';
 import { menagerieEntry } from './menagerie/copy.mjs';
 import { montajEntry } from './montaj/export.mjs';
 import { ROBOTS_DIR } from './paths.mjs';
+import { ensureProstheticRepos, prosthesisEntry } from './prosthetics/build.mjs';
+import { PROSTHESES, PROSTHESIS_IDS } from './prosthetics/catalog.mjs';
 
-const ALL_IDS = [...CATALOG_IDS, ...ARMOR_IDS];
+const ALL_IDS = [...CATALOG_IDS, ...ARMOR_IDS, ...PROSTHESIS_IDS];
 const USAGE = [
-  'Usage: node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|montaj1] [--skip-montaj]',
+  'Usage: node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|montaj1|prosthetics] [--skip-montaj]',
   '                                     [--force] [--jobs N]',
   '',
   '  --force   rebuild armor robots even when a build with the same inputs is on disk',
   '  --jobs N  armor robots processed at once (default 4)',
   '',
-  `Robots: ${CATALOG_IDS.join(', ')}, and ${ARMOR_IDS.length} armor-* ids`,
+  `Robots: ${CATALOG_IDS.join(', ')}, ${ARMOR_IDS.length} armor-* ids, and prostheses ${PROSTHESIS_IDS.join(', ')}`,
   `Menagerie commit: ${MENAGERIE_COMMIT}`,
 ].join('\n');
 
@@ -37,15 +40,22 @@ async function main() {
   const menagerie = MENAGERIE_ROBOTS.filter((r) => selects(opts, r.id));
   const montaj = !opts.flags.has('--skip-montaj') && selects(opts, MONTAJ.id);
   const armor = ARMOR_ROBOTS.filter((r) => selects(opts, armorId(r.slug)));
-  if (!menagerie.length && !montaj && !armor.length) throw new Error('nothing to do');
+  const prostheses = PROSTHESES.filter((p) => selects(opts, p.id));
+  if (!menagerie.length && !montaj && !armor.length && !prostheses.length) throw new Error('nothing to do');
   fs.mkdirSync(ROBOTS_DIR, { recursive: true });
 
-  const rebuilding = new Set([...menagerie.map((r) => r.id), ...(montaj ? [MONTAJ.id] : []), ...armor.map((r) => armorId(r.slug))]);
+  const rebuilding = new Set([
+    ...menagerie.map((r) => r.id), ...(montaj ? [MONTAJ.id] : []), ...armor.map((r) => armorId(r.slug)), ...prostheses.map((p) => p.id),
+  ]);
   const kept = keptEntries(rebuilding);
   const built = new Map();
   if (menagerie.length) {
     await ensureMenagerie(menagerie.map((r) => r.dir));
     for (const robot of menagerie) built.set(robot.id, menagerieEntry(robot));
+  }
+  if (prostheses.length) {
+    await ensureProstheticRepos(prostheses);
+    for (const hand of prostheses) built.set(hand.id, await prosthesisEntry(hand));
   }
   if (montaj) {
     try {

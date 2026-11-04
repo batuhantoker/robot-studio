@@ -3,6 +3,7 @@ import type { Vec3 } from '../../core/math/linear/vec';
 import type { WorkspaceMetric } from '../../scene/overlays/workspace';
 import type { AnalysisContext } from '../../ui/analysis/context';
 import { focusLimb, jointLimits } from '../robots/focus';
+import type { RobotSession } from '../robots/session';
 import { isVia } from '../../core/trajectory/plan';
 import { type PathProfile, dragStop, planOf, profile, stopTips } from './modes/trajectory';
 import { type WorkspaceStudy, runStudy, studyKey } from './workspace/study';
@@ -12,6 +13,9 @@ export class StudioAnalysis implements AnalysisContext {
   private path: PathProfile | null = null;
   private tips: Vec3[] = [];
   private study: WorkspaceStudy | null = null;
+  private limbStudy: WorkspaceStudy | null = null;
+  private painted: WorkspaceStudy | null = null;
+  private paintedMetric: WorkspaceMetric | null = null;
   private metric: WorkspaceMetric = 'manipulability';
   private listeners: ((s: WorkspaceStudy | null) => void)[] = [];
 
@@ -67,30 +71,53 @@ export class StudioAnalysis implements AnalysisContext {
     const s = this.studio.session;
     this.metric = metric;
     this.study = s ? runStudy(s, count) : null;
-    this.recolorWorkspace(metric);
+    this.paint();
     this.listeners.forEach((fn) => fn(this.study));
     return this.study;
   }
 
-  /** Run once per robot when the workspace is asked for (mode or overlay), not on every toggle. */
+  /** Run once per robot (or focused limb) when the workspace is asked for, not on every toggle. */
   ensureWorkspace(): void {
     const s = this.studio.session;
-    if (!s || this.study?.key === studyKey(s, 2500)) return;
-    this.runWorkspace(2500);
-    this.studio.viewport.fitBox(this.studio.overlays.workspace.bounds());
+    if (!s) return;
+    const limb = this.shownLimb(s);
+    const have = limb === undefined ? this.study : this.limbStudy;
+    const before = this.painted;
+    if (have?.key !== studyKey(s, limb)) {
+      if (limb === undefined) this.runWorkspace(2500);
+      else this.limbStudy = runStudy(s, 2500, limb);
+    }
+    this.paint();
+    // Frame a cloud that just appeared or grew to the whole robot; Pilot's camera rides with the driver.
+    const grew = !before || (limb === undefined && before !== this.painted);
+    if (grew && this.studio.store.state.mode !== 'pilot') this.studio.viewport.fitBox(this.studio.overlays.workspace.bounds());
   }
 
   clearWorkspace(): void {
-    this.study = null;
+    this.study = this.limbStudy = this.painted = null;
     this.studio.overlays.workspace.clear();
     this.listeners.forEach((fn) => fn(null));
   }
 
   recolorWorkspace(metric: WorkspaceMetric): void {
     this.metric = metric;
-    const st = this.study;
-    if (!st) return;
-    this.studio.overlays.workspace.show(st.samples, st.shell, metric, this.studio.overlays.reach * 0.02);
+    this.paint();
+  }
+
+  /** Workspace mode studies the whole robot; elsewhere the cloud is the focused limb's, a humanoid's hand rather than its body. */
+  private shownLimb(s: RobotSession): number | undefined {
+    const { mode, focus } = this.studio.store.state;
+    return mode === 'workspace' || s.limbs.filter((l) => l.chain.joints.length).length < 2 ? undefined : focus;
+  }
+
+  private paint(): void {
+    const s = this.studio.session;
+    const st = s ? (this.shownLimb(s) === undefined ? this.study : this.limbStudy) : null;
+    if (st === this.painted && this.metric === this.paintedMetric) return;
+    this.painted = st;
+    this.paintedMetric = this.metric;
+    if (st) this.studio.overlays.workspace.show(st.samples, st.shell, this.metric, this.studio.overlays.reach * 0.02);
+    else this.studio.overlays.workspace.clear();
   }
 
   restartPhysics(): void {

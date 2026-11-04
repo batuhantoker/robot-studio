@@ -4,6 +4,7 @@ import { chainFrames } from '../../core/chain/kinematics/frames';
 import { type Limb, type RobotJoint, limbQ } from '../../core/chain/limbs/types';
 import type { ChainFrames } from '../../core/chain/model/types';
 import type { Vec3 } from '../../core/math/linear/vec';
+import type { MotorMap } from '../../core/prosthesis/motors';
 import type { RobotSpec } from '../../core/robot/schema/types';
 import type { CollisionChecker } from '../../physics/collision/checker';
 import type { ModelHandle } from '../../physics/model/handle';
@@ -34,6 +35,8 @@ export interface RobotSession {
   rest: Float64Array;
   /** Self-contact and floor test; null when the robot has nothing to collide. */
   collision: CollisionChecker | null;
+  /** Prostheses only: the joints are posed through these motors, never one by one. */
+  prosthesis?: MotorMap;
   /** MuJoCo's position of each limb's tool point after `pose`. */
   mujocoTips(): Vec3[];
   dispose(): void;

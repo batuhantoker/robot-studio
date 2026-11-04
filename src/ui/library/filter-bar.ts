@@ -6,7 +6,7 @@ import { h } from '../dom/h';
 import { segmented } from '../widgets/segmented';
 import { chipRow } from './chips';
 
-const SOURCES: [SourceFacet, string][] = [['all', 'All'], ['mine', 'Mine'], ['preset', 'Presets'], ['cad', 'CAD']];
+const SOURCES: [SourceFacet, string][] = [['all', 'All'], ['mine', 'Mine'], ['preset', 'Presets'], ['cad', 'CAD'], ['prosthesis', 'Prosthetics']];
 const TYPE_ORDER = ['arm', 'humanoid', 'legged', 'mobile', 'aerial', 'hand', 'other'];
 const toggleIn = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 

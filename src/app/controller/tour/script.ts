@@ -8,6 +8,8 @@ export interface Beat {
   /** Run once when the beat starts (e.g. the workspace study). */
   enter?: 'workspace';
   explodeTo?: number;
+  /** Section offset to start from on the camera's side; the plane sweeps in to the middle. */
+  sweep?: number;
 }
 
 const calm = { frames: false, com: false, ellipsoid: false, trail: true, workspace: false, labels: true };
@@ -17,7 +19,7 @@ export const BEATS: Beat[] = [
   { caption: 'Glass housings: the drives inside', seconds: 3.5, patch: () => ({ cut: 'glass', playing: false }) },
   { caption: 'Every joint opens along its own axis', seconds: 4, patch: () => ({ cut: 'glass' }), explodeTo: 1 },
   { caption: 'Isolate a joint: its bill of parts', seconds: 7, patch: (_, m) => ({ isolate: m[Math.min(2, m.length - 1)] ?? null, cut: 'solid' }) },
-  { caption: 'Section through the arm', seconds: 4, patch: () => ({ isolate: null, cut: 'section' }), explodeTo: 0 },
+  { caption: 'Section: a plane sweeps in to the middle', seconds: 5, patch: () => ({ isolate: null, cut: 'section', mode: 'pose' }), explodeTo: 0, sweep: 0.8 },
   { caption: 'Joint axes and the velocity ellipsoid (Jacobian SVD)', seconds: 4.5, patch: (s) => ({ cut: 'solid', mode: 'pose', overlays: { ...s.overlays, frames: true, ellipsoid: true, com: true } }) },
   { caption: 'Where it is limited: dexterity across the workspace', seconds: 5, patch: (s) => ({ overlays: { ...s.overlays, frames: false, ellipsoid: false, com: false, workspace: true } }), enter: 'workspace' },
 ];

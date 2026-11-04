@@ -18,4 +18,5 @@ export function stanceOf(s: RobotSession): Stance | undefined {
 }
 
 /** What the UI calls a limb: "Right arm", "Front left wheel", or the chain's own name on a single arm. */
-export const limbLabel = (s: RobotSession, i: number): string => (s.limbs.length > 1 ? bodyFor(s).labels[i] : null) ?? s.limbs[i].name;
+export const limbLabel = (s: RobotSession, i: number): string =>
+  (s.prosthesis ? s.limbs[i].name.replace(/^./, (c) => c.toUpperCase()) : null) ?? (s.limbs.length > 1 ? bodyFor(s).labels[i] : null) ?? s.limbs[i].name;

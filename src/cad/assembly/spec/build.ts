@@ -1,13 +1,14 @@
 /** Procedural CAD for a studio robot: a module per joint, tubes between them, tool, pedestal. */
 import * as THREE from 'three';
 import { chainFrames } from '../../../core/chain/kinematics/frames';
+import type { ChainFrames } from '../../../core/chain/model/types';
 import { chainFromSpec, linkJointStart } from '../../../core/chain/model/from-spec';
 import { identityTransform } from '../../../core/math/linear/transform';
 import { homePose, reachEstimate } from '../../../core/robot/config/pose';
 import { EFFECTOR_KINDS } from '../../../core/robot/effectors/kinds';
 import type { RobotSpec } from '../../../core/robot/schema/types';
 import { lowestSolidZ } from '../../common/lowest';
-import { settle } from '../../common/part';
+import { partOf, settle } from '../../common/part';
 import { v3 } from '../../common/orient';
 import { MaterialSet } from '../../materials/library';
 import { buildPedestal } from '../../parts/base/pedestal';
@@ -17,10 +18,40 @@ import { EFFECTOR_BUILDERS } from '../../registry/effectors';
 import { JOINT_MODULES } from '../../registry/joint-modules';
 import { JOINT_KINDS } from '../../../core/robot/joints/kinds';
 import { collectHull } from '../hull/collect';
-import type { Assembly, EffectorRig, ModuleInfo } from '../types';
+import { type Assembly, type EffectorRig, type ModuleInfo, moduleOf } from '../types';
 import { type Slot, poseSlots } from './slots';
 
 const tagModule = (g: THREE.Object3D, id: string) => ((g.userData.module = id), g);
+
+/**
+ * How much further the `ids` modules' parts reach along `local` (in the frame of `carrier`, which the tool
+ * rides) when fully exploded than when assembled. Leaves the robot posed at home, assembled.
+ */
+function extraReach(root: THREE.Object3D, slots: Slot[], home: ChainFrames, gaps: number[], ids: Set<string>, carrier: THREE.Object3D, local: THREE.Vector3): number {
+  const parts: THREE.Mesh[] = [];
+  root.traverse((o) => partOf(o) && (o as THREE.Mesh).isMesh && ids.has(moduleOf(o) ?? '') && parts.push(o as THREE.Mesh));
+  const box = new THREE.Box3(), c = new THREE.Vector3(), h = new THREE.Vector3(), at = new THREE.Vector3();
+  const place = (amount: number) => {
+    poseSlots(slots, home, gaps, amount);
+    for (const o of parts) o.position.copy(partOf(o)!.rest).addScaledVector(partOf(o)!.explode, amount);
+    root.updateMatrixWorld(true);
+  };
+  const reach = (amount: number) => {
+    place(amount);
+    const dir = local.clone().transformDirection(carrier.matrixWorld);
+    const origin = carrier.getWorldPosition(at).dot(dir);
+    let most = -Infinity;
+    for (const o of parts) {
+      box.setFromObject(o).getCenter(c);
+      box.getSize(h).multiplyScalar(0.5);
+      most = Math.max(most, c.dot(dir) + Math.abs(h.x * dir.x) + Math.abs(h.y * dir.y) + Math.abs(h.z * dir.z) - origin);
+    }
+    return most;
+  };
+  const extra = parts.length ? reach(1) - reach(0) : 0;
+  place(0);
+  return Math.max(0, extra);
+}
 
 export function buildSpecAssembly(spec: RobotSpec): Assembly {
   const mats = new MaterialSet();
@@ -75,7 +106,8 @@ export function buildSpecAssembly(spec: RobotSpec): Assembly {
   const drop = built[0].exit(new THREE.Vector3(0, 0, -1));
   const top = base.z - Math.min(drop, R0 * 3) * 0.9;
   // Measured at home, so a first module reaching below the column (a gantry's motor plate) still stands on the floor.
-  poseSlots(slots, chainFrames(chainFromSpec(spec), homePose(spec)), gaps, 0);
+  const home = chainFrames(chainFromSpec(spec), homePose(spec));
+  poseSlots(slots, home, gaps, 0);
   const floorZ = Math.min(0, top - R0 * 0.5, lowestSolidZ(root));
   const baseSlot = new THREE.Group();
   baseSlot.add(buildPedestal(mats, base, floorZ, top, R0));
@@ -83,6 +115,9 @@ export function buildSpecAssembly(spec: RobotSpec): Assembly {
   slots.push({ group: baseSlot, frame: () => identityTransform(), body: -1, before: 0 });
   modules.unshift({ id: 'base', label: 'Pedestal', kind: 'Base', joints: [] });
   settle(root);
+  // The wrist opens along the approach too; the tool's own stack starts past whatever it pushes out.
+  const wristOpen = extraReach(root, slots, home, gaps, new Set([`joint:${lastLink.name}`, `link:${lastLink.name}`]), lastStage, ax);
+  const toolShift = wristOpen > 0 ? wristOpen + size * 0.4 : 0;
 
   const indicators = built.flatMap((m, k) => spec.links[k].dofs.map((_, i) => m.indicators[i] ?? null));
   return {
@@ -94,7 +129,10 @@ export function buildSpecAssembly(spec: RobotSpec): Assembly {
     floorZ,
     hull: collectHull(slots, chainFromSpec(spec)),
     effector,
-    update: (limbs, explode) => poseSlots(slots, limbs[0], gaps, explode),
+    update: (limbs, explode) => {
+      poseSlots(slots, limbs[0], gaps, explode);
+      effector.group.position.copy(flange).addScaledVector(ax, toolShift * explode);
+    },
     dispose() {
       root.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
       mats.dispose();

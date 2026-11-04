@@ -1,7 +1,10 @@
 // Shared flag parsing for fetch.mjs and verify.mjs.
-export const COLLECTIONS = ['menagerie', 'montaj1', 'armor'];
+import { PROSTHESIS_IDS } from '../prosthetics/catalog.mjs';
 
-export const collectionOf = (id) => (id === 'montaj1' ? 'montaj1' : id.startsWith('armor-') ? 'armor' : 'menagerie');
+export const COLLECTIONS = ['menagerie', 'montaj1', 'armor', 'prosthetics'];
+
+export const collectionOf = (id) =>
+  id === 'montaj1' ? 'montaj1' : id.startsWith('armor-') ? 'armor' : PROSTHESIS_IDS.includes(id) ? 'prosthetics' : 'menagerie';
 
 // `flags`: extra boolean flags this command accepts; `--jobs N` is accepted when listed there.
 export function parseArgs(argv, { flags = [], usage }) {

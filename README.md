@@ -172,10 +172,17 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
 - **Teardown.** The View menu (the eye over the stage) switches between solid, glass
   and section views, and holds the looks (studio, clay, technical, materials) and the
   overlays (axes, CoM, velocity ellipsoid, trail, workspace).
+  - Section cuts the robot with a plane you place: side, front or top, slid across it.
+    Cut faces close as solid caps, a ghost keeps the half cut away, and the near half is
+    always the one removed, from any angle.
   - The explode control opens each joint along its own axis.
   - Isolating a module shows its bill of parts, layered callouts with leaders, and a
     load ring that glows with |τ|/τ_max.
-  - Left idle for 25 seconds, the page tours itself. Any input hands control back.
+  - The workspace overlay works in every mode. Outside Workspace mode it shows the focused
+    limb's reach, a humanoid's hand rather than its whole body.
+  - Auto tour (top right) walks through these views. Any input ends it and puts the view back.
+  - Left idle for 25 seconds, the camera circles slowly and whatever is running keeps running.
+    Moving the mouse swings it back to where you left it.
 - **Surroundings.** The gear on the viewport picks a backdrop (studio, cyclorama, dusk,
   dark, blueprint), a floor (grid, seamless, polished, tiles, none) and a setting: open
   floor, a desk, a lab bench, a work cell with a fence and a conveyor, a machine shop,

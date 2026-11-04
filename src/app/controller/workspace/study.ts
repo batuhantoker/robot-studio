@@ -14,10 +14,12 @@ export interface WorkspaceStudy {
   limbs: number;
 }
 
-export const studyKey = (s: RobotSession, count: number) => `${s.id}#${s.limbs.length}#${count}`;
+/** Robot and which of its limbs: any sample count of the same study is still that study. */
+export const studyKey = (s: RobotSession, only?: number) => `${s.id}#${s.limbs.length}#${only ?? 'all'}`;
 
-export function runStudy(s: RobotSession, count: number): WorkspaceStudy | null {
-  const limbs = s.limbs.filter((l) => l.chain.joints.length);
+/** `only` samples a single limb (the focused hand, say) instead of the whole robot. */
+export function runStudy(s: RobotSession, count: number, only?: number): WorkspaceStudy | null {
+  const limbs = (only === undefined ? s.limbs : s.limbs.slice(only, only + 1)).filter((l) => l.chain.joints.length);
   if (!limbs.length) return null;
   const per = Math.max(600, Math.round(count / limbs.length));
   const parts = limbs.map((l, i) => {
@@ -29,5 +31,5 @@ export function runStudy(s: RobotSession, count: number): WorkspaceStudy | null 
   const shellPer = Math.max(1500, Math.round(6000 / limbs.length));
   const cloud = limbs.flatMap((l, i) => sweptCloud(l.chain, shellPer, 32, 101 + i));
   const shell = surfaceMesh(occupancy(cloud));
-  return { key: studyKey(s, count), samples, summary: summarize(samples), shell, limbs: limbs.length };
+  return { key: studyKey(s, only), samples, summary: summarize(samples), shell, limbs: limbs.length };
 }

@@ -1,5 +1,5 @@
 /** Library filter state; every facet combines with AND, values within a facet with OR. */
-export type SourceFacet = 'all' | 'mine' | 'preset' | 'cad';
+export type SourceFacet = 'all' | 'mine' | 'preset' | 'cad' | 'prosthesis';
 export type SortKey = 'name' | 'dof' | 'maker';
 
 export interface DofBand {

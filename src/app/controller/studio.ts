@@ -85,7 +85,7 @@ export class Studio {
       this.pinLimbs(s, false);
       this.placeGizmo();
     });
-    store.on(['cut', 'look', 'explode', 'isolate'], (s) => this.viewport.applyView({ cut: s.cut, look: s.look, explode: s.explode, isolate: s.isolate }));
+    store.on(['cut', 'look', 'explode', 'isolate', 'section'], (s) => this.viewport.applyView({ cut: s.cut, look: s.look, explode: s.explode, isolate: s.isolate, section: s.section }));
     store.on(['targets'], (s) => {
       this.placeGizmo();
       if (s.mode === 'ik' && this.session) this.ik.solve(this.session, s.targets, s.q);
@@ -100,7 +100,8 @@ export class Studio {
       if (i !== s.selectedStop || time !== s.time) store.set({ selectedStop: i, time });
     });
     store.on(['playing', 'mode'], (s) => s.selectedStop !== null && (s.playing || s.mode !== 'trajectory') && store.set({ selectedStop: null }));
-    store.on(['overlays'], (s) => s.overlays.workspace && this.analysis.ensureWorkspace());
+    // Deferred: leaving Workspace mode switches the cloud off in a later listener of the same change.
+    store.on(['overlays', 'mode', 'focus'], () => queueMicrotask(() => store.state.overlays.workspace && this.analysis.ensureWorkspace()));
     store.on(['mode'], (s) => this.enterMode(s));
     store.on(['motion', 'mode'], (s) => s.mode === 'motion' && this.session && this.motion.ensure(this.session, s.motion.preset, s.motion.size, s.q));
     bindPicking(host, this.viewport, store);
@@ -194,6 +195,7 @@ export class Studio {
       selectedStop: fresh ? null : this.store.state.selectedStop,
       ...(fresh ? defaultPlan(session, duration) : {}),
       focus, targets: refit ? [] : this.store.state.targets.slice(0, session.limbs.length), isolate: refit || switched ? null : this.store.state.isolate,
+      section: refit || switched ? { axis: this.viewport.sectionAxis(), offset: 0 } : this.store.state.section,
     });
     this.analysis.refreshProfile();
     pose(session, q, this.store.state.explode, focus);

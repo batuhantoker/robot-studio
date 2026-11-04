@@ -4,6 +4,7 @@ import { ARMOR_IDS, ARMOR_ROBOTS, armorId, pinOf } from '../armor/catalog/index.
 import { CATALOG_IDS, MONTAJ } from '../catalog/robots.mjs';
 import { MENAGERIE_COMMIT } from '../menagerie/checkout.mjs';
 import { MANIFEST, ROBOTS_DIR, STUDIO } from '../paths.mjs';
+import { PROSTHESES, PROSTHESIS_IDS, PROSTHETICS_REPOS } from '../prosthetics/catalog.mjs';
 
 // Parsed index.json, or null when it does not exist yet.
 export function readManifest() {
@@ -23,7 +24,7 @@ export function keptEntries(rebuilding) {
   const kept = new Map();
   for (const entry of old?.robots ?? []) {
     if (rebuilding.has(entry.id)) continue;
-    if (!CATALOG_IDS.includes(entry.id) && !ARMOR_IDS.includes(entry.id)) {
+    if (!CATALOG_IDS.includes(entry.id) && !ARMOR_IDS.includes(entry.id) && !PROSTHESIS_IDS.includes(entry.id)) {
       console.warn(`warning: dropping ${entry.id} from the manifest (no longer in the catalog)`);
       continue;
     }
@@ -35,6 +36,12 @@ export function keptEntries(rebuilding) {
     if (entry.collection === 'armor') {
       const robot = ARMOR_ROBOTS.find((r) => armorId(r.slug) === entry.id);
       if ((entry.upstream?.commit ?? entry.upstream?.sha256) === pinOf(robot)) kept.set(entry.id, entry);
+      else console.warn(`warning: dropping ${entry.id} (built at another upstream commit; re-run fetch for it)`);
+      continue;
+    }
+    if (entry.collection === 'prosthetics') {
+      const hand = PROSTHESES.find((p) => p.id === entry.id);
+      if (entry.upstream?.commit === PROSTHETICS_REPOS[hand.repo]) kept.set(entry.id, entry);
       else console.warn(`warning: dropping ${entry.id} (built at another upstream commit; re-run fetch for it)`);
       continue;
     }

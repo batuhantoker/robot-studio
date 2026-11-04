@@ -1,5 +1,6 @@
 /** Holds the playing motion clip: presets for the loaded robot, rebuilt from the pose you are in. */
 import { presetsFor } from '../../../core/motion/presets';
+import { gripPresets } from '../../../core/prosthesis/grips';
 import type { MotionClip, MotionPreset } from '../../../core/motion/types';
 import type { RobotSession } from '../../robots/session';
 
@@ -9,7 +10,8 @@ export class MotionPlayer {
   private built = '';
 
   load(s: RobotSession, q: number[]): void {
-    this.presets = presetsFor(s, q, s.category);
+    // A prosthesis with named grips shows those instead of the generic motions.
+    this.presets = s.prosthesis?.grips.length ? gripPresets(s.prosthesis) : presetsFor(s, q, s.category);
     this.clip = null;
     this.built = '';
   }

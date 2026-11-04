@@ -1,8 +1,12 @@
+import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { buildSpecAssembly } from '@/cad/assembly/spec/build';
 import { moduleOf } from '@/cad/assembly/types';
-import { partOf } from '@/cad/common/part';
+import { partOf, settle } from '@/cad/common/part';
+import { MaterialSet } from '@/cad/materials/library';
+import { EFFECTOR_BUILDERS } from '@/cad/registry/effectors';
+import { explodeParts } from '@/scene/teardown/explode';
 import { chainFrames, forwardKinematics } from '@/core/chain/kinematics/frames';
 import { chainFromSpec } from '@/core/chain/model/from-spec';
 import { EFFECTOR_LIST } from '@/core/robot/effectors/kinds';
@@ -29,6 +33,37 @@ const toolBox = (root: THREE.Object3D, keep: (label: string) => boolean) => {
   });
   return box;
 };
+
+/** Each part's box in the tool frame (approach = +y), cables aside. */
+function partBoxes(root: THREE.Object3D) {
+  root.updateMatrixWorld(true);
+  const out: { label: string; box: THREE.Box3 }[] = [];
+  root.traverse((o) => {
+    const meta = partOf(o);
+    if (meta && (o as THREE.Mesh).isMesh && meta.layer !== 'cable') out.push({ label: meta.label, box: new THREE.Box3().setFromObject(o) });
+  });
+  return out;
+}
+
+/** Pairs stacked along the approach at rest whose order flips while exploding, where their footprints overlap. */
+function passThroughs(kind: EffectorKind, along: number): string[] {
+  const s = 0.04, eps = 0.02 * s;
+  const rig = EFFECTOR_BUILDERS[kind]({ mats: new MaterialSet(), flange: new THREE.Vector3(), tip: new THREE.Vector3(0, along * s, 0), approach: new THREE.Vector3(0, 1, 0), size: s, payload: 0 });
+  settle(rig.group);
+  const rest = partBoxes(rig.group);
+  const found = new Set<string>();
+  for (const amount of [0.25, 0.5, 1, 1.6]) {
+    explodeParts(rig.group, amount, null, () => 'tool');
+    const now = partBoxes(rig.group);
+    rest.forEach((above, i) => rest.forEach((below, j) => {
+      if (i === j || above.box.max.y > below.box.min.y + eps) return;
+      const [a, b] = [now[i].box, now[j].box];
+      const overlap = a.max.x - eps > b.min.x && b.max.x - eps > a.min.x && a.max.z - eps > b.min.z && b.max.z - eps > a.min.z;
+      if (overlap && a.max.y > b.min.y + eps) found.add(`${above.label} through ${below.label} at ${amount}`);
+    }));
+  }
+  return [...found];
+}
 
 describe('end effectors', () => {
   for (const e of EFFECTOR_LIST) {
@@ -66,6 +101,31 @@ describe('end effectors', () => {
         };
         expect(spread(rig.grip!.min)).toBeLessThan(spread(rig.grip!.max));
       }
+      a.dispose();
+    }
+  });
+
+  it('explode opens every tool in stack order: no part passes through another', () => {
+    for (const e of EFFECTOR_LIST) for (const along of [0, 7]) expect(passThroughs(e.kind, along), `${e.kind} at ${along}`).toEqual([]);
+  });
+
+  it('a fully exploded robot opens its tool past the wrist, not into it', () => {
+    for (const name of ['ur5e', 'scara']) {
+      const spec = parseRobot(JSON.parse(readFileSync(new URL(`../../presets/studio/${name}.json`, import.meta.url), 'utf8')));
+      const a = buildSpecAssembly(spec);
+      a.update([chainFrames(chainFromSpec(spec), homePose(spec))], 1);
+      explodeParts(a.root, 1, null, moduleOf);
+      a.root.updateMatrixWorld(true);
+      const wrist = new Set([`joint:${spec.links.at(-1)!.name}`, `link:${spec.links.at(-1)!.name}`]);
+      const [tool, other]: THREE.Box3[][] = [[], []];
+      a.root.traverse((o) => {
+        const meta = partOf(o);
+        if (!meta || !(o as THREE.Mesh).isMesh || meta.layer === 'cable') return;
+        const box = new THREE.Box3().setFromObject(o).expandByScalar(-0.0005);
+        if (moduleOf(o) === 'tool') tool.push(box);
+        else if (wrist.has(moduleOf(o)!)) other.push(box);
+      });
+      expect(tool.some((t) => other.some((w) => t.intersectsBox(w))), name).toBe(false);
       a.dispose();
     }
   });

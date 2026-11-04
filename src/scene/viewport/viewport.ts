@@ -18,6 +18,7 @@ import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings, backdropCss } from 
 import type { Stance } from '../stage/scenery/kit';
 import { Cutaway } from '../teardown/cutaway';
 import { explodeParts } from '../teardown/explode';
+import { type Section, type SectionAxis, SectionPlane } from '../teardown/section';
 import type { Look } from '../look/types';
 import type { Cut } from '../teardown/materials';
 
@@ -26,6 +27,7 @@ export interface TeardownView {
   look: Look;
   explode: number;
   isolate: string | null;
+  section: Section;
 }
 
 interface Bystander {
@@ -64,7 +66,10 @@ export class Viewport {
   private readonly contacts = new GroundContactOverlay();
   private last = performance.now();
   private clock = performance.now();
-  private view: TeardownView = { cut: 'solid', look: 'studio', explode: 0, isolate: null };
+  private view: TeardownView = { cut: 'solid', look: 'studio', explode: 0, isolate: null, section: { axis: 'y', offset: 0 } };
+  /** World-space section extras: the cutaway's caps and ghost, and the plane's outline. */
+  private readonly sectionLayer = new THREE.Group();
+  private readonly sectionPlane = new SectionPlane();
   private readonly listeners: ((dt: number) => void)[] = [];
   /** Hidden while ambient occlusion samples the scene. */
   readonly aoHidden: THREE.Object3D[] = [this.overlay, ...this.studio.aoHidden];
@@ -81,6 +86,9 @@ export class Viewport {
     this.holder.add(this.overlay);
     this.overlay.add(this.contacts.group);
     this.stage.root.add(this.holder, this.bystanders);
+    this.sectionLayer.add(this.sectionPlane.group);
+    this.stage.scene.add(this.sectionLayer);
+    this.aoHidden.push(this.sectionLayer);
     this.post = createPost(this.stage.renderer, this.stage.scene, this.stage.camera, this.aoHidden);
     this.stage.renderer.setAnimationLoop(() => this.tick());
   }
@@ -255,8 +263,15 @@ export class Viewport {
     }
     this.assembly = assembly;
     this.holder.add(assembly.root);
+    this.sectionPlane.measure(assembly.root, this.holder);
     this.cutaway = new Cutaway(assembly.root, assembly.kind);
-    this.applyView(this.view);
+    this.sectionLayer.add(this.cutaway.section);
+    this.applyView(this.view, true);
+  }
+
+  /** The section axis that suits the active robot's shape. */
+  sectionAxis(): SectionAxis {
+    return this.sectionPlane.defaultAxis();
   }
 
   /** Bounding radius of the assembly as currently posed. */
@@ -298,11 +313,15 @@ export class Viewport {
     return sphere;
   }
 
-  applyView(view: TeardownView): void {
-    if (view.look !== this.view.look) for (const b of this.others.values()) b.cutaway.apply('solid', null, view.look);
+  /** `force` re-applies materials even when cut, isolate and look are unchanged (a new robot, a flash undone). */
+  applyView(view: TeardownView, force = false): void {
+    const was = this.view;
+    if (view.look !== was.look) for (const b of this.others.values()) b.cutaway.apply('solid', null, view.look);
     this.view = view;
+    this.sectionPlane.group.visible = view.cut === 'section';
     if (!this.assembly || !this.cutaway) return;
-    this.cutaway.apply(view.cut, view.isolate, view.look);
+    // Explode and the section's position change every frame on a tour; swapping materials then is wasted work.
+    if (force || view.cut !== was.cut || view.isolate !== was.isolate || view.look !== was.look) this.cutaway.apply(view.cut, view.isolate, view.look);
     explodeParts(this.assembly.root, view.explode, view.isolate, moduleOf);
   }
 
@@ -317,7 +336,7 @@ export class Viewport {
       (mesh.material as THREE.Material).dispose();
       mesh.material = original;
       mesh.renderOrder = 0;
-      this.applyView(this.view);
+      this.applyView(this.view, true);
     }, 1100);
   }
 
@@ -413,15 +432,18 @@ export class Viewport {
   private advance(dt: number): void {
     for (const fn of this.listeners) fn(dt);
     this.studio.update(dt);
-    if (this.view.cut === 'section' && this.cutaway) {
-      this.cutaway.aim(this.stage.controls.target, this.stage.camera);
-    }
     if (this.assembly) {
       const solids = groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
       // Solids were measured with the holder at rest, the frame the overlay lives in.
       this.contacts.update(solids, this.floorZ - this.holder.position.z, this.scale);
     }
-    this.post.setClipping(this.view.cut === 'section' && this.cutaway ? [this.cutaway.plane] : null);
+    const cutting = this.view.cut === 'section' ? this.cutaway : null;
+    if (cutting) {
+      // Grounding lifted the holder after its last matrix update; the section copies need this frame's.
+      this.holder.updateMatrixWorld(true);
+      cutting.cutAt(this.sectionPlane.place(this.view.section, this.holder, this.stage.camera));
+    }
+    this.post.setClipping(cutting ? [cutting.plane] : null);
     this.stage.controls.update();
   }
 

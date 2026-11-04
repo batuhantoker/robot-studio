@@ -1,5 +1,6 @@
 /** The fetched real-robot manifest (studio/public/robots/index.json, made by the fetch script). */
 import type { Vec3 } from '../../core/math/linear/vec';
+import type { Prosthesis } from '../../core/prosthesis/motors';
 
 export type CatalogTip = { site: string } | { body: string; pos?: Vec3 };
 
@@ -21,7 +22,7 @@ export interface CatalogRobot {
   chain: CatalogChain | null;
   /** Alternative chains (each leg/arm) for branched robots. */
   chains?: CatalogChain[];
-  collection?: 'menagerie' | 'montaj1' | 'armor';
+  collection?: 'menagerie' | 'montaj1' | 'armor' | 'prosthetics';
   category?: 'arm' | 'legged' | 'humanoid' | 'mobile' | 'aerial' | 'hand' | 'other';
   format?: 'urdf' | 'mjcf';
   vendor?: string;
@@ -34,6 +35,8 @@ export interface CatalogRobot {
   upstream?: { repo: string; commit: string; path: string };
   gallery_url?: string;
   license: { spdx: string | null; file: string | null; source: string; note?: string };
+  /** Prosthetic hands: the motors the wearer drives, and how each moves its joints. */
+  prosthesis?: Prosthesis;
 }
 
 export interface Catalog {

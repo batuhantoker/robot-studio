@@ -4,6 +4,7 @@ import { chainFrames } from '../../core/chain/kinematics/frames';
 import { limbQ, mergeLimbs } from '../../core/chain/limbs/types';
 import { bodyOf } from '../../core/motion/body';
 import type { Vec3 } from '../../core/math/linear/vec';
+import { jointsFor, motorMap } from '../../core/prosthesis/motors';
 import { jointTorqueLimits } from '../../physics/extract/actuators';
 import { modelChecker } from '../../physics/collision/from-model';
 import { readBodies } from '../../physics/extract/bodies';
@@ -48,13 +49,16 @@ export async function sessionFromCatalog(robot: CatalogRobot, onProgress?: (d: n
   const m = arrays(handle.model);
   const rest = homeQpos(handle);
   const qposAdr = keys.map((j) => m.jnt_qposadr[j]);
-  const home = qposAdr.map((adr, k) => Math.min(Math.max(rest[adr], joints[k].limits[0]), joints[k].limits[1]));
+  const clamped = qposAdr.map((adr, k) => Math.min(Math.max(rest[adr], joints[k].limits[0]), joints[k].limits[1]));
+  const prosthesis = robot.prosthesis && motorMap(robot.prosthesis, joints);
+  const home = prosthesis ? jointsFor(prosthesis, prosthesis.motors.map((mo) => mo.home), clamped) : clamped;
   const reach = Math.max(0.2, ...limbs.map((l) => Math.hypot(...chainFrames(l.chain, limbQ(l, home)).tip.p)));
   const assembly = buildMjcfAssembly(handle, readBodies(handle), models, reach);
   // Open on an arm (the right one of a pair) rather than whichever leg or wheel the manifest lists first.
   const parts = bodyOf({ joints, limbs }, home, robot.category ?? 'arm').parts;
   const arm = parts.find((p) => p.kind === 'arm' && p.side === 'right') ?? parts.find((p) => p.kind === 'arm');
-  const focus = arm?.limb ?? Math.max(0, specs.findIndex((c) => sameChain(c, robot.chain)));
+  // A prosthesis opens on its manifest chain (the index finger), not on whichever finger reads as an arm.
+  const focus = (robot.prosthesis ? undefined : arm?.limb) ?? Math.max(0, specs.findIndex((c) => sameChain(c, robot.chain)));
   const base = robot.base ?? 'fixed';
   // Settled bases rest on this floor too, so the robot's frame and the world agree at home.
   kinematicsAt(handle, rest, qposAdr, home);
@@ -66,7 +70,7 @@ export async function sessionFromCatalog(robot: CatalogRobot, onProgress?: (d: n
     joints, limbs, defaultFocus: focus, handle, assembly, qposAdr,
     dofAdr: keys.map((j) => m.jnt_dofadr[j]),
     torqueLimits: jointTorqueLimits(handle, keys),
-    home, rest, collision,
+    home, rest, collision, prosthesis,
     mujocoTips: () => models.map((mc, i) => tipOf(handle, mc, specs[i].tip)),
     dispose() {
       collision.dispose();

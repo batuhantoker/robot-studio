@@ -14,6 +14,7 @@ import { playbackGuard } from '../collision/playback';
 import { updateIndicators } from './indicators';
 import type { MotionClip } from '../../core/motion/types';
 import type { TaskClip } from '../../core/task/types';
+import { couple } from '../../core/prosthesis/motors';
 import type { IkMode } from './modes/ik';
 import type { PhysicsMode } from './modes/physics';
 import { planOf, player } from './modes/trajectory';
@@ -76,6 +77,8 @@ export function frameLoop(d: LoopDeps): (dt: number) => void {
     let time = chosen.time;
     // MuJoCo's own state is shown as is while simulating; every other source is held to the ranges.
     let q = simulating ? chosen.q : enforceLimits(s.joints, chosen.q);
+    // Motions and IK work joint by joint; a prosthesis only moves along its linkage.
+    if (s.prosthesis && !simulating) q = couple(s.prosthesis, q);
     const stop = simulating ? null : guard(s, st.mode, q, time, st.playing);
     if (stop) {
       d.store.set({ playing: false, time: stop.time, contact: stop.contact });

@@ -14,6 +14,7 @@ import { MaterialSet } from '../../materials/library';
 import type { Assembly, ModuleInfo } from '../types';
 import { meshGeometry, primitiveGeometry } from './geometry';
 import { inertiaBox } from './inertia';
+import { tendonCables } from './tendons';
 
 /** Each body explodes with the limb in which it sits deepest (the trunk stays with no limb). */
 function owners(bodies: BodyInfo[], limbs: ModelChain[]) {
@@ -56,6 +57,8 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
     const box = b.id > 0 && groups[b.id].children.length ? inertiaBox(b) : null;
     if (box) groups[b.id].add(box);
   }
+  const cables = tendonCables(h, mats);
+  if (cables) root.add(cables.root);
   const modules: ModuleInfo[] = bodies
     .filter((b) => groups[b.id].children.length)
     .map((b) => ({
@@ -65,6 +68,7 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
       joints: own[b.id].limb >= 0 && bodies[b.id].joints.some((j) => limbs[own[b.id].limb].jointIds.includes(j)) ? [own[b.id].joint] : [],
       limb: own[b.id].limb,
     }));
+  if (cables) modules.push({ id: 'tendon', label: 'Tendon', kind: 'Tendon', joints: [] });
   const gap = scale * 0.07;
   const d = state(h.data);
   // Real parts separate along the chain (joint to next joint), not along their spin axes.
@@ -86,6 +90,9 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
       const o = own[b.id];
       if (o.limb >= 0) g.position.add(shifts[o.limb][o.joint + 1]);
     });
+    // Exploded bodies leave the tendon's path, which MuJoCo only knows assembled.
+    if (cables) cables.root.visible = explode < 1e-3;
+    if (cables?.root.visible) cables.update();
   };
   return {
     kind: 'cad',
@@ -97,6 +104,7 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
     update,
     dispose() {
       cache.forEach((g) => g.dispose());
+      cables?.dispose();
       mats.dispose();
     },
   };

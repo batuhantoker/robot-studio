@@ -129,8 +129,8 @@ export function mountGuide(store: Store<StudioState>, hint: () => HTMLElement | 
 
   const open = () => {
     if (!el.hidden) return;
-    saved = { mode: store.state.mode, playing: store.state.playing, motion: store.state.motion };
     if (store.state.touring) store.set({ touring: false });
+    saved = { mode: store.state.mode, playing: store.state.playing, motion: store.state.motion };
     el.hidden = false;
     document.documentElement.classList.add('modal-open');
     hint()?.classList.remove('new');

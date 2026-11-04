@@ -24,7 +24,7 @@ export function matches(e: LibraryEntry, f: LibraryFilter, skip?: Facet): boolea
   return true;
 }
 
-const ORDER = { mine: 0, preset: 1, cad: 2 };
+const ORDER = { mine: 0, preset: 1, cad: 2, prosthesis: 3 };
 
 export function applyFilter(entries: LibraryEntry[], f: LibraryFilter): LibraryEntry[] {
   const by = {
