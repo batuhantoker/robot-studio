@@ -4,6 +4,7 @@ export const PROSTHETICS_REPOS = {
   'psyonicinc/ability-hand-api': '34c9a9324d3739d976e6de441e56ccefafd0000b',
   'CentroEPiaggio/pisa-iit-soft-hand': '174eebc6e9e33c886cab7995f749830a436de3e8',
   'qbrobotics/qbhand-ros': '13b6e4fcb2adedb6259295a1ee3ee3e90e6c2909',
+  'google-deepmind/mujoco_menagerie': '98a70c569c4c1b6da467a20012f766ee1f8dc521',
 };
 // Repositories not on GitHub.
 export const PROSTHETICS_HOSTS = { 'qbrobotics/qbhand-ros': 'https://bitbucket.org' };
@@ -187,7 +188,144 @@ function softHand2(side) {
   };
 }
 
+// Robot hands from MuJoCo Menagerie: motors come from their actuators, grips from the shared table in actuated.mjs.
+// `curl` lists the motors that close each digit; `oppose` the thumb motors' values at full opposition.
+const UPRIGHT = [0.5, 0.5, -0.5, 0.5]; // fingers along +x and palm to +z → fingers up, palm to the camera (−y)
+const tipAuto = (body) => ({ body, pos: 'auto' });
+const menagerie = (hand) => ({
+  repo: 'google-deepmind/mujoco_menagerie', licenseInDir: true, actuated: true, src: 'right_hand.xml',
+  prosthesis: { side: 'right', control: 'myoelectric', kind: 'dexterous' },
+  ...hand,
+  tags: ['dexterous', 'robot hand', ...hand.tags],
+});
+
+const SHADOW_DIGIT = { FF: 'Index', MF: 'Middle', RF: 'Ring', LF: 'Little', TH: 'Thumb', WR: 'Wrist' };
+function shadowHand(side) {
+  const p = side === 'right' ? 'rh_' : 'lh_';
+  const finger = (name, f, extra = []) => ({
+    name, joints: [`${p}WRJ2`, `${p}WRJ1`, ...extra, `${p}${f}J4`, `${p}${f}J3`, `${p}${f}J2`, `${p}${f}J1`], tip: tipAuto(`${p}${f.toLowerCase()}distal`),
+  });
+  return menagerie({
+    id: `shadow_hand_${side}`,
+    dir: 'shadow_hand',
+    src: `${side}_hand.xml`,
+    xml: `studio_${side}_hand.xml`,
+    spdx: 'Apache-2.0',
+    title: `Shadow Dexterous Hand (${side})`,
+    maker: 'Shadow Robot Company',
+    description:
+      'The 24-joint hand OpenAI taught to solve a Rubik\'s cube (Dactyl) and used in its Gym robotics tasks: 20 motors, ' +
+      'a two-axis wrist, and each finger\'s last two joints coupled by one tendon.',
+    tags: ['openai', 'tendon-coupled', side],
+    mount: { quat: UPRIGHT },
+    label: (n) => {
+      const [, d, j] = n.match(/^[rl]h_(?:A_)?(FF|MF|RF|LF|TH|WR)J(\d)$/) ?? [];
+      return d ? `${SHADOW_DIGIT[d]} ${j === '0' ? 'J1+J2' : `J${j}`}` : n;
+    },
+    chains: [
+      finger('index', 'FF'),
+      { name: 'thumb', joints: ['WRJ2', 'WRJ1', 'THJ5', 'THJ4', 'THJ3', 'THJ2', 'THJ1'].map((j) => p + j), tip: tipAuto(`${p}thdistal`) },
+      finger('middle', 'MF'),
+      finger('ring', 'RF'),
+      finger('little', 'LF', [`${p}LFJ5`]),
+    ],
+    curl: {
+      index: [`${p}FFJ3`, `${p}FFJ0`], middle: [`${p}MFJ3`, `${p}MFJ0`], ring: [`${p}RFJ3`, `${p}RFJ0`],
+      little: [`${p}LFJ3`, `${p}LFJ0`], thumb: [`${p}THJ2`, `${p}THJ1`],
+    },
+    oppose: { [`${p}THJ5`]: 0.9, [`${p}THJ4`]: 1.1 },
+    // The long thumb reaches the middle finger before the shared table's thumb closes.
+    gripTweaks: { power: { thumb: 0.1, oppose: 0.65 }, pinch: { thumb: 0.15, oppose: 0.75 }, tripod: { thumb: 0.15, oppose: 0.75 }, point: { thumb: 0.25, oppose: 0.55 } },
+    prosthesis: { side, control: 'myoelectric', kind: 'dexterous' },
+  });
+}
+
+const LEAP_DIGIT = { if: 'Index', mf: 'Middle', rf: 'Ring', th: 'Thumb' };
+const LEAP_JOINT = { mcp: 'MCP', rot: 'spread', pip: 'PIP', dip: 'DIP', cmc: 'CMC', axl: 'axial', ipl: 'IP' };
+const leapHand = () => menagerie({
+  id: 'leap_hand_right',
+  dir: 'leap_hand',
+  xml: 'studio_right_hand.xml',
+  spdx: 'MIT',
+  title: 'LEAP Hand (right)',
+  maker: 'Carnegie Mellon University',
+  description: 'Low-cost anthropomorphic research hand: 16 Dynamixel motors, with a universal knuckle that lets each finger spread as well as curl.',
+  tags: ['research', 'low-cost', 'right'],
+  // Its palm body sits 10 cm off the model origin; shift it back over the stage centre.
+  mount: { quat: UPRIGHT, pos: [0, 0.1, 0] },
+  // At zero the thumb points down past the wrist; a little fold rests it beside the palm.
+  open: { th_mcp: 0.6 },
+  label: (n) => { const [d, j] = n.split('_'); return `${LEAP_DIGIT[d] ?? d} ${LEAP_JOINT[j] ?? j}`; },
+  chains: [
+    { name: 'index', joints: ['if_mcp', 'if_rot', 'if_pip', 'if_dip'], tip: tipAuto('if_ds') },
+    { name: 'thumb', joints: ['th_cmc', 'th_axl', 'th_mcp', 'th_ipl'], tip: tipAuto('th_ds') },
+    { name: 'middle', joints: ['mf_mcp', 'mf_rot', 'mf_pip', 'mf_dip'], tip: tipAuto('mf_ds') },
+    { name: 'ring', joints: ['rf_mcp', 'rf_rot', 'rf_pip', 'rf_dip'], tip: tipAuto('rf_ds') },
+  ],
+  curl: { index: ['if_mcp', 'if_pip', 'if_dip'], middle: ['mf_mcp', 'mf_pip', 'mf_dip'], ring: ['rf_mcp', 'rf_pip', 'rf_dip'], thumb: ['th_mcp', 'th_ipl'] },
+  oppose: { th_cmc: 1.0, th_axl: 0.8 },
+  // Its joints reach far past a fist (the knuckle bends to 128°), so grips use a smaller share of each range.
+  curlScale: 0.6,
+});
+
+const ALLEGRO_DIGIT = { ff: 'Index', mf: 'Middle', rf: 'Ring', th: 'Thumb' };
+const allegroHand = () => menagerie({
+  id: 'allegro_hand_right',
+  dir: 'wonik_allegro',
+  xml: 'studio_right_hand.xml',
+  spdx: 'BSD-2-Clause',
+  title: 'Allegro Hand (right)',
+  maker: 'Wonik Robotics',
+  description: 'Four-fingered research hand with a motor in every one of its 16 joints, a long-time workhorse of in-hand manipulation research.',
+  tags: ['research', 'right'],
+  mount: { quat: UPRIGHT },
+  label: (n) => { const [, d, j] = n.match(/^(ff|mf|rf|th)j(\d)$/) ?? []; return d ? `${ALLEGRO_DIGIT[d]} J${j}` : n; },
+  chains: [
+    { name: 'index', joints: ['ffj0', 'ffj1', 'ffj2', 'ffj3'], tip: tipAuto('ff_distal') },
+    { name: 'thumb', joints: ['thj0', 'thj1', 'thj2', 'thj3'], tip: tipAuto('th_distal') },
+    { name: 'middle', joints: ['mfj0', 'mfj1', 'mfj2', 'mfj3'], tip: tipAuto('mf_distal') },
+    { name: 'ring', joints: ['rfj0', 'rfj1', 'rfj2', 'rfj3'], tip: tipAuto('rf_distal') },
+  ],
+  curl: { index: ['ffj1', 'ffj2', 'ffj3'], middle: ['mfj1', 'mfj2', 'mfj3'], ring: ['rfj1', 'rfj2', 'rfj3'], thumb: ['thj2', 'thj3'] },
+  oppose: { thj0: 1.3, thj1: 0.9 },
+});
+
+const SHARPA_JOINT = { MCP_FE: 'MCP', MCP_AA: 'spread', CMC_FE: 'CMC', CMC_AA: 'CMC spread', CMC: 'CMC', PIP: 'PIP', DIP: 'DIP', IP: 'IP' };
+const sharpaWave = () => menagerie({
+  id: 'sharpa_wave_right',
+  dir: 'sharpa_wave',
+  xml: 'studio_right_hand.xml',
+  spdx: 'Apache-2.0',
+  title: 'Sharpa Wave (right)',
+  maker: 'Sharpa Robotics',
+  description: 'Five-fingered tactile hand with 22 actuated joints, including a cupping joint for the little finger and a two-axis thumb knuckle.',
+  tags: ['tactile', 'right'],
+  // Fingers already point up here; the palm faces +x, so a quarter turn brings it round to the camera.
+  mount: { quat: [0.70711, 0, 0, -0.70711] },
+  label: (n) => {
+    const [, d, j] = n.match(/^right_(thumb|index|middle|ring|pinky)_(.+)$/) ?? [];
+    return d ? `${d === 'pinky' ? 'Little' : d[0].toUpperCase() + d.slice(1)} ${SHARPA_JOINT[j] ?? j}` : n;
+  },
+  chains: ['index', 'thumb', 'middle', 'ring', 'pinky'].map((f) => ({
+    name: f === 'pinky' ? 'little' : f,
+    joints: {
+      thumb: ['CMC_FE', 'CMC_AA', 'MCP_FE', 'MCP_AA', 'IP'], pinky: ['CMC', 'MCP_FE', 'MCP_AA', 'PIP', 'DIP'],
+    }[f]?.map((j) => `right_${f}_${j}`) ?? ['MCP_FE', 'MCP_AA', 'PIP', 'DIP'].map((j) => `right_${f}_${j}`),
+    tip: { site: `right_${f}_fingertip` },
+  })),
+  curl: {
+    index: ['right_index_MCP_FE', 'right_index_PIP', 'right_index_DIP'],
+    middle: ['right_middle_MCP_FE', 'right_middle_PIP', 'right_middle_DIP'],
+    ring: ['right_ring_MCP_FE', 'right_ring_PIP', 'right_ring_DIP'],
+    little: ['right_pinky_MCP_FE', 'right_pinky_PIP', 'right_pinky_DIP'],
+    thumb: ['right_thumb_MCP_FE', 'right_thumb_IP'],
+  },
+  oppose: { right_thumb_CMC_FE: 1.6 },
+  gripTweaks: { power: { thumb: 0.1, oppose: 0.65 }, pinch: { thumb: 0.2, oppose: 0.75 }, tripod: { thumb: 0.2, oppose: 0.75 }, point: { thumb: 0.25, oppose: 0.55 } },
+});
+
 export const PROSTHESES = [
   abilityHand('right'), abilityHand('left'), softHand('right'), softHand('left'), softHand2('right'), softHand2('left'),
+  shadowHand('right'), shadowHand('left'), leapHand(), allegroHand(), sharpaWave(),
 ];
 export const PROSTHESIS_IDS = PROSTHESES.map((p) => p.id);

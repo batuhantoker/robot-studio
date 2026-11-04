@@ -25,19 +25,19 @@ function specEntry(id: string, group: 'preset' | 'mine', spec: RobotSpec, twin?:
   };
 }
 
-function prosthesisEntry(r: CatalogRobot, motors: number): LibraryEntry {
+function prosthesisEntry(r: CatalogRobot, motors: number, kind: 'prosthesis' | 'dexterous'): LibraryEntry {
   const maker = r.vendor ?? r.maker;
   return {
     id: `prosthesis:${r.id}`, title: r.title, group: 'prosthesis', catalogId: r.id,
     subtitle: `${maker} · ${motors === 1 ? '1 motor drives' : `${motors} motors drive`} ${r.joints_total ?? r.dof} joints`,
     dof: motors, chainDof: motors, category: 'hand', maker,
-    tags: [...new Set([...(r.tags ?? []), 'prosthesis'])],
+    tags: [...new Set([...(r.tags ?? []), kind === 'dexterous' ? 'robot hand' : 'prosthesis'])],
     localOnly: !r.license.spdx,
   };
 }
 
 function cadEntry(r: CatalogRobot): LibraryEntry {
-  if (r.prosthesis) return prosthesisEntry(r, r.prosthesis.motors.length);
+  if (r.prosthesis) return prosthesisEntry(r, r.prosthesis.motors.length, r.prosthesis.kind ?? 'prosthesis');
   const maker = r.vendor ?? r.maker;
   const chainDof = r.chain ? r.dof : 0;
   return {

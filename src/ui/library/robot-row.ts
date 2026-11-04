@@ -12,5 +12,5 @@ export function robotRow(e: LibraryEntry, active: boolean, select: () => void): 
       h('small', {}, [e.maker, e.category].filter(Boolean).join(' · '))),
     h('div.robot-meta', {},
       h('span.dof', {}, String(e.dof), h('em', {}, e.group !== 'prosthesis' ? ' DOF' : e.dof === 1 ? ' motor' : ' motors')),
-      h('span.src', { class: e.group, title: chain ? 'The math follows one chain; pick another in the top bar' : '' }, `${e.localOnly ? 'local' : SOURCE[e.group]}${chain}`)));
+      h('span.src', { class: e.group, title: chain ? 'The math follows one chain; pick another in the top bar' : '' }, `${e.localOnly ? 'local' : e.tags.includes('robot hand') ? 'Robot hand' : SOURCE[e.group]}${chain}`)));
 }

@@ -66,8 +66,11 @@ export function referencedFiles(root, mainRel) {
     if (path.posix.isAbsolute(ref.file) || path.posix.isAbsolute(dir)) {
       throw new Error(`${label(ref.from)}: absolute asset path ${path.posix.join(dir, ref.file)} is not portable`);
     }
-    // Asset paths are relative to the main model file regardless of which file declares them.
-    const rel = toRel(mainDir, dir, ref.file.replaceAll('\\', '/'));
+    // Asset paths are relative to the main model file; MuJoCo 3 falls back to the file that declares them.
+    const file = ref.file.replaceAll('\\', '/');
+    const main = toRel(mainDir, dir, file);
+    const local = toRel(path.posix.dirname(ref.from), dir, file);
+    const rel = main && fs.existsSync(path.join(root, main)) ? main : local && fs.existsSync(path.join(root, local)) ? local : main;
     if (!rel) throw new Error(`${label(ref.from)}: ${ref.file} resolves outside ${path.basename(root)}/`);
     assertExactFile(root, rel, label(ref.from));
     if (!assets.includes(rel) && !xmls.includes(rel)) assets.push(rel);

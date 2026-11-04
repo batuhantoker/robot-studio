@@ -31,6 +31,7 @@ import type { TrajectoryPreset } from '../../core/trajectory/presets/build';
 import { StudioAnalysis } from './studio-analysis';
 import { TaskController } from './task/controller';
 import { PilotController } from './pilot/controller';
+import { RubikController } from './rubik/controller';
 import { wireTeardownHud } from './tour/wire';
 import { bindPicking } from './viewport-input';
 
@@ -45,6 +46,7 @@ export class Studio {
   readonly analysis: StudioAnalysis;
   readonly task: TaskController;
   readonly pilot: PilotController;
+  readonly rubik: RubikController;
   readonly recorder: TrajectoryRecorder;
   physics: PhysicsMode | null = null;
   private readonly loader: RobotLoader;
@@ -65,6 +67,7 @@ export class Studio {
     this.analysis = new StudioAnalysis(this);
     this.task = new TaskController(this);
     this.pilot = new PilotController(this);
+    this.rubik = new RubikController(this);
     this.recorder = new TrajectoryRecorder(this);
     const tick = frameLoop({
       store, bus: this.bus, overlays: this.overlays, ik: this.ik,

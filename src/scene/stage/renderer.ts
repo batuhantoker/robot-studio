@@ -11,7 +11,25 @@ export interface Stage {
   controls: OrbitControls;
   root: THREE.Group;
   resize(): void;
-  frame(radius: number, center: THREE.Vector3): void;
+  /** `fit`, when given, backs the camera off until that box fits the share of the canvas left uncovered. */
+  frame(radius: number, center: THREE.Vector3, fit?: { box: THREE.Box3; room: { x: number; y: number } }): void;
+}
+
+/** Room left around the fitted box, as a share of the view. */
+const MARGIN = 0.88;
+
+/** Nearest distance along `dir` from which every corner of `box` lies inside the half-angle tangents. */
+function boxDistance(box: THREE.Box3, center: THREE.Vector3, dir: THREE.Vector3, up: THREE.Vector3, tanX: number, tanY: number): number {
+  const right = new THREE.Vector3().crossVectors(up, dir).normalize();
+  const upward = new THREE.Vector3().crossVectors(dir, right);
+  const r = new THREE.Vector3();
+  let d = 0;
+  for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) {
+    r.set(x, y, z).sub(center);
+    const near = r.dot(dir);
+    d = Math.max(d, near + Math.abs(r.dot(right)) / tanX, near + Math.abs(r.dot(upward)) / tanY);
+  }
+  return d;
 }
 
 export function createStage(host: HTMLElement): Stage {
@@ -53,11 +71,14 @@ export function createStage(host: HTMLElement): Stage {
   new ResizeObserver(resize).observe(host);
   resize();
 
-  const frame = (radius: number, center: THREE.Vector3) => {
+  const frame: Stage['frame'] = (radius, center, fit) => {
+    const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     // On a portrait screen the horizontal field is the narrower one; fit whichever is tighter.
-    const half = Math.min(THREE.MathUtils.degToRad(camera.fov / 2), Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect));
-    const distance = (radius / Math.sin(half)) * 0.82;
+    const half = Math.min(Math.atan(tan), Math.atan(tan * camera.aspect));
     const dir = new THREE.Vector3(0.62, -0.68, 0.42).normalize();
+    // The sphere fit runs a little tight, which suits arms; a tall hand or humanoid would lose its ends to it.
+    let distance = (radius / Math.sin(half)) * 0.82;
+    if (fit) distance = Math.max(distance, boxDistance(fit.box, center, dir, camera.up, tan * camera.aspect * fit.room.x * MARGIN, tan * fit.room.y * MARGIN));
     controls.target.copy(center);
     camera.position.copy(center).addScaledVector(dir, distance);
     camera.near = distance / 200;

@@ -5,6 +5,9 @@ import { EMPTY_FILTER } from '@/app/library/filter/types';
 import type { Catalog, CatalogRobot } from '@/app/robots/catalog';
 import { gripClip, gripPresets, openMotors } from '@/core/prosthesis/grips';
 import { couple, gripMotors, jointsFor, motorMap, motorsOf, onLinkage, type Prosthesis } from '@/core/prosthesis/motors';
+import { ModelHandle } from '@/physics/model/handle';
+// @ts-expect-error plain JS fetch scripts
+import { actuatedMotors, tableGrips } from '../../../scripts/robots/prosthetics/actuated.mjs';
 // @ts-expect-error plain JS fetch scripts
 import { homeValues, synergyMotors } from '../../../scripts/robots/prosthetics/build.mjs';
 // @ts-expect-error plain JS fetch scripts
@@ -110,8 +113,9 @@ describe('prosthesis motors', () => {
   });
 
   it('names only real motors in every catalog grip, each with an open hand to start from', () => {
-    type Hand = { id: string; synergy?: unknown; secondSynergy?: { name: string }; prosthesis: Prosthesis };
-    for (const hand of PROSTHESES as Hand[]) {
+    type Hand = { id: string; actuated?: boolean; synergy?: unknown; secondSynergy?: { name: string }; prosthesis: Prosthesis };
+    // Actuated hands get their grips from the shared table at build time (tested below).
+    for (const hand of (PROSTHESES as Hand[]).filter((h) => !h.actuated)) {
       const names = hand.prosthesis.motors?.map((m) => m.name) ?? ['synergy', ...(hand.secondSynergy ? [hand.secondSynergy.name] : [])];
       const grips = hand.prosthesis.grips ?? [];
       expect(grips.some((g) => g.name === 'open'), hand.id).toBe(true);
@@ -169,6 +173,39 @@ describe('prosthesis motors', () => {
     expect(home[1]).toBeCloseTo(0.4 - 0.2, 12);
     expect(home[2]).toBeCloseTo(0.4 + 0.2, 12);
     expect(home[3]).toBe(0);
+  });
+
+  it('makes one motor per actuator, a tendon motor sharing its joints, and table grips over them', async () => {
+    const xml = (extra = '') => `<mujoco><compiler angle="radian"/><worldbody><body name="palm">
+      <body name="f1"><joint name="mcp" range="0 1.5"/><geom size="0.01"/>
+        <body name="f2" pos="0 0 0.03"><joint name="pip" range="0 1.5"/><geom size="0.01"/>
+          <body name="f3" pos="0 0 0.03"><joint name="dip" range="0 1.5"/><geom size="0.01"/></body></body></body>
+      <body name="t1" pos="0.03 0 0"><joint name="cmc" range="0 1.2"/><geom size="0.01"/>${extra}</body>
+    </body></worldbody>
+    <tendon><fixed name="j0"><joint joint="pip" coef="1"/><joint joint="dip" coef="1"/></fixed></tendon>
+    <actuator><position name="a_mcp" joint="mcp"/><position name="a_j0" tendon="j0" ctrlrange="0 3"/><position name="a_cmc" joint="cmc"/></actuator></mujoco>`;
+    const hand = { id: 'h', label: (n: string) => n.toUpperCase(), curl: { index: ['mcp', 'j0'], thumb: [] }, oppose: { cmc: 1 } };
+    const h = await ModelHandle.fromXml(xml());
+    try {
+      const motors = actuatedMotors(h.model, hand);
+      expect(motors.map((m: { name: string }) => m.name)).toEqual(['mcp', 'j0', 'cmc']);
+      expect(motors[1]).toMatchObject({ label: 'J0', range: [0, 3], joints: [{ joint: 'pip', scale: 0.5 }, { joint: 'dip', scale: 0.5 }] });
+      const grips = tableGrips(hand, motors);
+      expect(grips.map((g: { name: string }) => g.name)).toEqual(['open', 'power', 'pinch', 'tripod', 'point']);
+      const power = grips.find((g: { name: string }) => g.name === 'power').motors;
+      expect(power.mcp).toBeCloseTo(0.62 * 1.5, 4);
+      expect(power.j0).toBeCloseTo(0.62 * 3, 4);
+      expect(power.cmc).toBe(1);
+      expect(grips[0].motors.cmc).toBeCloseTo(0.2, 4);
+    } finally {
+      h.dispose();
+    }
+    const loose = await ModelHandle.fromXml(xml('<body name="t2" pos="0.02 0 0"><joint name="ip" range="0 1"/><geom size="0.01"/></body>'));
+    try {
+      expect(() => actuatedMotors(loose.model, hand)).toThrow(/no actuator moves: ip/);
+    } finally {
+      loose.dispose();
+    }
   });
 
   it('lists prostheses as their own library group, counted in motors', () => {

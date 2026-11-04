@@ -88,6 +88,94 @@ export const MENAGERIE_ROBOTS = [
       tip: { site: 'gripperframe' },
     },
   },
+  // `studio` robots lose their free joint and get limbs from the compiled model (menagerie/studio.mjs); `limbs`
+  // names each limb's tip body, otherwise ARMOR's leg/arm discovery picks them.
+  {
+    id: 'ms_human_700',
+    dir: 'ms_human_700',
+    xml: 'MS-Human-700.xml',
+    title: 'MS-Human-700',
+    maker: 'LNS Group',
+    description:
+      'Full-body human musculoskeletal model: 700 muscles, drawn as red cables, wrap over the bones and pull on ' +
+      'its 85 joints. The knee\'s small gliding joints follow its angle only in simulation; posed, each has its own slider.',
+    spdx: 'Apache-2.0',
+    category: 'humanoid',
+    // Six pelvis joints make it a floating base: it stands on the floor, not bolted to a bench.
+    base: 'floating',
+    tags: ['musculoskeletal', 'muscles', 'biomechanics'],
+    studio: true,
+    limbs: [
+      { name: 'right arm', body: 'hand_r' },
+      { name: 'left arm', body: 'hand_l' },
+      { name: 'right leg', body: 'toes_r' },
+      { name: 'left leg', body: 'toes_l' },
+      { name: 'head', body: 'head_neck' },
+    ],
+  },
+  {
+    id: 'aloha',
+    dir: 'aloha',
+    xml: 'aloha.xml',
+    title: 'ALOHA 2',
+    maker: 'Google DeepMind · Stanford',
+    description: 'Bimanual teleoperation rig behind ALOHA robot-learning research: two 6-DOF ViperX arms with parallel grippers facing over one table.',
+    spdx: 'BSD-3-Clause',
+    category: 'arm',
+    base: 'fixed',
+    tags: ['bimanual', 'teleoperation', 'robot learning'],
+    studio: true,
+    // keyframe_no_act.xml's neutral_pose: arms folded over the table, grippers open.
+    home: [0, -0.96, 1.16, 0, -0.3, 0, 0.0084, 0.0084, 0, -0.96, 1.16, 0, -0.3, 0, 0.0084, 0.0084],
+    limbs: [
+      { name: 'left arm', body: 'left/gripper_link' },
+      { name: 'right arm', body: 'right/gripper_link' },
+    ],
+  },
+  {
+    id: 'google_robot',
+    dir: 'google_robot',
+    xml: 'robot.xml',
+    title: 'Google Robot',
+    maker: 'Google',
+    description: 'The mobile manipulator from Google\'s large-scale robot-learning work (RT-1, SayCan): a 7-DOF arm and parallel-jaw gripper on a wheeled base.',
+    spdx: 'Apache-2.0',
+    category: 'arm',
+    // A wheeled base: it stands on the floor rather than on a bench.
+    base: 'mobile',
+    tags: ['mobile manipulator', 'rt-1', 'robot learning'],
+    studio: true,
+    limbs: [{ name: 'arm', body: 'link_gripper' }],
+  },
+  {
+    id: 'apptronik_apollo',
+    dir: 'apptronik_apollo',
+    xml: 'apptronik_apollo.xml',
+    title: 'Apptronik Apollo',
+    maker: 'Apptronik',
+    description: 'Full-size general-purpose humanoid built for work alongside people, with 32 actuated joints.',
+    spdx: 'Apache-2.0',
+    category: 'humanoid',
+    base: 'floating',
+    tags: ['biped', 'commercial'],
+    studio: true,
+    home: 'stand',
+  },
+  {
+    id: 'google_barkour_vb',
+    dir: 'google_barkour_vb',
+    xml: 'barkour_vb.xml',
+    title: 'Google Barkour vB',
+    maker: 'Google DeepMind',
+    description: 'The agile quadruped Google DeepMind built to run its dog-style agility course, with three motors per leg.',
+    spdx: 'Apache-2.0',
+    category: 'legged',
+    base: 'floating',
+    tags: ['quadruped', 'agility'],
+    studio: true,
+    // scene.xml's home keyframe without its free-joint values: abduction, hip, knee per leg.
+    home: [0, 0.5, 1, 0, 0.5, 1, 0, 0.5, 1, 0, 0.5, 1],
+  },
 ];
 
 export const MONTAJ = {

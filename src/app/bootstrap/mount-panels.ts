@@ -22,6 +22,7 @@ import { mountModeBar } from '../../ui/shell/mode-bar';
 import { h } from '../../ui/dom/h';
 import { mountMotionBar } from '../../ui/motion/bar';
 import { mountTaskBar } from '../../ui/task/bar';
+import { mountRubikBar } from '../../ui/rubik/bar';
 import { mountPilotBar } from '../../ui/pilot/bar';
 import { mountPilotPad } from '../../ui/pilot/touch-pad';
 import { mountTrajectoryBar } from '../../ui/trajectory/bar';
@@ -33,10 +34,10 @@ import { mountRenderOverlay } from '../../ui/render/overlay';
 import { mountStageSettings } from '../../ui/stage/settings';
 import { mountSceneRobots } from '../../ui/stage/scene-robots';
 import { saveSurroundings } from '../../scene/stage/surroundings';
+import { shownSurroundings } from '../scene/setting';
 import { bindMobileStage } from '../controller/mobile-stage';
 import { sceneControls } from '../controller/scene-controls';
 import type { Studio } from '../controller/studio';
-import type { StudioState } from '../state/types';
 
 export function mountPanels(layout: Layout, studio: Studio): void {
   const { store } = studio;
@@ -71,6 +72,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   const view = mountViewMenu(layout.tools, store);
   mountMotionBar(stack, store, () => studio.motion.presets, studio.task.available);
   mountTaskBar(stack, store, studio.task);
+  mountRubikBar(stack, store, studio.rubik);
   mountPilotBar(stack, store, studio.pilot, studio.bus);
   mountPilotPad(layout.stage, store, studio.pilot);
   mountTrajectoryBar(stack, store, studio.bus, studio.analysis, { list: () => studio.trajectoryPresets(), load: (id) => studio.loadTrajectoryPreset(id) });
@@ -80,9 +82,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   mountStageSettings(layout.tools, store);
   mountSceneRobots(layout.tools, studio.viewport.stage, store, sceneControls(studio), (fn) => studio.viewport.onFrame(() => fn()));
   bindMobileStage(studio);
-  // The settings are built around one robot; a stage of several stays open.
-  const surroundings = (s: StudioState) => ({ ...s.surroundings, environment: s.scene.length > 1 ? 'open' as const : s.surroundings.environment });
-  studio.viewport.setSurroundings(surroundings(store.state));
-  store.on(['surroundings', 'scene'], (s) => studio.viewport.setSurroundings(surroundings(s)));
+  studio.viewport.setSurroundings(shownSurroundings(store.state));
+  store.on(['surroundings', 'scene', 'activeId'], (s) => studio.viewport.setSurroundings(shownSurroundings(s)));
   store.on(['surroundings'], (s) => saveSurroundings(s.surroundings));
 }

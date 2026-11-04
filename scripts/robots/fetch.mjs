@@ -51,7 +51,7 @@ async function main() {
   const built = new Map();
   if (menagerie.length) {
     await ensureMenagerie(menagerie.map((r) => r.dir));
-    for (const robot of menagerie) built.set(robot.id, menagerieEntry(robot));
+    for (const robot of menagerie) built.set(robot.id, await menagerieEntry(robot));
   }
   if (prostheses.length) {
     await ensureProstheticRepos(prostheses);

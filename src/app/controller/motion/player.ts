@@ -7,11 +7,14 @@ import type { RobotSession } from '../../robots/session';
 export class MotionPlayer {
   presets: MotionPreset[] = [];
   clip: MotionClip | null = null;
+  /** Presets other controllers offer for robots they can drive, such as the Rubik's cube for a Shadow hand. */
+  readonly extras: ((s: RobotSession) => MotionPreset[])[] = [];
   private built = '';
 
   load(s: RobotSession, q: number[]): void {
     // A prosthesis with named grips shows those instead of the generic motions.
     this.presets = s.prosthesis?.grips.length ? gripPresets(s.prosthesis) : presetsFor(s, q, s.category);
+    this.presets.push(...this.extras.flatMap((f) => f(s)));
     this.clip = null;
     this.built = '';
   }

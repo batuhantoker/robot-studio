@@ -285,13 +285,20 @@ export class Viewport {
     if (!this.assembly || box.isEmpty()) return;
     box.union(new THREE.Box3().setFromObject(this.assembly.root));
     const sphere = box.getBoundingSphere(new THREE.Sphere());
-    this.stage.frame(sphere.radius, sphere.center);
+    this.stage.frame(sphere.radius, sphere.center, { box, room: this.room() });
   }
 
   /** Frame the camera on the assembly as currently posed. */
   fit(): void {
     const sphere = this.refitStage();
-    if (sphere) this.stage.frame(sphere.radius, sphere.center);
+    if (sphere && this.assembly) this.stage.frame(sphere.radius, sphere.center, { box: new THREE.Box3().setFromObject(this.assembly.root), room: this.room() });
+  }
+
+  /** Share of the canvas the dock, sheets and side panels leave uncovered, by width and height. */
+  private room(): { x: number; y: number } {
+    const { clientWidth: w, clientHeight: h } = this.stage.renderer.domElement;
+    const { bottom, left, right } = this.inset;
+    return { x: Math.max(0.2, 1 - (left + right) / Math.max(w, 1)), y: Math.max(0.2, 1 - bottom / Math.max(h, 1)) };
   }
 
   /** Ground the robots and size the floor, light and setting to the whole stage; returns the active robot's sphere. */

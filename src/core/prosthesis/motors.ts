@@ -29,6 +29,8 @@ export interface Grip {
 export interface Prosthesis {
   side: 'left' | 'right';
   control: 'myoelectric' | 'body-powered';
+  /** A prosthesis worn by a person, or a dexterous robot hand; both move the same way. */
+  kind?: 'prosthesis' | 'dexterous';
   motors: ProsthesisMotor[];
   grips?: Grip[];
 }

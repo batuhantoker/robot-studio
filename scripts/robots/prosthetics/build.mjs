@@ -7,6 +7,7 @@ import { checkLicense } from '../licenses/check.mjs';
 import { referencedFiles } from '../mjcf/references.mjs';
 import { ROBOTS_DIR, STUDIO } from '../paths.mjs';
 import { createLoader, errorText } from '../verify/compile.mjs';
+import { actuatedMotors, autoTips, compileHand, tableGrips } from './actuated.mjs';
 import { PROSTHETICS_HOSTS, PROSTHETICS_REPOS } from './catalog.mjs';
 import { routeTendon, withTendon } from './tendon.mjs';
 
@@ -106,6 +107,32 @@ async function fromXacro(hand) {
   return { dir, xml, prosthesis: synergyMotors(hand, xml), from: `${hand.dir}/${include}`, change: `expanded from xacro and compiled by MuJoCo from URDF, every <mimic> kept as an equality${hand.tendon ? '; a tendon routed through the fingers is added for display' : ''}${hand.flipAxes?.length ? `; axis flipped on ${hand.flipAxes.join(', ')} to mirror the right hand` : ''}` };
 }
 
+// A hand that already moves through actuators (MuJoCo Menagerie), stood upright inside one mount body.
+async function fromActuated(hand) {
+  const dir = path.join(repoDir(hand.repo), hand.dir);
+  loader ??= await createLoader();
+  const { mj } = loader;
+  const model = compileHand(mj, dir, hand.src, `/hand/${hand.id}`);
+  let raw, chains;
+  try {
+    raw = actuatedMotors(model, hand);
+    chains = autoTips(mj, model, hand.chains);
+  } finally {
+    model.delete();
+  }
+  const grips = tableGrips(hand, raw);
+  const open = grips.find((g) => g.name === 'open').motors;
+  const motors = raw.map((m) => ({ ...m, home: open[m.name] }));
+  let xml = fs.readFileSync(path.join(dir, hand.src), 'utf8');
+  const pos = hand.mount.pos ? ` pos="${hand.mount.pos.join(' ')}"` : '';
+  xml = once(xml, /<worldbody>/, `<worldbody>\n<body name="studio_mount"${pos} quat="${hand.mount.quat.join(' ')}">`, '<worldbody>');
+  xml = once(xml, /<\/worldbody>/, '</body>\n</worldbody>', '</worldbody>');
+  return {
+    dir, xml, chains, prosthesis: { ...hand.prosthesis, motors, grips }, from: `${hand.dir}/${hand.src}`,
+    change: 'stood upright in a mount body; one motor per actuator, the joints of a coupled finger sharing its tendon equally',
+  };
+}
+
 // One motor for the whole hand: every equality that leads back to the synergy joint becomes a drive.
 export function synergyMotors(hand, xml) {
   const { joint: motorJoint, label, home } = hand.synergy;
@@ -167,7 +194,8 @@ export function homeValues(hand, prosthesis, joints) {
 
 // Mount yaw, a home keyframe with every joint where its motor puts it, and a note on what changed.
 function finish(hand, src) {
-  let xml = once(src.xml, new RegExp(`(<body name="${hand.mount.body}"[^>]*?)(\\s*childclass=|>)`), `$1 euler="0 0 ${hand.mount.yaw}"$2`, 'mounted body');
+  let xml = src.xml;
+  if (hand.mount.body) xml = once(xml, new RegExp(`(<body name="${hand.mount.body}"[^>]*?)(\\s*childclass=|>)`), `$1 euler="0 0 ${hand.mount.yaw}"$2`, 'mounted body');
   if (hand.recolor) {
     if (!xml.includes(`rgba="${hand.recolor.from}"`)) throw new Error(`prosthesis ${hand.id}: no geom is rgba ${hand.recolor.from}`);
     xml = xml.replaceAll(`rgba="${hand.recolor.from}"`, `rgba="${hand.recolor.to}"`);
@@ -197,9 +225,11 @@ function extraLicense(root, extra) {
 // Writes one hand's studio MJCF, meshes and LICENSE into public/robots/prosthetics and returns its manifest entry.
 export async function prosthesisEntry(hand) {
   const root = repoDir(hand.repo);
-  const spdx = checkLicense(root, { dir: hand.repo, spdx: hand.spdx });
+  // Menagerie keeps a LICENSE per robot, not one for the repository.
+  const licenseDir = hand.licenseInDir ? path.join(root, hand.dir) : root;
+  const spdx = checkLicense(licenseDir, { dir: hand.licenseInDir ? hand.dir : hand.repo, spdx: hand.spdx });
   const extra = hand.extraLicense ? extraLicense(root, hand.extraLicense) : '';
-  const src = hand.xacro ? await fromXacro(hand) : fromMjcf(hand);
+  const src = hand.xacro ? await fromXacro(hand) : hand.actuated ? await fromActuated(hand) : fromMjcf(hand);
   fs.writeFileSync(path.join(src.dir, hand.xml), finish(hand, src));
   const deps = referencedFiles(src.dir, hand.xml);
 
@@ -207,9 +237,10 @@ export async function prosthesisEntry(hand) {
   const dest = path.join(ROBOTS_DIR, outRel);
   resetDir(dest);
   copyInto(src.dir, dest, deps);
-  fs.writeFileSync(path.join(dest, 'LICENSE'), fs.readFileSync(path.join(root, 'LICENSE'), 'utf8') + extra);
+  fs.writeFileSync(path.join(dest, 'LICENSE'), fs.readFileSync(path.join(licenseDir, 'LICENSE'), 'utf8') + extra);
   const commit = PROSTHETICS_REPOS[hand.repo];
-  const [chain] = hand.chains;
+  const chains = src.chains ?? hand.chains;
+  const [chain] = chains;
   const { motorJoint, ...prosthesis } = src.prosthesis;
 
   return {
@@ -222,7 +253,7 @@ export async function prosthesisEntry(hand) {
     xml: `${outRel}/${hand.xml}`,
     files: deps.map((rel) => `${outRel}/${rel}`),
     chain,
-    chains: hand.chains,
+    chains,
     collection: 'prosthetics',
     category: 'hand',
     format: hand.xacro ? 'urdf' : 'mjcf',

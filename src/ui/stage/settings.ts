@@ -1,5 +1,6 @@
 /** A gear on the viewport that opens the backdrop, floor and setting choices. */
 import type { Store } from '../../app/state/store';
+import { openOnly } from '../../app/scene/setting';
 import type { StudioState } from '../../app/state/types';
 import { ENVIRONMENTS, type EnvironmentId } from '../../scene/stage/environment';
 import { BACKDROPS, type Backdrop, type BackdropId, FLOORS, type FloorId, type Surroundings, backdropCss } from '../../scene/stage/surroundings';
@@ -39,11 +40,12 @@ export function mountStageSettings(stage: HTMLElement, store: Store<StudioState>
   const backdrops = h('div.swatches');
   const floors = h('div.swatches');
   const settings = h('div.swatches.three');
+  const held = h('p.hint.setting-held');
   const motion = h('button.tb.scenery-motion', { title: 'Run the setting\'s conveyors, machines and vehicles', onclick: () => set({ motion: !store.state.surroundings.motion }) }, 'Motion');
   const panel = h('div.stage-settings', { hidden: true, role: 'dialog', 'aria-label': 'Surroundings' },
     h('h4', {}, 'Backdrop'), backdrops,
     h('h4', {}, 'Floor'), floors,
-    h('div.stage-settings-head', {}, h('h4', {}, 'Setting'), motion), settings,
+    h('div.stage-settings-head', {}, h('h4', {}, 'Setting'), motion), settings, held,
     h('p.hint', {}, 'Applies to the viewport and to rendered video. Pilot stops short of the scenery, and its loose parts can be picked up. In Pick & place, click the top of a bench, table or belt to stand a spot on it.'));
   stage.append(gear, panel);
 
@@ -66,12 +68,16 @@ export function mountStageSettings(stage: HTMLElement, store: Store<StudioState>
       h('button.swatch', { class: id === backdrop ? 'on' : '', title: d.label, onclick: () => set({ backdrop: id }) }, h('i', { style: `background:${backdropCss(d)}` }), d.label)));
     replace(floors, ...FLOORS.map(([id, label]) =>
       h('button.swatch', { class: id === floor ? 'on' : '', title: label, onclick: () => set({ floor: id }) }, h('i', { style: floorSwatch(id, b) }), label)));
+    const reason = openOnly(s);
+    held.textContent = reason ?? '';
+    held.hidden = !reason;
+    const shown = reason ? 'open' : environment;
     replace(settings, ...ENVIRONMENTS.map(([id, label]) => {
       const icon = h('i', { style: `background:${backdropCss(b)};color:${b.dark ? '#e9edf3' : '#2a2e34'}` });
       icon.innerHTML = `<svg viewBox="0 0 40 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${SETTING_ICON[id]}</svg>`;
-      return h('button.swatch', { class: id === environment ? 'on' : '', title: label, onclick: () => set({ environment: id }) }, icon, label);
+      return h('button.swatch', { class: id === shown ? 'on' : '', title: label, disabled: !!reason && id !== 'open', onclick: () => set({ environment: id }) }, icon, label);
     }));
   };
-  store.on(['surroundings'], render);
+  store.on(['surroundings', 'scene', 'activeId'], render);
   render(store.state);
 }
