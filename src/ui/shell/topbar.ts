@@ -1,4 +1,4 @@
-/** Brand and the active robot, the mode switch, the tour and the guide. */
+/** Brand and the active robot, the mode switch, the auto tour and the walkthrough. */
 import type { Mode, StudioState } from '../../app/state/types';
 import type { Store } from '../../app/state/store';
 import { h, replace } from '../dom/h';
@@ -15,10 +15,10 @@ export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf:
   const title = h('button.robot-title', { title: 'Choose a robot', onclick: () => reveal('robots') }, name, detail, icon(ICON.chevron, 'ico chev'));
   const toggleTour = () => store.set({ touring: !store.state.touring });
   const tour = h('button.tourchip', { onclick: toggleTour, title: 'A guided tour of the loaded robot' }, h('i.dot'), h('span', {}, 'Auto tour'));
-  const help = h('button.icon-btn.help', { onclick: onHelp, title: 'Guide and shortcuts  ( ? )', 'aria-label': 'Guide' }, icon(ICON.help));
+  const help = h('button.icon-btn.help', { onclick: onHelp, title: 'Show me around  ( ? )', 'aria-label': 'Show me around' }, icon(ICON.help));
   const modes = modeSwitch(store);
   const phoneTour = h('button.tb', { onclick: toggleTour });
-  const menu = modeMenu(store, [phoneTour, h('button.tb', { onclick: onHelp }, icon(ICON.help), 'Guide')]);
+  const menu = modeMenu(store, [phoneTour, h('button.tb', { onclick: onHelp }, icon(ICON.help), 'Show me around')]);
   el.append(
     h('div.top-left', {}, h('div.brand', {}, h('img', { src: markUrl, alt: '' }), h('span', {}, 'Robot Studio')), title, extra),
     modes.el,

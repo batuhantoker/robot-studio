@@ -28,10 +28,12 @@
   <br><sub>MuJoCo (WebAssembly) drives the <code>spatial_6link</code> preset through a quintic trajectory; applied torque and tracking error plot live. <a href="https://robotics-studio-one.vercel.app">Try it in your browser.</a></sub>
 </p>
 
-You build an arm from a catalogue of joints, or open a real robot's CAD. The studio
-poses it, explains its kinematics with live numbers, simulates it in MuJoCo, and takes
-it apart teardown-style. MuJoCo is the official WebAssembly build (`@mujoco/mujoco`),
-so everything runs client-side.
+You build an arm from a catalogue of joints, or open one of 147 robots: arms,
+humanoids, legged and wheeled machines, many from real CAD. The studio poses them,
+explains their kinematics with live numbers, simulates them in MuJoCo, drives them
+around a workshop, and takes them apart teardown-style. MuJoCo is the official
+WebAssembly build (`@mujoco/mujoco`), so everything runs client-side, on a desktop or
+a phone.
 
 **Try it now at [robotics-studio-one.vercel.app](https://robotics-studio-one.vercel.app).** It needs no install and no
 account, and runs in any modern browser with WebGL.
@@ -44,6 +46,7 @@ account, and runs in any modern browser with WebGL.
       <img src="docs/media/hero.jpg" alt="A six-joint arm posed in the studio with live joint torques and dexterity">
       <b>Pose and inspect.</b> Every joint shows its angle and its torque against the motor
       limit. Dexterity and the tool pose update live, and FK is checked against MuJoCo.
+      The modes sit along the top; the current mode's controls sit under the robot.
     </td>
     <td width="50%" valign="top">
       <img src="docs/media/math.jpg" alt="The math tab with the chain product, Rodrigues rotation and a DH table">
@@ -54,21 +57,22 @@ account, and runs in any modern browser with WebGL.
   <tr>
     <td width="50%" valign="top">
       <img src="docs/media/teardown.jpg" alt="Glass view with every joint exploded along its own axis">
-      <b>Teardown.</b> Glass housings show the drives inside. Explode opens every joint
-      along its own axis.
+      <b>Teardown.</b> The View menu (the eye over the stage) switches to glass housings that
+      show the drives inside, and Explode opens every joint along its own axis.
     </td>
     <td width="50%" valign="top">
       <img src="docs/media/isolate.jpg" alt="An isolated strain-wave actuator with its bill of parts and callouts">
       <b>Bill of parts.</b> Isolate a module to list its parts by layer, with callouts.
-      This one is the shoulder actuator: stator, windings, magnet rotor, encoder.
+      This one is the shoulder actuator: housing, stator, windings, magnet rotor,
+      strain-wave gear.
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <img src="docs/media/workspace.jpg" alt="The reachable workspace shell sampled around the arm">
       <b>Workspace and limits.</b> The reachable shell is sampled in joint space and
-      coloured by dexterity, torque, joint-limit margin or reach. The summary gives
-      volume, reach and the near-singular share.
+      coloured by dexterity, torque, joint-limit margin or reach. The Analysis tab follows
+      the mode: here it gives volume, reach and the near-singular share.
     </td>
     <td width="50%" valign="top">
       <img src="docs/media/cad.jpg" alt="Franka Emika Panda CAD loaded in the studio">
@@ -77,7 +81,25 @@ account, and runs in any modern browser with WebGL.
       from MuJoCo Menagerie (Apache-2.0).
     </td>
   </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/media/hands.jpg" alt="A Unitree G1 humanoid at a lab bench in Pilot mode with the hand controls open">
+      <b>Drive, reach and grab.</b> Pilot walks legged robots and drives wheeled ones. On a
+      humanoid, Hands steers each hand to a part on the bench, grips it, and carries it off.
+      Shown: Unitree G1 in the lab setting.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/media/stage.jpg" alt="Three arms side by side on one stage with the On stage panel open">
+      <b>Several robots on one stage.</b> Add up to four, place each by arrows or by
+      millimetres and degrees, and click any of them to take control.
+    </td>
+  </tr>
 </table>
+
+<p align="center">
+  <img src="docs/media/phone.jpg" width="100%" alt="The studio on a phone: the stage with its bar, the mode cards, the Live sheet, and a walkthrough step">
+  <br><sub>On a phone: the stage with the mode's bar, every mode as a card, panels as bottom sheets, and the walkthrough.</sub>
+</p>
 
 ## Run it locally
 
@@ -94,16 +116,21 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
 
 ## Getting around
 
-- **Top bar:** the robot's name opens the library, and the modes sit in the middle.
-  On a phone, one button opens every mode as a card.
-- **Under the robot:** a single bar for the current mode, such as motion presets,
+<img src="docs/media/tour.jpg" width="100%" alt="The walkthrough spotlighting the mode switch in the top bar">
+
+- **Top bar:** the robot's name opens the library, and the eight modes sit in the
+  middle: Pose, Motion, Pilot, Pick & place, IK, Trajectory, Physics, Workspace. On a
+  phone, one button opens every mode as a card.
+- **Under the robot:** one bar for the current mode, such as motion presets,
   trajectory stops, Pilot keys and hands, or pick and place.
-- **Top right of the stage:** robots on the stage (add up to four), the View menu
+- **Top right of the stage:** the robots on the stage (up to four), the View menu
   (looks, cutaways, explode, overlays, isolate a part) and the surroundings.
 - **Side panels** (bottom sheets on phones): Robots and Build on the left; Live, Math
-  and Analysis on the right. Analysis shows the current mode's tools.
-- **`?` opens the guide:** a short recipe for each task, plus the shortcuts. It opens
-  by itself on a first visit.
+  and Analysis on the right. Analysis shows the current mode's tools. `[` and `]` fold
+  the panels to a rail of icons.
+- **`?` starts a walkthrough:** it spotlights each of these on the real screen, one
+  line at a time, switching modes and opening menus to show them. Other keys: `/`
+  searches the robots, and `↑ ↓` steps through them.
 
 ## What it does
 
@@ -123,21 +150,37 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - Newer machines: a home-robot mobile manipulator, LeRobot's SO-101 and a
     humanoid arm with spherical shoulder and wrist.
   - Sources are listed in [`presets/studio`](presets/studio/README.md).
+- **Humanoids and multi-limb robots.** Every limb is live. The focus picker in the top
+  bar chooses which limb the math explains, and whole-body IK moves several end
+  effectors at once.
+- **Pilot.** Drive a legged or wheeled robot with `W A S D` (`Q E` side-steps, `Shift`
+  hurries, `C` swaps the follow and look-out cameras), or with an on-screen stick on a
+  phone. It stops short of the scenery.
+  - Hands, on humanoids: pick a hand, move its target with the pad or `I J K L` /
+    `U O`, grip with `Space`, and carry the part off; `R` rests the hands.
+  - Hand moves on keys `1`–`4`: wave, reach, work, lift.
+- **Pick and place.** Choose the pick and place spots by dragging arrows or clicking the
+  floor or a bench; the plan says what blocks it. It starts from a loose part in reach.
+- **Several robots on one stage.** Up to four, each placed in the stage frame; click one
+  to control it. One MuJoCo heap holds them all, so the page caps the count.
 - **Motion.** One-click motions matched to the loaded robot:
   - circle, figure 8 and pick-and-place for arms;
   - trot, walk or tripod gaits for legged robots;
   - march, squat, wave and reach for humanoids;
   - drive or spin for wheeled and aerial robots;
   - a joint wave for anything.
-- **Teardown.** The View menu (the eye over the stage) switches between solid, glass and section views.
+- **Teardown.** The View menu (the eye over the stage) switches between solid, glass
+  and section views, and holds the looks (studio, clay, technical, materials) and the
+  overlays (axes, CoM, velocity ellipsoid, trail, workspace).
   - The explode control opens each joint along its own axis.
   - Isolating a module shows its bill of parts, layered callouts with leaders, and a
     load ring that glows with |τ|/τ_max.
   - Left idle for 25 seconds, the page tours itself. Any input hands control back.
 - **Surroundings.** The gear on the viewport picks a backdrop (studio, cyclorama, dusk,
   dark, blueprint), a floor (grid, seamless, polished, tiles, none) and a setting: open
-  floor, a desk the robot is bolted to, or a small work cell with a safety fence and a
-  conveyor. The setting is scenery; the robot is not checked against it.
+  floor, a desk, a lab bench, a work cell with a fence and a conveyor, a machine shop,
+  or a warehouse. Each setting has loose parts to pick up, and its conveyors and
+  vehicles can run.
 - **Math tab.** Every section is evaluated at the current pose:
   - the chain product and Rodrigues' formula;
   - forward kinematics;
@@ -149,7 +192,7 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - the quintic profile;
   - the original Kane closed form, shown for `original_4dof`;
   - the equations of motion and the control law.
-- **Analysis tab.**
+- **Analysis tab.** It shows the current mode's tools and lists the others as cards.
   - IK against a draggable target, with the solver iterations replayed.
   - Quintic trajectories with joint, speed and torque profiles. Render one pass to a
     16:9 MP4 (720p to 4K, 30 or 60 fps), drawn offline frame by frame with AO and
@@ -247,7 +290,9 @@ src/cad/       materials, parts (actuators per joint kind, links, effectors, bas
                registry, assemblies (procedural, imported, hybrid twin)
 src/scene/     stage, overlays (axes, CoM, ellipsoid, trail, workspace, IK target),
                teardown (cutaway, explode, ink)
-src/ui/        brand, panels: library, builder, live, math, analysis, motion, teardown HUD
+src/ui/        shell (top bar, modes, side panels, phone sheets, walkthrough), styles,
+               stage menus (view, surroundings, on stage), panels: library, builder,
+               live, math, analysis, and the mode bars: motion, pilot, task, trajectory
 src/app/       state, controllers (modes, tour), robot sessions, bootstrap
 presets/       example serial-arm specs, vendored from the 4-DOF study
 scripts/       fixture generation and robot fetch/verify

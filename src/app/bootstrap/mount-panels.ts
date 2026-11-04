@@ -19,7 +19,6 @@ import { mountViewMenu } from '../../ui/teardown/toolbar';
 import { mountAnalysisPane } from '../../ui/shell/analysis-pane';
 import { mountGuide } from '../../ui/shell/guide';
 import { mountModeBar } from '../../ui/shell/mode-bar';
-import { enterMode } from '../../ui/shell/modes';
 import { h } from '../../ui/dom/h';
 import { mountMotionBar } from '../../ui/motion/bar';
 import { mountTaskBar } from '../../ui/task/bar';
@@ -42,7 +41,7 @@ import type { StudioState } from '../state/types';
 export function mountPanels(layout: Layout, studio: Studio): void {
   const { store } = studio;
   const active = () => store.state.library.find((e) => e.id === store.state.activeId);
-  const guide = mountGuide(document.body, (m) => enterMode(store, m));
+  const guide = mountGuide(store, () => document.querySelector('.top-right .help'));
   mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => m !== 'pilot' || studio.pilot.available(), guide.open);
   const left = mountLeftTabs(layout.left);
   const base = libraryActions(store, (m) => store.set({ draftError: m }), () => studio.session);
