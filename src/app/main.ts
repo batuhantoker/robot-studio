@@ -1,3 +1,4 @@
+import { inject } from '@vercel/analytics';
 import '@fontsource-variable/inter';
 import '@fontsource/jetbrains-mono';
 import 'katex/dist/katex.min.css';
@@ -21,6 +22,9 @@ import { bindScene } from './controller/scene';
 import { Studio } from './controller/studio';
 import { catalog, loadCatalog } from './robots/catalog';
 import { Store } from './state/store';
+
+// Vite has no process.env in the browser, so the package can't tell dev from prod itself.
+inject({ mode: import.meta.env.DEV ? 'development' : 'production' });
 
 const store = new Store(initialState(await loadCatalog()));
 bindScene(store);
