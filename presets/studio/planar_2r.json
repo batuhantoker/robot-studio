@@ -1,0 +1,73 @@
+{
+  "name": "Planar 2R Arm",
+  "units": "SI",
+  "base": [0, 0, 0.157],
+  "tool": [0.04, 0, 0],
+  "payload_mass": 0,
+  "effector": "flange",
+  "home": [0.6, -0.5],
+  "design": {
+    "source": "A generic teaching arm, not any maker's machine. Every dimension is a clean number chosen for teaching.",
+    "paint": {
+      "shell": { "color": "#2f8f5b", "finish": "anodized", "roughness": 0.42 },
+      "hub": { "color": "#34383e", "finish": "anodized", "roughness": 0.5 },
+      "plate": { "color": "#c7cbd0", "finish": "aluminium", "roughness": 0.48 }
+    },
+    "section": { "at": 0.027 },
+    "joints": {
+      "j1": { "seat": -0.057, "drive": { "radius": 0.024, "opens": 0.09}, "parent": { "radius": 0.03, "depth": 0.05, "waist": 0.006}, "child": { "radius": 0.03, "depth": 0.02, "waist": 0.006} },
+      "j2": { "seat": -0.02, "flip": true, "drive": { "radius": 0.024, "opens": 0.09, "cut": -0.16939}, "parent": { "radius": 0.03, "depth": 0.02, "waist": 0.006}, "child": { "radius": 0.03, "depth": 0.02, "waist": 0.006} }
+    },
+    "base": {
+      "label": "Base plate",
+      "paint": "plate",
+      "blend": 0.006,
+      "cell": 0.003,
+      "spheres": 90,
+      "shapes": [
+        { "box": [0, 0, -0.155], "size": [0.14, 0.14, 0.014], "round": 0.004 },
+        { "drum": [[0, 0, -0.167], [0, 0, -0.059]], "r": 0.05 },
+        { "cut": true, "feature": "bolt hole 0", "drum": [[0.115, 0.115, -0.167], [0.115, 0.115, -0.127]], "r": 0.0065 },
+        { "cut": true, "feature": "bolt hole 1", "drum": [[0.115, -0.115, -0.167], [0.115, -0.115, -0.127]], "r": 0.0065 },
+        { "cut": true, "feature": "bolt hole 2", "drum": [[-0.115, 0.115, -0.167], [-0.115, 0.115, -0.127]], "r": 0.0065 },
+        { "cut": true, "feature": "bolt hole 3", "drum": [[-0.115, -0.115, -0.167], [-0.115, -0.115, -0.127]], "r": 0.0065 }
+      ]
+    },
+    "links": {
+      "j1": {
+        "label": "Link 1",
+        "blend": 0.0015,
+        "neck": false,
+        "cell": 0.002,
+        "spheres": 110,
+        "shapes": [
+          { "drum": [[0, 0, -0.0558], [0, 0, -0.025]], "r": 0.036, "round": 0.004 },
+          { "drum": [[0.3, 0, -0.049], [0.3, 0, -0.0212]], "r": 0.036, "round": 0.004 },
+          { "box": [0.15, 0, -0.037], "size": [0.15, 0.028, 0.012], "round": 0.006 }
+        ],
+        "covers": [
+          { "label": "Link 1 strip", "paint": "hub", "trim": true, "at": [0.15, 0.012, -0.027], "normal": [0, 0, 1], "within": [{ "at": [0.245, 0, -0.025], "normal": [1, 0, 0]}, { "at": [0.055, 0, -0.025], "normal": [-1, 0, 0]}, { "at": [0.15, 0.012, -0.025], "normal": [0, 1, 0]}, { "at": [0.15, -0.012, -0.025], "normal": [0, -1, 0]}] }
+        ]
+      },
+      "j2": {
+        "label": "Link 2",
+        "blend": 0.0015,
+        "neck": false,
+        "cell": 0.002,
+        "spheres": 110,
+        "cut": -0.16939,
+        "shapes": [
+          { "drum": [[0, 0, -0.0188], [0, 0, 0.012]], "r": 0.036, "round": 0.004 },
+          { "box": [0.135, 0, 0], "size": [0.135, 0.028, 0.012], "round": 0.006 }
+        ],
+        "covers": [
+          { "label": "Link 2 strip", "paint": "hub", "trim": true, "at": [0.125, 0.012, 0.01], "normal": [0, 0, 1], "within": [{ "at": [0.195, 0, 0.012], "normal": [1, 0, 0]}, { "at": [0.055, 0, 0.012], "normal": [-1, 0, 0]}, { "at": [0.125, 0.012, 0.012], "normal": [0, 1, 0]}, { "at": [0.125, -0.012, 0.012], "normal": [0, -1, 0]}] }
+        ]
+      }
+    }
+  },
+  "links": [
+    {"name": "j1", "axis": [0,0,1], "offset": [0.3,0,0], "mass": 1.5, "limits": [-2.9671,2.9671], "radius": 0.03, "damping": 0.5, "armature": 0.05, "torque_limit": 20, "kp": 120, "kd": 12},
+    {"name": "j2", "axis": [0,0,1], "offset": [0.25,0,0], "mass": 1, "limits": [-2.9671,2.9671], "radius": 0.016, "damping": 0.5, "armature": 0.05, "torque_limit": 10, "kp": 80, "kd": 8}
+  ]
+}

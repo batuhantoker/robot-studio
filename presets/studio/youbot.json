@@ -1,0 +1,987 @@
+{
+  "name": "KUKA youBot",
+  "units": "SI",
+  "base": [
+    0,
+    0,
+    0.0963
+  ],
+  "tool": [
+    0,
+    0,
+    0.0626
+  ],
+  "payload_mass": 0,
+  "effector": "parallel",
+  "home": [
+    0,
+    0,
+    0,
+    0,
+    -0.35,
+    -1.25,
+    -1.54,
+    0
+  ],
+  "links": [
+    {
+      "name": "drive",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "offset": [
+        0.1662,
+        0,
+        0.0026
+      ],
+      "mass": 20.845,
+      "limits": [
+        [
+          -2,
+          2
+        ],
+        [
+          -2,
+          2
+        ],
+        [
+          -3.141592653589793,
+          3.141592653589793
+        ]
+      ],
+      "radius": 0.14,
+      "damping": 20,
+      "armature": 2,
+      "torque_limit": 200,
+      "kp": 2000,
+      "kd": 200,
+      "joint": "planar",
+      "axis2": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "a1",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "offset": [
+        0.033,
+        0,
+        0.147
+      ],
+      "mass": 2.412,
+      "limits": [
+        -2.949606435870417,
+        2.949606435870417
+      ],
+      "radius": 0.036,
+      "damping": 0.3,
+      "armature": 0.05,
+      "torque_limit": 9.5,
+      "kp": 60,
+      "kd": 6
+    },
+    {
+      "name": "a2",
+      "axis": [
+        0,
+        -1,
+        0
+      ],
+      "offset": [
+        0,
+        0,
+        0.155
+      ],
+      "mass": 1.155,
+      "limits": [
+        -1.5707963267948966,
+        1.1344640137963142
+      ],
+      "radius": 0.022,
+      "damping": 0.3,
+      "armature": 0.05,
+      "torque_limit": 9.5,
+      "kp": 60,
+      "kd": 6
+    },
+    {
+      "name": "a3",
+      "axis": [
+        0,
+        -1,
+        0
+      ],
+      "offset": [
+        0,
+        0,
+        0.135
+      ],
+      "mass": 0.934,
+      "limits": [
+        -2.548180707911721,
+        2.6354471705114375
+      ],
+      "radius": 0.02,
+      "damping": 0.2,
+      "armature": 0.03,
+      "torque_limit": 6,
+      "kp": 40,
+      "kd": 4
+    },
+    {
+      "name": "a4",
+      "axis": [
+        0,
+        -1,
+        0
+      ],
+      "offset": [
+        0,
+        0,
+        0.13
+      ],
+      "mass": 0.877,
+      "limits": [
+        -1.7889624832941877,
+        1.7889624832941877
+      ],
+      "radius": 0.018,
+      "damping": 0.1,
+      "armature": 0.02,
+      "torque_limit": 2,
+      "kp": 20,
+      "kd": 2
+    },
+    {
+      "name": "a5",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "offset": [
+        0,
+        0,
+        0.025
+      ],
+      "mass": 0.251,
+      "limits": [
+        -2.923426497090502,
+        2.923426497090502
+      ],
+      "radius": 0.016,
+      "damping": 0.05,
+      "armature": 0.01,
+      "torque_limit": 1,
+      "kp": 10,
+      "kd": 1
+    }
+  ],
+  "design": {
+    "source": "Kinematics: Modern Robotics capstone. Limits, efforts, arm masses: youbot_description. Shell proportions estimated from photos.",
+    "paint": {
+      "shell": {
+        "color": "#dd6a0c",
+        "finish": "paint",
+        "roughness": 0.42,
+        "clearcoat": 0.3
+      },
+      "black": {
+        "color": "#1f2023",
+        "finish": "plastic",
+        "roughness": 0.58
+      },
+      "deck": {
+        "color": "#b9bbbc",
+        "finish": "aluminium",
+        "roughness": 0.5
+      },
+      "roller": {
+        "color": "#e0812f",
+        "finish": "rubber",
+        "roughness": 0.55
+      },
+      "battery": {
+        "color": "#3f6fa8",
+        "finish": "plastic",
+        "roughness": 0.5
+      },
+      "pc": {
+        "color": "#2f6b52",
+        "finish": "plastic",
+        "roughness": 0.5
+      }
+    },
+    "section": {
+      "at": 0.012
+    },
+    "joints": {
+      "drive": {
+        "virtual": true
+      },
+      "a1": {
+        "seat": 0.06,
+        "radius": 0.07,
+        "drive": {
+          "radius": 0.042,
+          "opens": 0.24
+        }
+      },
+      "a2": {
+        "seat": 0.026,
+        "parent": {
+          "radius": 0.042,
+          "depth": 0.058,
+          "waist": 0.034
+        },
+        "child": {
+          "radius": 0.04,
+          "depth": 0.045,
+          "waist": 0.03
+        },
+        "drive": {
+          "radius": 0.026,
+          "opens": 0.11
+        }
+      },
+      "a3": {
+        "parent": {
+          "radius": 0.038,
+          "depth": 0.044,
+          "waist": 0.03
+        },
+        "child": {
+          "radius": 0.036,
+          "depth": 0.044,
+          "waist": 0.028
+        },
+        "drive": {
+          "radius": 0.024,
+          "opens": 0.11
+        }
+      },
+      "a4": {
+        "parent": {
+          "radius": 0.034,
+          "depth": 0.04,
+          "waist": 0.027
+        },
+        "child": {
+          "radius": 0.032,
+          "depth": 0.04,
+          "waist": 0.025
+        },
+        "drive": {
+          "in": "child",
+          "radius": 0.021,
+          "opens": 0.1
+        }
+      },
+      "a5": {
+        "seat": -0.03,
+        "radius": 0.03,
+        "drive": {
+          "radius": 0.02,
+          "opens": 0.06
+        }
+      }
+    },
+    "links": {
+      "drive": {
+        "label": "Mobile platform",
+        "paint": "black",
+        "wall": 0.006,
+        "blend": 0.006,
+        "spheres": 120,
+        "shapes": [
+          {
+            "planes": [
+              {
+                "at": [
+                  0.19,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.19,
+                  0,
+                  0
+                ],
+                "normal": [
+                  -1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.188,
+                  0
+                ],
+                "normal": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.188,
+                  0
+                ],
+                "normal": [
+                  0,
+                  -1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0.122,
+                  0.188,
+                  0
+                ],
+                "normal": [
+                  0.7848827655334263,
+                  0.6196442885790208,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0.122,
+                  -0.188,
+                  0
+                ],
+                "normal": [
+                  0.7848827655334263,
+                  -0.6196442885790208,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.122,
+                  0.188,
+                  0
+                ],
+                "normal": [
+                  -0.7848827655334263,
+                  0.6196442885790208,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.122,
+                  -0.188,
+                  0
+                ],
+                "normal": [
+                  -0.7848827655334263,
+                  -0.6196442885790208,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.188,
+                  -0.022
+                ],
+                "normal": [
+                  0,
+                  0.55,
+                  0.835
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.188,
+                  -0.022
+                ],
+                "normal": [
+                  0,
+                  -0.55,
+                  0.835
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.0097
+                ],
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  -0.0813
+                ],
+                "normal": [
+                  0,
+                  0,
+                  -1
+                ]
+              }
+            ],
+            "round": 0.008
+          },
+          {
+            "planes": [
+              {
+                "at": [
+                  0.2655,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.2655,
+                  0,
+                  0
+                ],
+                "normal": [
+                  -1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.114,
+                  0
+                ],
+                "normal": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.114,
+                  0
+                ],
+                "normal": [
+                  0,
+                  -1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.0097
+                ],
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  -0.0813
+                ],
+                "normal": [
+                  0,
+                  0,
+                  -1
+                ]
+              }
+            ],
+            "round": 0.008
+          },
+          {
+            "planes": [
+              {
+                "at": [
+                  0.05,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.25,
+                  0,
+                  0
+                ],
+                "normal": [
+                  -1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.108,
+                  0
+                ],
+                "normal": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.108,
+                  0
+                ],
+                "normal": [
+                  0,
+                  -1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.014700000000000001
+                ],
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.0057
+                ],
+                "normal": [
+                  0,
+                  0,
+                  -1
+                ]
+              }
+            ],
+            "round": 0.002,
+            "crisp": true
+          },
+          {
+            "drum": [
+              [
+                0.1662,
+                0,
+                -0.0002999999999999999
+              ],
+              [
+                0.1662,
+                0,
+                0.09
+              ]
+            ],
+            "r": 0.08,
+            "crisp": true
+          }
+        ],
+        "covers": [
+          {
+            "label": "Deck plate",
+            "paint": "deck",
+            "at": [
+              0,
+              0,
+              0.0102
+            ],
+            "normal": [
+              0,
+              0,
+              1
+            ],
+            "within": [
+              {
+                "at": [
+                  0.07,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              }
+            ],
+            "opens": 0.2
+          }
+        ],
+        "wheels": [
+          {
+            "at": [
+              0.235,
+              0.15,
+              -0.0488
+            ],
+            "r": 0.0475,
+            "width": 0.06,
+            "hand": 1,
+            "axle": -0.0355,
+            "rollers": "roller",
+            "hub": "black",
+            "opens": 0.13
+          },
+          {
+            "at": [
+              0.235,
+              -0.15,
+              -0.0488
+            ],
+            "r": 0.0475,
+            "width": 0.06,
+            "hand": -1,
+            "axle": 0.0355,
+            "rollers": "roller",
+            "hub": "black",
+            "opens": 0.13
+          },
+          {
+            "at": [
+              -0.235,
+              0.15,
+              -0.0488
+            ],
+            "r": 0.0475,
+            "width": 0.06,
+            "hand": -1,
+            "axle": -0.0355,
+            "rollers": "roller",
+            "hub": "black",
+            "opens": 0.13
+          },
+          {
+            "at": [
+              -0.235,
+              -0.15,
+              -0.0488
+            ],
+            "r": 0.0475,
+            "width": 0.06,
+            "hand": 1,
+            "axle": 0.0355,
+            "rollers": "roller",
+            "hub": "black",
+            "opens": 0.13
+          }
+        ],
+        "inside": [
+          {
+            "motor": [
+              0.235,
+              0.066,
+              -0.0488
+            ],
+            "axis": [
+              0,
+              -1,
+              0
+            ],
+            "r": 0.021,
+            "length": 0.05,
+            "gear": 0.022,
+            "label": "Wheel motor",
+            "opens": [
+              0,
+              0.13,
+              0
+            ]
+          },
+          {
+            "motor": [
+              0.235,
+              -0.066,
+              -0.0488
+            ],
+            "axis": [
+              0,
+              1,
+              0
+            ],
+            "r": 0.021,
+            "length": 0.05,
+            "gear": 0.022,
+            "label": "Wheel motor",
+            "opens": [
+              0,
+              -0.13,
+              0
+            ]
+          },
+          {
+            "motor": [
+              -0.235,
+              0.066,
+              -0.0488
+            ],
+            "axis": [
+              0,
+              -1,
+              0
+            ],
+            "r": 0.021,
+            "length": 0.05,
+            "gear": 0.022,
+            "label": "Wheel motor",
+            "opens": [
+              0,
+              0.13,
+              0
+            ]
+          },
+          {
+            "motor": [
+              -0.235,
+              -0.066,
+              -0.0488
+            ],
+            "axis": [
+              0,
+              1,
+              0
+            ],
+            "r": 0.021,
+            "length": 0.05,
+            "gear": 0.022,
+            "label": "Wheel motor",
+            "opens": [
+              0,
+              -0.13,
+              0
+            ]
+          },
+          {
+            "block": [
+              -0.075,
+              0,
+              -0.036
+            ],
+            "size": [
+              0.085,
+              0.07,
+              0.028
+            ],
+            "label": "Battery",
+            "paint": "battery",
+            "opens": [
+              0,
+              0,
+              0.09
+            ]
+          },
+          {
+            "block": [
+              0.062,
+              0,
+              -0.036
+            ],
+            "size": [
+              0.042,
+              0.07,
+              0.024
+            ],
+            "label": "Onboard PC",
+            "paint": "pc",
+            "opens": [
+              0,
+              0,
+              0.09
+            ]
+          }
+        ]
+      },
+      "a1": {
+        "label": "Shoulder casting",
+        "covers": [
+          {
+            "label": "Joint cap",
+            "paint": "black",
+            "at": [
+              0.033,
+              0.04,
+              0.147
+            ],
+            "normal": [
+              0,
+              1,
+              0
+            ],
+            "radius": 0.02
+          }
+        ],
+        "shapes": [
+          {
+            "revolve": [
+              0,
+              0,
+              0.06
+            ],
+            "axis": [
+              0,
+              0,
+              1
+            ],
+            "outline": [
+              [
+                0.086,
+                0.00047
+              ],
+              [
+                0.086,
+                0.01
+              ],
+              [
+                0.078,
+                0.02
+              ],
+              [
+                0.062,
+                0.03
+              ]
+            ],
+            "crisp": true,
+            "last": true
+          }
+        ]
+      },
+      "a2": {
+        "label": "Upper arm casting",
+        "cut": 0.018,
+        "covers": [
+          {
+            "label": "Joint cap",
+            "paint": "black",
+            "at": [
+              0,
+              -0.05,
+              0
+            ],
+            "normal": [
+              0,
+              -1,
+              0
+            ],
+            "radius": 0.02
+          },
+          {
+            "label": "Joint cap",
+            "paint": "black",
+            "at": [
+              0,
+              -0.03,
+              0.155
+            ],
+            "normal": [
+              0,
+              -1,
+              0
+            ],
+            "radius": 0.02
+          }
+        ]
+      },
+      "a3": {
+        "label": "Forearm casting",
+        "covers": [
+          {
+            "label": "Joint cap",
+            "paint": "black",
+            "at": [
+              0,
+              0.03,
+              0
+            ],
+            "normal": [
+              0,
+              1,
+              0
+            ],
+            "radius": 0.02
+          },
+          {
+            "label": "Joint cap",
+            "paint": "black",
+            "at": [
+              0,
+              0.026,
+              0.135
+            ],
+            "normal": [
+              0,
+              1,
+              0
+            ],
+            "radius": 0.017
+          }
+        ]
+      },
+      "a4": {
+        "label": "Wrist casting",
+        "covers": [
+          {
+            "label": "Joint cap",
+            "paint": "black",
+            "at": [
+              0,
+              -0.026,
+              0
+            ],
+            "normal": [
+              0,
+              -1,
+              0
+            ],
+            "radius": 0.017
+          }
+        ]
+      }
+    }
+  }
+}

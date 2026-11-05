@@ -38,7 +38,7 @@ export class StudioAnalysis implements AnalysisContext {
 
   physics() {
     const p = this.studio.physics;
-    return p ? { history: p.history, reason: p.reason, limits: p.lab?.limits ?? [], lab: p.lab, current: p.current, ownMotion: p.ownMotion, onFloor: p.onFloor, floorBlock: p.floorBlock } : null;
+    return p ? { history: p.history, reason: p.reason, passive: p.passive, limits: p.lab?.limits ?? [], lab: p.lab, current: p.current, ownMotion: p.ownMotion, onFloor: p.onFloor, floorBlock: p.floorBlock } : null;
   }
 
   refreshProfile(): void {

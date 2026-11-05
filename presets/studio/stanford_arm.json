@@ -1,36 +1,45 @@
 {
-  "name": "stanford_arm",
+  "name": "Stanford Arm",
   "units": "SI",
   "base": [
-    0.0,
-    0.0,
-    0.0
+    0,
+    0,
+    0
   ],
   "tool": [
-    0.0,
-    0.0,
-    0.0
+    0,
+    0,
+    0.163
   ],
-  "payload_mass": 0.3,
+  "payload_mass": 0,
+  "effector": "parallel",
+  "home": [
+    0,
+    1.5707963267948966,
+    0.6,
+    1.5707963267948966,
+    1.45,
+    0
+  ],
   "links": [
     {
       "name": "waist",
       "axis": [
-        0.0,
-        0.0,
-        1.0
+        0,
+        0,
+        1
       ],
       "offset": [
-        0.0,
-        0.0,
+        0,
+        0,
         0.412
       ],
-      "mass": 9.0,
+      "mass": 9.29,
       "limits": [
-        -2.9671,
-        2.9671
+        -2.9670597283903604,
+        2.9670597283903604
       ],
-      "radius": 0.07,
+      "radius": 0.04,
       "damping": 1.5,
       "armature": 0.5,
       "torque_limit": 80,
@@ -40,21 +49,21 @@
     {
       "name": "shoulder",
       "axis": [
-        0.0,
-        1.0,
-        0.0
+        0,
+        1,
+        0
       ],
       "offset": [
-        0.0,
+        0,
         0.154,
-        0.0
+        0
       ],
-      "mass": 6.0,
+      "mass": 5.01,
       "limits": [
-        -1.7453,
-        1.7453
+        -2.9670597283903604,
+        2.9670597283903604
       ],
-      "radius": 0.06,
+      "radius": 0.04,
       "damping": 1.5,
       "armature": 0.5,
       "torque_limit": 80,
@@ -63,68 +72,702 @@
     },
     {
       "name": "boom",
-      "joint": "prismatic",
       "axis": [
-        1.0,
-        0.0,
-        0.0
+        0,
+        0,
+        1
       ],
       "offset": [
-        0.35,
-        0.0,
-        0.0
-      ],
-      "mass": 4.0,
-      "limits": [
         0,
-        0.6
+        0,
+        0
       ],
-      "radius": 0.035,
-      "damping": 10.0,
-      "armature": 1.0,
-      "torque_limit": 300,
-      "kp": 1500,
-      "kd": 150
+      "mass": 4.25,
+      "limits": [
+        0.30479999999999996,
+        1.27
+      ],
+      "radius": 0.02,
+      "damping": 8.0,
+      "armature": 0.8,
+      "torque_limit": 200,
+      "kp": 800,
+      "kd": 80,
+      "joint": "prismatic"
     },
     {
-      "name": "wrist",
-      "joint": "spherical",
+      "name": "wrist_roll",
       "axis": [
-        1.0,
-        0.0,
-        0.0
-      ],
-      "axis2": [
-        0.0,
-        1.0,
-        0.0
+        0,
+        0,
+        1
       ],
       "offset": [
-        0.15,
-        0.0,
-        0.0
+        0,
+        0,
+        0
       ],
-      "mass": 1.2,
+      "mass": 1.08,
       "limits": [
-        [
-          -3.141592653589793,
-          3.141592653589793
-        ],
-        [
-          -1.6,
-          1.6
-        ],
-        [
-          -3.141592653589793,
-          3.141592653589793
-        ]
+        -2.9670597283903604,
+        2.9670597283903604
       ],
-      "radius": 0.035,
-      "damping": 0.3,
-      "armature": 0.05,
+      "radius": 0.018,
+      "damping": 0.1,
+      "armature": 0.03,
+      "torque_limit": 20,
+      "kp": 60,
+      "kd": 6
+    },
+    {
+      "name": "wrist_pitch",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "mass": 0.63,
+      "limits": [
+        -1.5707963267948966,
+        1.5707963267948966
+      ],
+      "radius": 0.017,
+      "damping": 0.1,
+      "armature": 0.03,
+      "torque_limit": 15,
+      "kp": 50,
+      "kd": 5
+    },
+    {
+      "name": "tool_roll",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "offset": [
+        0,
+        0,
+        0.1
+      ],
+      "mass": 0.51,
+      "limits": [
+        -2.9670597283903604,
+        2.9670597283903604
+      ],
+      "radius": 0.015,
+      "damping": 0.05,
+      "armature": 0.02,
       "torque_limit": 10,
-      "kp": 40,
-      "kd": 4
+      "kp": 30,
+      "kd": 3
     }
-  ]
+  ],
+  "design": {
+    "source": "Corke's mdl_stanford: DH (Stanford AIM-177), boom stroke, limits, tool; masses from Paul 1981. Forms and paint from a photo of the arm at Stanford; their dimensions are estimates.",
+    "paint": {
+      "shell": {
+        "color": "#c8bf8c",
+        "finish": "anodized",
+        "roughness": 0.46
+      },
+      "brass": {
+        "color": "#b39f58",
+        "finish": "anodized",
+        "roughness": 0.4
+      },
+      "plate": {
+        "color": "#dcdcd2",
+        "finish": "anodized",
+        "roughness": 0.5
+      },
+      "silver": {
+        "color": "#b8babd",
+        "finish": "aluminium",
+        "roughness": 0.42
+      },
+      "seam": {
+        "color": "#3a3b3e",
+        "finish": "plastic",
+        "roughness": 0.55
+      }
+    },
+    "section": {
+      "at": 0.06
+    },
+    "joints": {
+      "waist": {
+        "seat": 0.3,
+        "radius": 0.076
+      },
+      "shoulder": {
+        "seat": 0.07,
+        "radius": 0.05,
+        "drive": {
+          "radius": 0.034
+        }
+      },
+      "boom": {
+        "child": {
+          "radius": 0.04
+        },
+        "slide": {
+          "form": "quill",
+          "square": true,
+          "side": [
+            -1,
+            0,
+            0
+          ],
+          "r": 0.032,
+          "outer": 0.07,
+          "guide": 0.365,
+          "centre": -0.0075,
+          "front": -0.125,
+          "back": -1.16,
+          "paint": "shell",
+          "cut": -0.154,
+          "wheel": -0.15,
+          "away": -1,
+          "motor": 0.024
+        }
+      },
+      "wrist_roll": {
+        "seat": -0.082,
+        "radius": 0.036,
+        "drive": {
+          "radius": 0.016,
+          "cut": -0.154
+        }
+      },
+      "wrist_pitch": {
+        "seat": 0.0505,
+        "parent": {
+          "radius": 0.024,
+          "depth": 0.016
+        },
+        "child": {
+          "radius": 0.024,
+          "depth": 0.012
+        },
+        "drive": {
+          "centre": 0.012,
+          "radius": 0.021,
+          "shaft": 0.006,
+          "cut": -0.154
+        }
+      },
+      "tool_roll": {
+        "seat": 0.06,
+        "radius": 0.028,
+        "drive": {
+          "radius": 0.012,
+          "cut": -0.154
+        }
+      }
+    },
+    "base": {
+      "label": "Column",
+      "wall": 0.008,
+      "blend": 0.012,
+      "spheres": 90,
+      "covers": [
+        {
+          "label": "Waist bearing",
+          "paint": "seam",
+          "at": [
+            0,
+            0,
+            0.288
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "width": 0.007
+        }
+      ],
+      "shapes": [
+        {
+          "drum": [
+            [
+              0,
+              0,
+              -0.02
+            ],
+            [
+              0,
+              0,
+              0.03
+            ]
+          ],
+          "r": 0.135,
+          "round": 0.006
+        },
+        {
+          "drum": [
+            [
+              0,
+              0,
+              0.01
+            ],
+            [
+              0,
+              0,
+              0.31
+            ]
+          ],
+          "r": 0.076
+        }
+      ]
+    },
+    "links": {
+      "waist": {
+        "label": "Waist casting",
+        "blend": 0.012,
+        "wall": 0.008,
+        "spheres": 100,
+        "shapes": [
+          {
+            "drum": [
+              [
+                0,
+                -0.078,
+                0.412
+              ],
+              [
+                0,
+                0.056,
+                0.412
+              ]
+            ],
+            "r": 0.125,
+            "round": 0.008
+          }
+        ]
+      },
+      "shoulder": {
+        "label": "Shoulder housing",
+        "blend": 0.006,
+        "wall": 0.007,
+        "spheres": 120,
+        "cut": -0.154,
+        "covers": [
+          {
+            "label": "Boom motor",
+            "paint": "seam",
+            "at": [
+              0,
+              0,
+              -0.2
+            ],
+            "normal": [
+              0,
+              0,
+              -1
+            ]
+          }
+        ]
+      },
+      "boom": {
+        "label": "Boom head",
+        "wall": 0.005,
+        "cut": -0.154,
+        "shapes": [
+          {
+            "planes": [
+              {
+                "at": [
+                  0.042,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.042,
+                  0,
+                  0
+                ],
+                "normal": [
+                  -1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.042,
+                  0
+                ],
+                "normal": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.042,
+                  0
+                ],
+                "normal": [
+                  0,
+                  -1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  -0.0825
+                ],
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  -0.125
+                ],
+                "normal": [
+                  0,
+                  0,
+                  -1
+                ]
+              }
+            ],
+            "round": 0.003
+          }
+        ]
+      },
+      "wrist_roll": {
+        "label": "Wrist can",
+        "paint": "brass",
+        "wall": 0.0035,
+        "neck": false,
+        "cut": -0.154,
+        "shapes": [
+          {
+            "drum": [
+              [
+                0,
+                0,
+                -0.0825
+              ],
+              [
+                0,
+                0,
+                -0.02
+              ]
+            ],
+            "r": 0.024,
+            "crisp": true
+          },
+          {
+            "drum": [
+              [
+                -0.050100000000000006,
+                0,
+                0
+              ],
+              [
+                0.050100000000000006,
+                0,
+                0
+              ]
+            ],
+            "r": 0.033,
+            "crisp": true
+          }
+        ]
+      },
+      "wrist_pitch": {
+        "label": "Wrist yoke",
+        "paint": "plate",
+        "wall": 0.0035,
+        "neck": false,
+        "cut": -0.154,
+        "spheres": 90,
+        "shapes": [
+          {
+            "planes": [
+              {
+                "at": [
+                  0.07,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.07,
+                  0,
+                  0
+                ],
+                "normal": [
+                  -1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.034,
+                  0
+                ],
+                "normal": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.034,
+                  0
+                ],
+                "normal": [
+                  0,
+                  -1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.0596
+                ],
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.046
+                ],
+                "normal": [
+                  0,
+                  0,
+                  -1
+                ]
+              }
+            ],
+            "crisp": true,
+            "last": true
+          },
+          {
+            "planes": [
+              {
+                "at": [
+                  0.07,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0.051100000000000007,
+                  0,
+                  0
+                ],
+                "normal": [
+                  -1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.034,
+                  0
+                ],
+                "normal": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.034,
+                  0
+                ],
+                "normal": [
+                  0,
+                  -1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.0596
+                ],
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  -0.04
+                ],
+                "normal": [
+                  0,
+                  0,
+                  -1
+                ]
+              }
+            ],
+            "crisp": true,
+            "last": true
+          },
+          {
+            "planes": [
+              {
+                "at": [
+                  -0.051100000000000007,
+                  0,
+                  0
+                ],
+                "normal": [
+                  1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  -0.07,
+                  0,
+                  0
+                ],
+                "normal": [
+                  -1,
+                  0,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.034,
+                  0
+                ],
+                "normal": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.034,
+                  0
+                ],
+                "normal": [
+                  0,
+                  -1,
+                  0
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  0.0596
+                ],
+                "normal": [
+                  0,
+                  0,
+                  1
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0,
+                  -0.04
+                ],
+                "normal": [
+                  0,
+                  0,
+                  -1
+                ]
+              }
+            ],
+            "crisp": true,
+            "last": true
+          }
+        ]
+      },
+      "tool_roll": {
+        "label": "Tool cylinder",
+        "paint": "silver",
+        "wall": 0.003,
+        "cut": -0.154,
+        "shapes": [
+          {
+            "drum": [
+              [
+                0,
+                0,
+                0.0606
+              ],
+              [
+                0,
+                0,
+                0.1
+              ]
+            ],
+            "r": 0.024,
+            "crisp": true
+          }
+        ]
+      }
+    }
+  }
 }

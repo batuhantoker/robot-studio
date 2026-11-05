@@ -1,5 +1,5 @@
 {
-  "name": "irb120",
+  "name": "ABB IRB 120",
   "units": "SI",
   "base": [
     0.0,
@@ -11,7 +11,107 @@
     0.0,
     0.0
   ],
-  "payload_mass": 0.3,
+  "payload_mass": 0,
+  "home": [0, 0, 0, 0, 1.5708, 0],
+  "design": {
+    "source": "Proportions measured from the armor-abb-irb120 meshes at the zero pose; those meshes are not used. Base 180 x 180 mm, ranges and 25 kg from ABB's IRB 120 data sheets and product specification. Colour is ABB Graphite White; see the README for what that rests on.",
+    "paint": {
+      "shell": { "color": "#cdd1ce", "finish": "paint", "roughness": 0.55, "clearcoat": 0.1 },
+      "dark": { "color": "#2d2f33", "finish": "anodized", "roughness": 0.5 }
+    },
+    "section": { "at": 0 },
+    "joints": {
+      "axis1": { "seat": 0.166, "radius": 0.09, "drive": { "radius": 0.046, "cut": 0} },
+      "axis2": { "seat": 0.06, "drive": { "cut": -0.045, "opens": 0.13, "along": [0, 0, 1]}, "parent": { "radius": 0.055, "depth": 0.05, "waist": 0.01}, "child": { "radius": 0.055, "depth": 0.05, "waist": 0.012, "fork": 0.125} },
+      "axis3": { "seat": -0.06, "drive": { "in": "child", "cut": -0.045, "opens": 0.14, "along": [0, 0, 1]}, "parent": { "radius": 0.05, "depth": 0.05, "waist": 0.012, "fork": 0.125}, "child": { "radius": 0.05, "depth": 0.05, "waist": 0.01} },
+      "axis4": { "seat": 0.15, "radius": 0.05 },
+      "axis5": { "seat": -0.036, "drive": { "in": "child", "radius": 0.026, "cut": 0.0265, "opens": 0.1, "along": [1, 0, 0]}, "parent": { "radius": 0.036, "depth": 0.028, "waist": 0.01, "fork": 0.073}, "child": { "radius": 0.036, "depth": 0.07, "waist": 0.01} },
+      "axis6": { "seat": 0.058, "radius": 0.033, "drive": { "radius": 0.018} }
+    },
+    "base": {
+      "label": "Base",
+      "blend": 0.01,
+      "cell": 0.0035,
+      "spheres": 120,
+      "covers": [
+        { "label": "Connector panel", "paint": "shell", "at": [-0.2115, 0, 0.08], "normal": [-1, 0, 0] }
+      ],
+      "shapes": [
+        { "box": [0, 0, 0.006], "size": [0.09, 0.09, 0.016], "round": 0.006 },
+        { "box": [0, 0, 0.086], "size": [0.087, 0.087, 0.09], "round": 0.03 },
+        { "box": [-0.14, 0, 0.078], "size": [0.072, 0.06, 0.07], "round": 0.006 },
+        { "cut": true, "feature": "foot hole 0", "drum": [[0.075, 0.075, -0.01], [0.075, 0.075, 0.03]], "r": 0.0055 },
+        { "cut": true, "feature": "foot hole 1", "drum": [[0.075, -0.075, -0.01], [0.075, -0.075, 0.03]], "r": 0.0055 },
+        { "cut": true, "feature": "foot hole 2", "drum": [[-0.075, 0.075, -0.01], [-0.075, 0.075, 0.03]], "r": 0.0055 },
+        { "cut": true, "feature": "foot hole 3", "drum": [[-0.075, -0.075, -0.01], [-0.075, -0.075, 0.03]], "r": 0.0055 }
+      ]
+    },
+    "links": {
+      "axis1": {
+        "label": "Swing casting",
+        "blend": 0.008,
+        "spheres": 120,
+        "neck": false,
+        "shapes": [
+          { "drum": [[0, 0, 0.16], [0, 0, 0.197]], "r": 0.108, "round": 0.014 },
+          { "box": [0, 0, 0.25], "size": [0.062, 0.056, 0.06], "round": 0.012 },
+          { "drum": [[0, -0.057, 0.29], [0, 0.064, 0.29]], "r": 0.062, "round": 0.004 }
+        ]
+      },
+      "axis2": {
+        "label": "Upper arm",
+        "blend": 0.0008,
+        "spheres": 150,
+        "neck": false,
+        "shapes": [
+          { "drum": [[0, 0.0635, 0], [0, 0.11, 0]], "r": 0.074, "round": 0.012 },
+          { "drum": [[0, 0.0635, 0.27], [0, 0.11, 0.27]], "r": 0.054, "round": 0.012 },
+          { "round": 0.012, "planes": [{ "at": [0.05385, 0.08675, 0.274], "normal": [0.99725, 0, 0.07407]}, { "at": [-0.05385, 0.08675, 0.274], "normal": [-0.99725, 0, 0.07407]}, { "at": [0, 0.0635, 0.13], "normal": [0, -1, 0]}, { "at": [0, 0.11, 0.13], "normal": [0, 1, 0]}, { "at": [0, 0.08675, 0.27], "normal": [0, 0, 1]}, { "at": [0, 0.08675, 0], "normal": [0, 0, -1]}] },
+          { "drum": [[0, -0.11, 0], [0, -0.0635, 0]], "r": 0.074, "round": 0.012 },
+          { "drum": [[0, -0.11, 0.27], [0, -0.0635, 0.27]], "r": 0.054, "round": 0.012 },
+          { "round": 0.012, "planes": [{ "at": [0.05385, -0.08675, 0.274], "normal": [0.99725, 0, 0.07407]}, { "at": [-0.05385, -0.08675, 0.274], "normal": [-0.99725, 0, 0.07407]}, { "at": [0, -0.11, 0.13], "normal": [0, -1, 0]}, { "at": [0, -0.0635, 0.13], "normal": [0, 1, 0]}, { "at": [0, -0.08675, 0.27], "normal": [0, 0, 1]}, { "at": [0, -0.08675, 0], "normal": [0, 0, -1]}] },
+          { "box": [0, 0, 0.138], "size": [0.04, 0.07, 0.036], "round": 0.012 }
+        ]
+      },
+      "axis3": {
+        "label": "Elbow housing",
+        "blend": 0.01,
+        "spheres": 130,
+        "neck": false,
+        "shapes": [
+          { "drum": [[0, -0.058, 0], [0, 0.064, 0]], "r": 0.052, "round": 0.004 },
+          { "round": 0.007, "planes": [{ "at": [0.03, 0, 0.137], "normal": [0, 0, 1]}, { "at": [0.03, 0, 0.025], "normal": [0, 0, -1]}, { "at": [0.155, 0, 0.08], "normal": [1, 0, 0]}, { "at": [-0.077, 0, 0.08], "normal": [-1, 0, 0]}, { "at": [0.03, 0.057, 0.08], "normal": [0, 1, 0]}, { "at": [0.03, -0.057, 0.08], "normal": [0, -1, 0]}] },
+          { "crisp": true, "feature": "cover wedge", "planes": [{ "at": [-0.08, 0, 0.03], "normal": [0.50104, 0, -0.86543]}, { "at": [0, 0, 0.14], "normal": [0, 0, 1]}, { "at": [-0.08, 0, 0.09], "normal": [-1, 0, 0]}, { "at": [0.11, 0, 0.09], "normal": [1, 0, 0]}, { "at": [0, 0.0605, 0.09], "normal": [0, 1, 0]}, { "at": [0, -0.0605, 0.09], "normal": [0, -1, 0]}] }
+        ]
+      },
+      "axis4": {
+        "label": "Forearm",
+        "blend": 0.008,
+        "spheres": 130,
+        "neck": false,
+        "covers": [
+          { "label": "Forearm cover", "paint": "shell", "at": [0.19, 0.0625, 0], "normal": [0, 1, 0], "within": [{ "at": [0.222, 0, 0], "normal": [1, 0, 0]}, { "at": [0.158, 0, 0], "normal": [-1, 0, 0]}, { "at": [0.19, 0, 0.046], "normal": [0, 0, 1]}, { "at": [0.19, 0, -0.032], "normal": [0, 0, -1]}] },
+          { "label": "Forearm cover near", "paint": "shell", "at": [0.19, -0.0625, 0], "normal": [0, -1, 0], "within": [{ "at": [0.222, 0, 0], "normal": [1, 0, 0]}, { "at": [0.158, 0, 0], "normal": [-1, 0, 0]}, { "at": [0.19, 0, 0.046], "normal": [0, 0, 1]}, { "at": [0.19, 0, -0.032], "normal": [0, 0, -1]}] }
+        ],
+        "shapes": [
+          { "box": [0.19, 0, 0.007], "size": [0.043, 0.064, 0.053], "round": 0.01 },
+          { "box": [0.265, -0.051, 0], "size": [0.052, 0.0135, 0.046], "round": 0.012 },
+          { "box": [0.265, 0.051, 0], "size": [0.052, 0.0135, 0.046], "round": 0.012 },
+          { "drum": [[0.302, -0.0645, 0], [0.302, -0.0375, 0]], "r": 0.046, "round": 0.006 },
+          { "drum": [[0.302, 0.0645, 0], [0.302, 0.0375, 0]], "r": 0.046, "round": 0.006 }
+        ]
+      },
+      "axis5": {
+        "label": "Wrist",
+        "blend": 0.006,
+        "shapes": [
+          { "drum": [[0, -0.034, 0], [0, 0.034, 0]], "r": 0.041, "round": 0.006 },
+          { "drum": [[0, 0, 0], [0.06, 0, 0]], "r": 0.033 }
+        ]
+      },
+      "axis6": { "label": "Tool flange", "paint": "dark" }
+    }
+  },
   "links": [
     {
       "name": "axis1",
@@ -25,7 +125,7 @@
         0.0,
         0.29
       ],
-      "mass": 3.067,
+      "mass": 16.137,
       "limits": [
         -2.8798,
         2.8798

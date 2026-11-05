@@ -31,7 +31,7 @@ export function collectHull(slots: Slot[], chain: Chain): HullVolume[] {
       const h = hullOf(o);
       if (h) add(o, h.shape, h.size);
     });
-    if (out.length > before) continue;
+    if (out.length > before || slot.enclosed) continue;
     slot.group.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh || SKIP.has(partOf(mesh)?.layer ?? '')) return;

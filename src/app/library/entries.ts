@@ -1,4 +1,5 @@
 /** One list for presets, fetched CAD robots, prostheses, and the user's own designs, with filter facets. */
+import { isPassive } from '../../core/robot/config/passive';
 import { specDofs } from '../../core/robot/config/pose';
 import { JOINT_KINDS } from '../../core/robot/joints/kinds';
 import type { RobotSpec } from '../../core/robot/schema/types';
@@ -6,6 +7,18 @@ import { PRESETS } from '../presets/load';
 import type { Catalog, CatalogRobot } from '../robots/catalog';
 import type { LibraryEntry, TwinRef } from '../state/types';
 import type { SavedRobot } from './storage';
+
+// The pack titles of these two name a source file, not a robot; they stay in the pack so it needs no rebuild.
+const CAD_TITLES: Record<string, string> = {
+  'armor-unitree-z1': 'Unitree Z1 without gripper',
+  'armor-ur5e': 'Universal Robots UR5e, manufacturer model',
+};
+
+// Vendored files stay byte-identical to upstream, so a display name for one lives here.
+const PRESET_TITLES: Record<string, string> = { original_4dof: '4-DOF Arm' };
+
+/** The name a catalog robot goes by in the studio. */
+export const cadTitle = (r: { id: string; title: string }): string => CAD_TITLES[r.id] ?? r.title;
 
 const kindsOf = (spec: RobotSpec) => [...new Set(spec.links.map((l) => JOINT_KINDS[l.joint].label.toLowerCase()))];
 
@@ -18,8 +31,8 @@ function specEntry(id: string, group: 'preset' | 'mine', spec: RobotSpec, twin?:
   return {
     id, title: spec.name, group, spec, twin,
     subtitle: `${twin ? 'CAD twin · ' : ''}${describe(spec)}`,
-    dof, chainDof: dof, category: 'arm',
-    maker: group === 'preset' ? 'Preset' : twin ? `Twin of ${twin.catalogId}` : 'You',
+    dof, chainDof: dof, category: isPassive(spec) ? 'other' : 'arm',
+    maker: group === 'preset' ? 'Preset' : twin ? `Twin of ${twin.title ?? twin.catalogId}` : 'You',
     tags: [...kindsOf(spec), ...(twin ? ['twin'] : []), group === 'mine' ? 'mine' : 'preset'],
     localOnly: false,
   };
@@ -41,7 +54,7 @@ function cadEntry(r: CatalogRobot): LibraryEntry {
   const maker = r.vendor ?? r.maker;
   const chainDof = r.chain ? r.dof : 0;
   return {
-    id: `cad:${r.id}`, title: r.title, group: 'cad', catalogId: r.id,
+    id: `cad:${r.id}`, title: cadTitle(r), group: 'cad', catalogId: r.id,
     subtitle: [maker, r.category].filter(Boolean).join(' · '),
     dof: r.joints_total ?? chainDof, chainDof,
     category: r.category ?? 'arm', maker,
@@ -53,7 +66,7 @@ function cadEntry(r: CatalogRobot): LibraryEntry {
 export function buildEntries(catalog: Catalog | null, mine: SavedRobot[]): LibraryEntry[] {
   return [
     ...mine.map((r) => specEntry(r.id, 'mine', r.spec, r.twin)),
-    ...PRESETS.map((p) => specEntry(`preset:${p.id}`, 'preset', p.spec)),
+    ...PRESETS.map((p) => ({ ...specEntry(`preset:${p.id}`, 'preset', p.spec), title: PRESET_TITLES[p.id] ?? p.spec.name })),
     ...(catalog?.robots ?? []).map(cadEntry),
   ];
 }

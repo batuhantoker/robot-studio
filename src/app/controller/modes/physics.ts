@@ -7,6 +7,7 @@ import { movesJoints } from '../../../core/control/motion';
 import type { RunScore, RunStats } from '../../../core/control/score';
 import { type Transform, quatToMat } from '../../../core/math/linear/transform';
 import type { Vec3 } from '../../../core/math/linear/vec';
+import { isPassive } from '../../../core/robot/config/passive';
 import type { Plan } from '../../../core/trajectory/plan';
 import { defaultWaypoints } from '../../../core/trajectory/quintic/sample';
 import { type Rig, floorRig, hasCollision, standRig } from '../../../physics/control/rig';
@@ -60,11 +61,14 @@ const LEARN_MAX = 40;
 const MAX_LAG = 0.05;
 /** A balance lesson runs past the scored test, or the network learns to last exactly that long. */
 const BALANCE_SECONDS = 8;
+/** A robot with no motors has nothing to track: it is simply let go, for this long. */
+const FREE_SECONDS = 60;
 
 const emptyHistory = (): PhysicsHistory => ({ t: [], error: [], applied: [], requested: [] });
 
 export class PhysicsMode {
   readonly reason: string | null = null;
+  readonly passive: boolean;
   history = emptyHistory();
   last: SimReadout | null = null;
   /** The run in progress, so far. */
@@ -95,6 +99,7 @@ export class PhysicsMode {
   private target = new Float64Array(0);
 
   constructor(readonly session: RobotSession, private readonly focus: () => number, private readonly stage: PhysicsStage) {
+    this.passive = isPassive(session.spec);
     if (!session.joints.length) {
       this.reason = 'This model has no joints to drive.';
       return;
@@ -291,7 +296,7 @@ export class PhysicsMode {
     const limits = jointLimits(this.session);
     this.ownMotion = !movesJoints(plan.waypoints, this.lab!.judged());
     const played = this.ownMotion ? { waypoints: defaultWaypoints(limits, this.session.home), duration: plan.duration } : plan;
-    return sampleReference(player(limits, played), plan.duration, sim.dt);
+    return sampleReference(player(limits, played), this.passive ? FREE_SECONDS : plan.duration, sim.dt);
   }
 
   private begin(ref: Reference): void {

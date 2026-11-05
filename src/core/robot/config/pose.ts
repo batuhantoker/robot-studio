@@ -17,6 +17,7 @@ export const clipToLimits = (spec: RobotSpec, q: number[]): number[] =>
 /** Upper bound on tool distance from the base point. */
 export const reachEstimate = (spec: RobotSpec): number =>
   spec.links.reduce((s, l) => {
-    const stroke = l.dofs.filter((d) => d.type === 'slide').reduce((m, d) => m + Math.max(...d.limits.map(Math.abs)), 0);
+    // A base that drives anywhere has range, not reach.
+    const stroke = spec.design?.joints?.[l.name]?.virtual ? 0 : l.dofs.filter((d) => d.type === 'slide').reduce((m, d) => m + Math.max(...d.limits.map(Math.abs)), 0);
     return s + Math.hypot(...l.offset) + stroke;
   }, 0) + Math.hypot(...spec.tool);

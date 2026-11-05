@@ -36,7 +36,7 @@ export interface Assembly {
   floorZ: number;
   /** Collision volumes per chain frame; imported CAD uses its model's own geoms instead. */
   hull?: HullVolume[];
-  /** Procedural robots only; imported CAD keeps its own hand. */
+  /** Procedural robots; on imported CAD the session's `rigs` hold the tools. */
   effector?: EffectorRig;
   /** Pose every slot for each limb's frames and an explode factor (0..1). */
   update(limbs: ChainFrames[], explode: number): void;

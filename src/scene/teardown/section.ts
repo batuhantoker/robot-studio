@@ -1,5 +1,6 @@
 /** Where the section cuts: a plane fixed in the robot's frame, and the outline that marks it on the stage. */
 import * as THREE from 'three';
+import type { SectionDesign } from '../../core/robot/schema/design';
 import { PALETTE } from '../stage/palette';
 
 export type SectionAxis = 'x' | 'y' | 'z';
@@ -16,8 +17,10 @@ const UNIT: Record<SectionAxis, THREE.Vector3> = {
   z: new THREE.Vector3(0, 0, 1),
 };
 /** The two axes each plane spans, for the outline. */
-const SPAN: Record<SectionAxis, [SectionAxis, SectionAxis]> = { x: ['y', 'z'], y: ['x', 'z'], z: ['x', 'y'] };
+const SPAN: Record<SectionAxis, [SectionAxis, SectionAxis]> = { x: ['y', 'z'], y: ['z', 'x'], z: ['x', 'y'] };
 const MARGIN = 1.12;
+/** Of the half extent: an arm's mid plane is where its hinge interfaces lie, so a cut there misses whole links. */
+const OFF_CENTRE = 0.22;
 
 export class SectionPlane {
   readonly group = new THREE.Group();
@@ -25,12 +28,15 @@ export class SectionPlane {
   private readonly box = new THREE.Box3(new THREE.Vector3(-0.5, -0.5, 0), new THREE.Vector3(0.5, 0.5, 1));
   private readonly basis = new THREE.Matrix4();
   readonly plane = new THREE.Plane();
+  /** Where a robot's own lengthwise cut lies, when its links sit off the middle plane. */
+  private design: SectionDesign | null = null;
 
   constructor() {
     const corners = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]].map(([x, y]) => new THREE.Vector3(x, y, 0));
     const outline = new THREE.LineLoop(
       new THREE.BufferGeometry().setFromPoints(corners),
-      new THREE.LineBasicMaterial({ color: PALETTE.accent, transparent: true, opacity: 0.75 }),
+      // No depth test: its bottom edge lies under the floor, and nothing else can stand in front of the cut.
+      new THREE.LineBasicMaterial({ color: PALETTE.accent, transparent: true, opacity: 0.75, depthTest: false }),
     );
     // Outline only: a fill would tint the whole kept half, which always lies behind the plane.
     outline.raycast = () => {};
@@ -41,6 +47,7 @@ export class SectionPlane {
   measure(root: THREE.Object3D, holder: THREE.Object3D): void {
     holder.updateMatrixWorld(true);
     this.box.setFromObject(root).applyMatrix4(holder.matrixWorld.clone().invert());
+    this.design = (root.userData.section as SectionDesign | undefined) ?? null;
   }
 
   /** The lengthwise cut, across the thinner horizontal extent: an arm splits along its links. */
@@ -58,6 +65,8 @@ export class SectionPlane {
     const turn = holder.getWorldQuaternion(new THREE.Quaternion());
     const normal = UNIT[section.axis].clone().applyQuaternion(turn);
     if (normal.dot(point.clone().sub(camera.position)) < 0) normal.negate();
+    // Towards the camera, so the cut goes through the near knuckles and the far ones stay behind it.
+    point.addScaledVector(normal, section.axis === 'y' && this.design ? -this.design.at : -OFF_CENTRE * size[section.axis] * 0.5);
     this.plane.setFromNormalAndCoplanarPoint(normal, point);
 
     const [u, v] = SPAN[section.axis];

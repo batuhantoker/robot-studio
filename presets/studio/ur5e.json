@@ -1,5 +1,5 @@
 {
-  "name": "ur5e",
+  "name": "Universal Robots UR5e",
   "units": "SI",
   "base": [
     0.0,
@@ -11,8 +11,130 @@
     0.0,
     0.0
   ],
-  "payload_mass": 0.5,
-  "home": [-1.5708, -1.5708, 1.5708, -1.5708, -1.5708, 0],
+  "payload_mass": 0,
+  "home": [3.1416, -1.5708, 1.5708, -1.5708, -1.5708, 0],
+  "design": {
+    "source": "Proportions measured from MuJoCo Menagerie's universal_robots_ur5e meshes at the zero pose; those meshes are not used. Paint from Universal Robots' UR5e technical specification photo and e-Series family photo. Footprint, ranges, tool flange and weight from that specification.",
+    "paint": {
+      "shell": { "color": "#8a8c90", "finish": "paint", "roughness": 0.55, "clearcoat": 0.1 },
+      "tube": { "color": "#c1c1c1", "finish": "aluminium", "roughness": 0.42 },
+      "cap": { "color": "#a0c9e2", "finish": "plastic", "roughness": 0.5 },
+      "seam": { "color": "#2a2b2e", "finish": "anodized", "roughness": 0.5 }
+    },
+    "section": { "at": 0.0663 },
+    "joints": {
+      "shoulder_pan": { "seat": 0.099, "radius": 0.058, "drive": { "cut": -0.1333} },
+      "shoulder_lift": { "seat": 0.074, "drive": { "in": "child", "cut": -0.0433, "opens": 0.15}, "parent": { "radius": 0.058, "depth": 0.05, "waist": 0.003}, "child": { "radius": 0.058, "depth": 0.1, "waist": 0.003} },
+      "elbow": { "seat": -0.06, "drive": { "cut": -0.0583, "opens": 0.15}, "parent": { "radius": 0.058, "depth": 0.1, "waist": 0.003}, "child": { "radius": 0.058, "depth": 0.09, "waist": 0.003} },
+      "wrist_1": { "seat": 0.06, "radius": 0.04, "drive": { "in": "child", "cut": -0.0633} },
+      "wrist_2": { "seat": 0.0535, "radius": 0.04 },
+      "wrist_3": { "seat": 0.0537, "radius": 0.04, "drive": { "radius": 0.024} }
+    },
+    "base": {
+      "label": "Foot",
+      "paint": "tube",
+      "blend": 0.006,
+      "cell": 0.003,
+      "cut": -0.1333,
+      "wall": 0.01,
+      "shapes": [
+        { "revolve": [0, 0, 0], "axis": [0, 0, 1], "outline": [[0.0755, -0.01], [0.0755, 0.018], [0.0725, 0.03], [0.0655, 0.05], [0.0585, 0.075], [0.0581, 0.11]] }
+      ],
+      "covers": [
+        { "label": "Base seam", "paint": "seam", "at": [0, 0, 0.09], "normal": [0, 0, 1] }
+      ]
+    },
+    "links": {
+      "shoulder_pan": {
+        "label": "Shoulder housing",
+        "blend": 0.016,
+        "collar": 0.03,
+        "spheres": 110,
+        "cell": 0.003,
+        "cut": -0.1333,
+        "wall": 0.011,
+        "shapes": [
+          { "drum": [[0, 0, 0.09], [0, 0, 0.235]], "r": 0.06, "round": 0.008 },
+          { "drum": [[0, 0, 0.1625], [0, 0.0705, 0.1625]], "r": 0.058 }
+        ],
+        "covers": [
+          { "label": "Shoulder cap", "paint": "cap", "at": [0, 0, 0.1965], "normal": [0, -0.39029, 0.92069] }
+        ]
+      },
+      "shoulder_lift": {
+        "label": "Upper arm",
+        "blend": 0.02,
+        "spheres": 150,
+        "wall": 0.012,
+        "shapes": [
+          { "drum": [[0, 0.0775, 0], [0, 0.21, 0]], "r": 0.0605, "round": 0.004 },
+          { "drum": [[0.425, 0.0635, 0], [0.425, 0.21, 0]], "r": 0.0605, "round": 0.004 },
+          { "revolve": [0.2125, 0.138, 0], "axis": [1, 0, 0], "outline": [[0.058, -0.2], [0.058, -0.145], [0.05, -0.128], [0.0425, -0.112], [0.041, -0.09], [0.041, 0.09], [0.0425, 0.112], [0.05, 0.128], [0.058, 0.145], [0.058, 0.2]] }
+        ],
+        "covers": [
+          { "label": "Upper arm tube", "paint": "tube", "at": [0.082, 0, 0], "normal": [1, 0, 0], "width": 0.261 },
+          { "label": "Shoulder ring", "paint": "seam", "at": [0.0705, 0, 0], "normal": [1, 0, 0], "width": 0.011 },
+          { "label": "Elbow ring", "paint": "seam", "at": [0.3435, 0, 0], "normal": [1, 0, 0], "width": 0.011 },
+          { "label": "Shoulder end cap", "paint": "cap", "at": [0, 0.172, 0], "normal": [-0.38497, 0.92293, 0] },
+          { "label": "Elbow end cap", "paint": "cap", "at": [0.425, 0.172, 0], "normal": [0.38497, 0.92293, 0] }
+        ]
+      },
+      "elbow": {
+        "label": "Forearm",
+        "blend": 0.018,
+        "collar": 0.053,
+        "spheres": 130,
+        "cut": -0.1263,
+        "wall": 0.011,
+        "shapes": [
+          { "drum": [[0, 0.0565, 0], [0, -0.041, 0]], "r": 0.058, "round": 0.004 },
+          { "revolve": [0.2, 0.007, 0], "axis": [1, 0, 0], "outline": [[0.052, -0.19], [0.048, -0.135], [0.0405, -0.115], [0.0385, -0.09], [0.0385, 0.17], [0.0385, 0.19]] },
+          { "drum": [[0.3922, 0.064, 0], [0.3922, -0.049, 0]], "r": 0.04, "round": 0.005 }
+        ],
+        "covers": [
+          { "label": "Forearm tube", "paint": "tube", "at": [0.075, 0, 0], "normal": [1, 0, 0], "width": 0.27 },
+          { "label": "Wrist end cap", "paint": "cap", "at": [0.3905, -0.0205, 0], "normal": [0.44721, -0.89443, 0] }
+        ]
+      },
+      "wrist_1": {
+        "label": "Wrist 1",
+        "blend": 0.014,
+        "spheres": 110,
+        "wall": 0.009,
+        "shapes": [
+          { "drum": [[0, 0.056, 0], [0, 0.173, 0]], "r": 0.04, "round": 0.006 },
+          { "drum": [[0, 0.1333, -0.0575], [0, 0.1333, 0.0565]], "r": 0.04, "round": 0.006 }
+        ],
+        "covers": [
+          { "label": "Wrist 1 cap", "paint": "cap", "at": [0, 0.1333, 0.0305], "normal": [0, 0.32999, 0.94398] }
+        ]
+      },
+      "wrist_2": {
+        "label": "Wrist 2",
+        "blend": 0.014,
+        "spheres": 110,
+        "wall": 0.009,
+        "shapes": [
+          { "drum": [[0, 0, -0.0495], [0, 0, -0.1385]], "r": 0.04, "round": 0.006 },
+          { "drum": [[0, -0.0563, -0.0997], [0, 0.0577, -0.0997]], "r": 0.04, "round": 0.006 }
+        ],
+        "covers": [
+          { "label": "Wrist 2 cap", "paint": "cap", "at": [0, -0.0303, -0.0997], "normal": [0, -0.94398, -0.32999] }
+        ]
+      },
+      "wrist_3": {
+        "label": "Tool flange",
+        "paint": "tube",
+        "blend": 0.004,
+        "neck": false,
+        "wall": 0.007,
+        "shapes": [
+          { "drum": [[0, 0.0497, 0], [0, 0.1067, 0]], "r": 0.0385 }
+        ],
+        "bolts": { "size": 0.0032, "seats": [{ "at": [0.025, 0.0992, 0], "facing": [0, 1, 0]}, { "at": [0, 0.0992, 0.025], "facing": [0, 1, 0]}, { "at": [-0.025, 0.0992, 0], "facing": [0, 1, 0]}, { "at": [0, 0.0992, -0.025], "facing": [0, 1, 0]}] }
+      }
+    }
+  },
   "links": [
     {
       "name": "shoulder_pan",
@@ -26,7 +148,7 @@
         0.0,
         0.1625
       ],
-      "mass": 3.761,
+      "mass": 6.661,
       "limits": [
         -6.283185307179586,
         6.283185307179586

@@ -1,11 +1,12 @@
 /** A loaded robot: its limbs (explained chain math), the MuJoCo reference model, and its CAD. */
+import type { DrivenRig } from '../../cad/assembly/mjcf/own-tools';
 import type { Assembly } from '../../cad/assembly/types';
 import { chainFrames } from '../../core/chain/kinematics/frames';
 import { type Limb, type RobotJoint, limbQ } from '../../core/chain/limbs/types';
-import type { ChainFrames } from '../../core/chain/model/types';
+import type { Chain, ChainFrames } from '../../core/chain/model/types';
 import type { Vec3 } from '../../core/math/linear/vec';
 import type { MotorMap } from '../../core/prosthesis/motors';
-import type { RobotSpec } from '../../core/robot/schema/types';
+import type { EffectorKind, RobotSpec } from '../../core/robot/schema/types';
 import type { CollisionChecker } from '../../physics/collision/checker';
 import type { ModelHandle } from '../../physics/model/handle';
 import { state } from '../../physics/runtime/arrays';
@@ -37,6 +38,14 @@ export interface RobotSession {
   collision: CollisionChecker | null;
   /** Prostheses only: the joints are posed through these motors, never one by one. */
   prosthesis?: MotorMap;
+  /** Can really hold something: a fitted gripper, or its own driven hand. A torch, spindle or bare flange cannot. */
+  grips: boolean;
+  /** The tool on each limb; the empty slots carry none. */
+  rigs: (DrivenRig | null)[];
+  /** The kind fitted to a CAD arm, compiled into its model; null on a bare arm or one with its own tool. */
+  fitted: EffectorKind | null;
+  /** Each manifest limb as the CAD alone has it, without a tool's working end: what a twin is cut from. */
+  bareChains?: Chain[];
   /** MuJoCo's position of each limb's tool point after `pose`. */
   mujocoTips(): Vec3[];
   dispose(): void;

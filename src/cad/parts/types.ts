@@ -23,4 +23,7 @@ export interface JointModule {
 export type JointModuleBuilder = (ctx: ModuleContext) => JointModule;
 
 /** Module size from the link's structural radius. */
-export const moduleRadius = (link: LinkSpec) => Math.max(link.radius * 1.9, 0.012);
+/** A joint module's radius per unit of its link's. */
+export const MODULE_SCALE = 1.9;
+
+export const moduleRadius = (link: LinkSpec) => Math.max(link.radius * MODULE_SCALE, 0.012);

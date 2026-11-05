@@ -1,0 +1,86 @@
+{
+  "name": "Anthropomorphic Arm (RRR)",
+  "units": "SI",
+  "base": [0, 0, 0],
+  "tool": [0.04, 0, 0],
+  "payload_mass": 0,
+  "effector": "flange",
+  "home": [0, 0.7, -1.4],
+  "design": {
+    "source": "A generic teaching arm of the anthropomorphic type, not any maker's machine. Every dimension is a clean number chosen for teaching.",
+    "paint": {
+      "shell": { "color": "#2f62ad", "finish": "anodized", "roughness": 0.42 },
+      "hub": { "color": "#34383e", "finish": "anodized", "roughness": 0.5 },
+      "plate": { "color": "#c7cbd0", "finish": "aluminium", "roughness": 0.48 }
+    },
+    "section": { "at": 0.046 },
+    "joints": {
+      "waist": { "seat": 0.1, "radius": 0.058, "drive": { "cut": -0.046} },
+      "shoulder": { "seat": 0.032, "drive": { "opens": 0.1, "along": [0, 0, 1], "radius": 0.026, "cut": -0.0235}, "parent": { "radius": 0.04, "depth": 0.05, "waist": 0.008}, "child": { "radius": 0.04, "depth": 0.02, "waist": 0.006, "fork": 0.062} },
+      "elbow": { "seat": -0.032, "flip": false, "drive": { "opens": 0.1, "along": [1, 0, 0], "in": "child", "radius": 0.024, "cut": -0.0228}, "parent": { "radius": 0.036, "depth": 0.02, "waist": 0.006, "fork": 0.062}, "child": { "radius": 0.036, "depth": 0.05, "waist": 0.008} }
+    },
+    "base": {
+      "label": "Base plate",
+      "paint": "plate",
+      "blend": 0.008,
+      "cell": 0.003,
+      "spheres": 100,
+      "cut": -0.046,
+      "shapes": [
+        { "drum": [[0, 0, -0.01], [0, 0, 0.018]], "r": 0.15, "round": 0.004 },
+        { "drum": [[0, 0, 0], [0, 0, 0.11]], "r": 0.058 },
+        { "cut": true, "feature": "bolt hole 0", "drum": [[0.08839, 0.08839, -0.01], [0.08839, 0.08839, 0.03]], "r": 0.0065 },
+        { "cut": true, "feature": "bolt hole 1", "drum": [[-0.08839, 0.08839, -0.01], [-0.08839, 0.08839, 0.03]], "r": 0.0065 },
+        { "cut": true, "feature": "bolt hole 2", "drum": [[-0.08839, -0.08839, -0.01], [-0.08839, -0.08839, 0.03]], "r": 0.0065 },
+        { "cut": true, "feature": "bolt hole 3", "drum": [[0.08839, -0.08839, -0.01], [0.08839, -0.08839, 0.03]], "r": 0.0065 }
+      ]
+    },
+    "links": {
+      "waist": {
+        "label": "Waist",
+        "paint": "hub",
+        "blend": 0.01,
+        "neck": false,
+        "spheres": 100,
+        "cut": -0.046,
+        "shapes": [
+          { "drum": [[0, 0, 0.095], [0, 0, 0.2]], "r": 0.058, "round": 0.006 },
+          { "box": [0, 0, 0.245], "size": [0.05, 0.03, 0.058], "round": 0.006 },
+          { "drum": [[0, -0.031, 0.3], [0, 0.03, 0.3]], "r": 0.05, "round": 0.004 }
+        ]
+      },
+      "shoulder": {
+        "label": "Upper arm",
+        "blend": 0.0008,
+        "neck": false,
+        "spheres": 150,
+        "shapes": [
+          { "drum": [[0, 0.034, 0], [0, 0.058, 0]], "r": 0.052, "round": 0.006 },
+          { "drum": [[0.3, 0.034, 0], [0.3, 0.058, 0]], "r": 0.044, "round": 0.006 },
+          { "round": 0.006, "planes": [{ "at": [0.15, 0.046, 0.04802], "normal": [0.02667, 0, 0.99964]}, { "at": [0.15, 0.046, -0.04802], "normal": [0.02667, 0, -0.99964]}, { "at": [0.15, 0.034, 0], "normal": [0, -1, 0]}, { "at": [0.15, 0.058, 0], "normal": [0, 1, 0]}, { "at": [0.3, 0.046, 0], "normal": [1, 0, 0]}, { "at": [0, 0.046, 0], "normal": [-1, 0, 0]}] },
+          { "drum": [[0, -0.034, 0], [0, -0.058, 0]], "r": 0.052, "round": 0.006 },
+          { "drum": [[0.3, -0.034, 0], [0.3, -0.058, 0]], "r": 0.044, "round": 0.006 },
+          { "round": 0.006, "planes": [{ "at": [0.15, -0.046, 0.04802], "normal": [0.02667, 0, 0.99964]}, { "at": [0.15, -0.046, -0.04802], "normal": [0.02667, 0, -0.99964]}, { "at": [0.15, -0.058, 0], "normal": [0, -1, 0]}, { "at": [0.15, -0.034, 0], "normal": [0, 1, 0]}, { "at": [0.3, -0.046, 0], "normal": [1, 0, 0]}, { "at": [0, -0.046, 0], "normal": [-1, 0, 0]}] },
+          { "box": [0.15, 0, 0], "size": [0.03, 0.04, 0.03], "round": 0.006 }
+        ]
+      },
+      "elbow": {
+        "label": "Forearm",
+        "blend": 0.01,
+        "neck": false,
+        "spheres": 130,
+        "cut": -0.046,
+        "wall": 0.008,
+        "shapes": [
+          { "drum": [[0, -0.03, 0], [0, 0.03, 0]], "r": 0.042, "round": 0.004 },
+          { "box": [0.15, 0, 0], "size": [0.15, 0.03, 0.03], "round": 0.008 }
+        ]
+      }
+    }
+  },
+  "links": [
+    {"name": "waist", "axis": [0,0,1], "offset": [0,0,0.3], "mass": 4, "limits": [-2.9671,2.9671], "radius": 0.06, "damping": 1, "armature": 0.2, "torque_limit": 40, "kp": 200, "kd": 20},
+    {"name": "shoulder", "axis": [0,-1,0], "offset": [0.3,0,0], "mass": 3, "limits": [-0.5236,2.618], "radius": 0.05, "damping": 1, "armature": 0.2, "torque_limit": 40, "kp": 200, "kd": 20},
+    {"name": "elbow", "axis": [0,-1,0], "offset": [0.3,0,0], "mass": 2, "limits": [-2.618,2.618], "radius": 0.04, "damping": 0.5, "armature": 0.1, "torque_limit": 20, "kp": 120, "kd": 12}
+  ]
+}

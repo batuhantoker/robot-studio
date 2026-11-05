@@ -14,7 +14,7 @@ export function initialState(catalog: Catalog | null): StudioState {
   // A link naming a robot opens it alone; otherwise a saved stage of several robots comes back.
   const saved = wanted ? null : restoreScene(library);
   const savedActive = saved && library.find((e) => e.id === saved.robots.find((r) => r.key === saved.activeKey)!.entryId);
-  const active = savedActive || (library.find((e) => e.id === wanted || e.id.endsWith(`:${wanted}`)) ?? library.find((e) => e.id === 'preset:spatial_6link') ?? library[0]);
+  const active = savedActive || (library.find((e) => e.id === wanted || e.id.endsWith(`:${wanted}`)) ?? library.find((e) => e.id === 'preset:puma560') ?? library[0]);
   return {
     library,
     activeId: active.id,

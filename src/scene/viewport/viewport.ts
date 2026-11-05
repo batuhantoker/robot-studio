@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { ORIGIN, reanchorPoint, relativeBase, sceneRadius, stageBase } from '../../app/scene/frame';
 import type { RobotBase } from '../../app/state/types';
 import type { Assembly } from '../../cad/assembly/types';
+import { type Transform, matToQuat } from '../../core/math/linear/transform';
+import type { Vec3 } from '../../core/math/linear/vec';
 import { moduleOf } from '../../cad/assembly/types';
 import { lowestZ, solidBox, solids } from '../../cad/common/lowest';
 import type { PropShelf } from '../stage/environment';
@@ -10,7 +12,6 @@ import { createStudio } from '../stage/lights';
 import { type Post, createPost } from '../stage/post';
 import { QualityGovernor, TIERS, type Tier } from '../stage/quality';
 import { GroundContactOverlay } from '../overlays/contact/overlay';
-import { type Transform, matToQuat } from '../../core/math/linear/transform';
 import { type Grounding, groundRobot } from './floor-lift';
 import { renderFrame } from './render-frame';
 import { type Stage, createStage } from '../stage/renderer';
@@ -19,6 +20,7 @@ import { BACKDROPS, DEFAULT_SURROUNDINGS, type Surroundings, backdropCss } from 
 import type { Stance } from '../stage/scenery/kit';
 import { Cutaway } from '../teardown/cutaway';
 import { explodeParts } from '../teardown/explode';
+import { OPEN_LENS, fitLens } from './explode-fit';
 import { type Section, type SectionAxis, SectionPlane } from '../teardown/section';
 import type { Look } from '../look/types';
 import type { Cut } from '../teardown/materials';
@@ -68,6 +70,12 @@ export class Viewport {
   /** As the robot describes it: `hand` in its own frame, turned into height above the floor once it is grounded. */
   private stance: Stance | undefined;
   private readonly contacts = new GroundContactOverlay();
+  /** The active robot is being dragged, which `previewActive` starts and `setAnchor` ends. */
+  private dragging = false;
+  /** What the lens holds to keep an opened robot in frame, what the robot filled before it opened, and the explode that was fitted. */
+  private lens = OPEN_LENS;
+  private closed: THREE.Box3 | null = null;
+  private lensAt = 0;
   private last = performance.now();
   private clock = performance.now();
   private view: TeardownView = { cut: 'solid', look: 'studio', explode: 0, isolate: null, section: { axis: 'y', offset: 0 } };
@@ -159,7 +167,8 @@ export class Viewport {
     for (const p of [camera.position, controls.target]) [p.x, p.y] = reanchorPoint(from, this.anchor, p.x, p.y);
     controls.update();
     this.holder.position.x = this.holder.position.y = this.holder.rotation.z = 0;
-    this.contacts.group.visible = true;
+    this.dragging = false;
+    this.showContacts();
     this.applyShift();
   }
 
@@ -168,8 +177,13 @@ export class Viewport {
     this.holder.position.x = local.x;
     this.holder.position.y = local.y;
     this.holder.rotation.z = local.yaw;
-    // Contact patches are measured in world xy and drawn in the holder: they'd move twice.
-    this.contacts.group.visible = false;
+    this.dragging = true;
+    this.showContacts();
+  }
+
+  /** Off in a drag, where patches measured in world xy and drawn in the holder would move twice, and in section, where they'd show through the cut. */
+  private showContacts(): void {
+    this.contacts.group.visible = !this.dragging && this.view.cut !== 'section';
   }
 
   private applyShift(): void {
@@ -281,6 +295,8 @@ export class Viewport {
       this.cutaway?.dispose();
     }
     this.assembly = assembly;
+    this.closed = null;
+    this.lensAt = -1;
     this.carrier.add(assembly.root);
     this.sectionPlane.measure(assembly.root, this.carrier);
     this.cutaway = new Cutaway(assembly.root, assembly.kind);
@@ -345,7 +361,9 @@ export class Viewport {
     if (view.look !== was.look) for (const b of this.others.values()) b.cutaway.apply('solid', null, view.look);
     this.view = view;
     this.sectionPlane.group.visible = view.cut === 'section';
+    this.showContacts();
     if (!this.assembly || !this.cutaway) return;
+    if (view.explode > 0.001 && was.explode <= 0.001) this.closed = solidBox(this.assembly.root);
     // Explode and the section's position change every frame on a tour; swapping materials then is wasted work.
     if (force || view.cut !== was.cut || view.isolate !== was.isolate || view.look !== was.look) this.cutaway.apply(view.cut, view.isolate, view.look);
     explodeParts(this.assembly.root, view.explode, view.isolate, moduleOf);
@@ -373,6 +391,12 @@ export class Viewport {
       return Math.abs(n.x) > 0.92 || Math.abs(n.y) > 0.88 || n.z > 1;
     });
     if (off) this.fitBox(new THREE.Box3().setFromPoints(frame));
+  }
+
+  /** The same for points on the robot's placement, as a body pose gives them. */
+  keepPlacedInView(points: Vec3[]): void {
+    this.holder.updateWorldMatrix(true, false);
+    this.keepInView(points.map((p) => this.holder.localToWorld(new THREE.Vector3(...p))));
   }
 
   /** Camera ray through a client pixel. */
@@ -410,8 +434,9 @@ export class Viewport {
     const { camera, renderer } = this.stage;
     const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
     const { bottom, left, right } = this.insetNow;
+    const lift = (this.lens.lift * h) / 2;
     // The view window moves half an inset, which centres the scene in the uncovered part.
-    if ((bottom > 0 || left > 0 || right > 0) && h > 0) camera.setViewOffset(w, h, (right - left) / 2, bottom / 2, w, h);
+    if ((bottom > 0 || left > 0 || right > 0 || lift !== 0) && h > 0) camera.setViewOffset(w, h, (right - left) / 2, bottom / 2 + lift, w, h);
     else if (camera.view?.enabled) camera.clearViewOffset();
   }
 
@@ -455,6 +480,7 @@ export class Viewport {
     return this.view.cut === 'glass' || !!this.view.isolate;
   }
 
+  /** An exploded robot is a teardown, not a stance: it rises clear of the floor as usual. */
   private standing(): Grounding {
     return this.carried && this.view.explode <= 0.001 ? 'carried' : this.grounding;
   }
@@ -466,6 +492,7 @@ export class Viewport {
       const solids = groundRobot(this.holder, this.assembly.root, this.floorZ, this.standing(), this.view.explode > 0.001);
       // Solids were measured with the holder at rest, the frame the overlay lives in.
       this.contacts.update(solids, this.floorZ - this.holder.position.z, this.scale);
+      this.fitOpened();
     }
     const cutting = this.view.cut === 'section' ? this.cutaway : null;
     if (cutting) {
@@ -474,7 +501,21 @@ export class Viewport {
       cutting.cutAt(this.sectionPlane.place(this.view.section, this.carrier, this.stage.camera));
     }
     this.post.setClipping(cutting ? [cutting.plane] : null);
+    // AO clips at one plane: a part stepped off it would return as a pale ghost.
+    this.post.ao.enabled = !cutting?.stepped;
     this.stage.controls.update();
+  }
+
+  /** Only as explode moves: once it rests, the view is the user's to zoom and turn. */
+  private fitOpened(): void {
+    const { explode } = this.view;
+    if (explode === this.lensAt || !this.assembly) return;
+    this.lensAt = explode;
+    const { camera, controls } = this.stage;
+    camera.updateMatrixWorld();
+    this.lens = explode > 0.001 ? fitLens(this.closed, solidBox(this.assembly.root), camera, controls.target, this.room()) : OPEN_LENS;
+    camera.zoom = this.lens.zoom;
+    camera.updateProjectionMatrix();
   }
 
   private tick(): void {

@@ -1,4 +1,6 @@
 /** Create, duplicate, delete, import and export robots; user robots persist locally. */
+import { armFit } from '../../cad/assembly/mjcf/mounts';
+import { limbQ } from '../../core/chain/limbs/types';
 import { toMjcf } from '../../core/mjcf/writer/serial-arm';
 import { toPythonDict, toStudioDict } from '../../core/robot/io/export';
 import { parseRobotJson } from '../../core/robot/schema/json';
@@ -11,6 +13,7 @@ import { loadCatalog } from '../robots/catalog';
 import { loadMine, saveMine } from '../library/storage';
 import { focusLimb } from '../robots/focus';
 import type { RobotSession } from '../robots/session';
+import { bodyFor } from '../robots/body';
 import { restTwin } from '../robots/twin-rest';
 import type { Store } from '../state/store';
 import type { LibraryEntry, StudioState, TwinRef } from '../state/types';
@@ -18,6 +21,15 @@ import { download } from '../../ui/dom/download';
 
 export function persist(library: LibraryEntry[]): void {
   saveMine(library.filter((e) => e.group === 'mine' && e.spec).map((e) => ({ id: e.id, spec: e.spec!, twin: e.twin })));
+}
+
+/** The source's own name, with the limb when it has several, kept apart from twins already made of it. */
+export function twinName(title: string, limb: string | null, taken: string[]): string {
+  const base = limb ? `${title}, ${limb}` : title;
+  for (let i = 1; ; i++) {
+    const name = `${base} (editable${i > 1 ? ` ${i}` : ''})`;
+    if (!taken.includes(name)) return name;
+  }
 }
 
 export function addMine(store: Store<StudioState>, spec: RobotSpec, twin?: TwinRef): string {
@@ -34,7 +46,7 @@ export function libraryActions(store: Store<StudioState>, onError: (m: string) =
     create: () => addMine(store, parseRobot(blankRobot())),
     duplicate: () => {
       const entry = active();
-      if (entry?.spec) addMine(store, parseRobot({ ...toStudioDict(entry.spec), name: `${entry.spec.name}_copy` }), entry.twin);
+      if (entry?.spec) addMine(store, parseRobot({ ...toStudioDict(entry.spec), name: `${entry.spec.name} copy` }), entry.twin);
     },
     remove: () => {
       const library = store.state.library.filter((e) => e.id !== store.state.activeId);
@@ -70,9 +82,17 @@ export function libraryActions(store: Store<StudioState>, onError: (m: string) =
       const s = session();
       const limb = s && focusLimb(s, store.state.focus);
       if (!entry?.catalogId || !s || !limb || s.source !== 'cad' || !limb.chain.joints.length) return onError('Open a CAD robot with movable joints first.');
-      const name = `${entry.catalogId.replace(/[^A-Za-z0-9_]/g, '_')}_${limb.name.replace(/[^A-Za-z0-9_]/g, '_')}_twin`;
-      const limits = limb.index.map((i) => s.torqueLimits[i]);
-      addMine(store, restTwin(limb.chain, name, limits).spec, { catalogId: entry.catalogId, chainIndex: s.limbs.indexOf(limb) });
+      const { parts, partOf } = bodyFor(s);
+      const part = partOf[s.limbs.indexOf(limb)];
+      // An arm listed through several chains is cut at the one that ends on its flange.
+      const seat = armFit(entry.catalogId)?.mounts.find((m) => part?.limbs.includes(m.limb));
+      const chainIndex = seat?.limb ?? s.limbs.indexOf(limb);
+      const cut = s.limbs[chainIndex];
+      const limits = cut.index.map((i) => s.torqueLimits[i]);
+      const several = part && (part.kind !== 'arm' || parts.filter((p) => p.kind === 'arm').length > 1);
+      const name = twinName(entry.title, several ? part.label.toLowerCase() : null, store.state.library.map((e) => e.title));
+      const { spec } = restTwin(s.bareChains?.[chainIndex] ?? cut.chain, name, limits, limbQ(cut, s.home));
+      addMine(store, s.fitted ? { ...spec, effector: s.fitted } : spec, { catalogId: entry.catalogId, chainIndex, title: entry.title });
     },
     exportMjcf: () => {
       const spec = active()?.spec;

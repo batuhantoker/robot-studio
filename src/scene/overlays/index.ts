@@ -11,6 +11,7 @@ import { ComOverlay } from './com';
 import { EffectorsOverlay } from './effectors';
 import { EllipsoidOverlay } from './ellipsoid';
 import { StopsOverlay } from './stops';
+import { FanOverlay } from './fan';
 import { TargetOverlay } from './target';
 import { PALETTE } from '../stage/palette';
 import { RunsOverlay } from './runs';
@@ -42,6 +43,7 @@ export class OverlaySet {
   /** Physics mode: where the tool should go, against the trail of where it went. */
   readonly goal = new TrailOverlay(PALETTE.ink, 0.45);
   readonly runs = new RunsOverlay();
+  readonly fan = new FanOverlay();
   readonly stops = new StopsOverlay();
   readonly workspace = new WorkspaceOverlay();
   readonly target: TargetOverlay;
@@ -51,7 +53,7 @@ export class OverlaySet {
 
   constructor(stage: Stage, onTarget: (p: Vec3) => void) {
     this.target = new TargetOverlay(stage.camera, stage.renderer.domElement, stage.controls, onTarget);
-    this.group.add(this.axes.group, this.com.group, this.effectors.group, this.ellipsoids, this.trail.group, this.goal.group, this.runs.group, this.stops.group, this.workspace.group, this.target.group);
+    this.group.add(this.axes.group, this.com.group, this.effectors.group, this.ellipsoids, this.trail.group, this.goal.group, this.runs.group, this.fan.group, this.stops.group, this.workspace.group, this.target.group);
   }
 
   /** Touch screens get larger handles: stop badges and the IK gizmo. */
@@ -78,6 +80,7 @@ export class OverlaySet {
     this.trail.clear();
     this.goal.clear();
     this.runs.clear();
+    this.fan.show(null, 0);
     this.workspace.clear();
   }
 

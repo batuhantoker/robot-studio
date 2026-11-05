@@ -30,7 +30,7 @@ export function mountModeBar(stack: HTMLElement, store: Store<StudioState>, ctx:
       replace(bar, h('span.cap', {}, 'Physics'),
         h('button.tb.primary', { onclick: () => store.set({ playing: !store.state.playing, mode: 'physics' }) }, s.playing ? '❚❚ Pause' : '▶ Simulate'),
         h('button.tb', { onclick: () => ctx.restartPhysics() }, 'Restart'),
-        note('Tune it by hand, or teach it'),
+        note(ctx.physics()?.passive ? 'Let go, under gravity alone' : 'Tune it by hand, or teach it'),
         panel('Control lab'));
     } else if (s.mode === 'workspace') {
       replace(bar, h('span.cap', {}, 'Workspace'),

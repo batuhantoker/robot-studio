@@ -1,7 +1,10 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+// @ts-expect-error The build scripts are plain JavaScript.
+import { castingsVersion } from './scripts/bake/version.mjs';
 
 export default defineConfig({
+  define: { __CASTINGS__: JSON.stringify(castingsVersion()) },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   optimizeDeps: { exclude: ['@mujoco/mujoco'] },
   build: {

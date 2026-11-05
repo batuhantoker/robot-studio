@@ -54,9 +54,9 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
     const s = session();
     unsubscribe?.();
     unsubscribe = null;
-    lab.hidden = !p?.lab;
-    replace(note, p?.reason ? h('p.note', {}, p.reason) : null);
-    if (!p?.lab || !s) return;
+    lab.hidden = !p?.lab || p.passive;
+    replace(note, p?.reason ? h('p.note', {}, p.reason) : p?.passive ? h('p.note', {}, 'No motors, so nothing to tune: MuJoCo lets it go from its home pose and only gravity moves it. Restart lets go again.') : null);
+    if (!p?.lab || !s || p.passive) return;
     const l = p.lab;
     const block = p.floorBlock;
     floorRow.hidden = block === undefined;

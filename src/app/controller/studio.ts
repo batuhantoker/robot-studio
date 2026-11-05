@@ -1,4 +1,9 @@
 /** Orchestrates the active robot: loading, draft edits, modes, teardown view, and picking. */
+import { chainFrames } from '../../core/chain/kinematics/frames';
+import { limbQ } from '../../core/chain/limbs/types';
+import { applyTransform } from '../../core/math/linear/transform';
+import type { MotionClip } from '../../core/motion/types';
+import { misplacedJoint } from '../../core/robot/joints/placement';
 import { parseRobot } from '../../core/robot/schema/parse';
 import * as THREE from 'three';
 import { compile } from '../../core/trajectory/plan';
@@ -8,6 +13,8 @@ import type { Raw } from '../../ui/builder/edit';
 import { specEntry } from '../library/entries';
 import { LiveBus } from '../live/bus';
 import type { Catalog } from '../robots/catalog';
+import { armFit } from '../../cad/assembly/mjcf/mounts';
+import { fittedTool, settleTool } from '../robots/fitted';
 import { jointLimits } from '../robots/focus';
 import { type RobotSession, pose } from '../robots/session';
 import { stanceOf } from '../robots/body';
@@ -16,6 +23,7 @@ import { pinAll, withTarget } from './targets';
 import type { Store } from '../state/store';
 import type { LibraryEntry, RobotBase, SceneRobot, StudioState } from '../state/types';
 import { addToScene } from './scene';
+import { DRIVEN_MODES, isPassive } from '../../core/robot/config/passive';
 import { frameLoop } from './frame-loop';
 import { addMine, persist } from './library-actions';
 import { IkMode } from './modes/ik';
@@ -31,6 +39,7 @@ import type { TrajectoryPreset } from '../../core/trajectory/presets/build';
 import { StudioAnalysis } from './studio-analysis';
 import { TaskController } from './task/controller';
 import { PilotController } from './pilot/controller';
+import { GraspController } from './grasp/controller';
 import { RubikController } from './rubik/controller';
 import { wireTeardownHud } from './tour/wire';
 import { bindPicking } from './viewport-input';
@@ -68,10 +77,12 @@ export class Studio {
     this.task = new TaskController(this);
     this.pilot = new PilotController(this);
     this.rubik = new RubikController(this);
+    new GraspController(this);
     this.recorder = new TrajectoryRecorder(this);
     const tick = frameLoop({
       store, bus: this.bus, overlays: this.overlays, ik: this.ik,
       session: () => this.session, physics: () => this.physics, motion: () => this.motion.clip, task: () => this.task.clip,
+      body: (pose) => this.viewport.setBodyPose(pose),
       pilot: (s, dt) => this.pilot.step(s, dt),
       focusJoint: () => this.analysis.focusJoint(),
     });
@@ -84,6 +95,12 @@ export class Studio {
     // A switch changes activeKey (and usually activeId) in one update; a library pick changes only activeId.
     store.on(['activeId', 'activeKey'], (s, changed) => void (changed.has('activeKey') ? this.activate(s.q.length === 0, false, true) : this.activate(true)));
     store.on(['scene', 'library'], () => this.syncBystanders());
+    // A fitted tool is compiled into the model, so it arrives as a new session, never a swap inside the live one.
+    store.on(['library'], (s) => {
+      const id = s.library.find((e) => e.id === s.activeId)?.catalogId;
+      // An arm whose home moves with its tool restarts from it: the old pose would leave the tool buried.
+      if (id && this.session && this.session.fitted !== fittedTool(id)) void this.activate(!!armFit(id)?.home, false).then(() => this.session && settleTool(store, id, this.session.fitted));
+    });
     store.on(['focus'], (s) => {
       this.analysis.refreshProfile();
       this.pinLimbs(s, false);
@@ -107,7 +124,11 @@ export class Studio {
     // Deferred: leaving Workspace mode switches the cloud off in a later listener of the same change.
     store.on(['overlays', 'mode', 'focus'], () => queueMicrotask(() => store.state.overlays.workspace && this.analysis.ensureWorkspace()));
     store.on(['mode'], (s) => this.enterMode(s));
-    store.on(['motion', 'mode'], (s) => s.mode === 'motion' && this.session && this.motion.ensure(this.session, s.motion.preset, s.motion.size, s.q));
+    store.on(['motion', 'mode'], (s) => {
+      if (s.mode !== 'motion' || !this.session) return;
+      const was = this.motion.clip, clip = this.motion.ensure(this.session, s.motion.preset, s.motion.size, s.q);
+      if (clip?.body && clip !== was) this.keepClipInView(clip, clip.body);
+    });
     bindPicking(host, this.viewport, store);
     bindStopDrag(this.viewport, this.overlays, store, () => this.analysis.stopTips(), (i, p) => this.analysis.moveStop(i, p, 40));
     bindLimbDrag(this.viewport, this.overlays, store, (limb, p) => {
@@ -150,6 +171,15 @@ export class Studio {
   private placeGizmo(): void {
     const t = this.store.state.targets[this.store.state.focus];
     if (t && !this.overlays.target.gizmo.dragging) this.overlays.target.place(t);
+  }
+
+  /** A raised hand can leave the framing of the robot at rest. */
+  private keepClipInView(clip: MotionClip, body: NonNullable<MotionClip['body']>): void {
+    const span = clip.period + (clip.lead ?? 0), { limbs } = this.session!;
+    this.viewport.keepPlacedInView(Array.from({ length: 24 }, (_, i) => (span * i) / 24).flatMap((t) => {
+      const q = clip.at(t), B = body(t);
+      return limbs.map((l) => applyTransform(B, chainFrames(l.chain, limbQ(l, q)).tip.p));
+    }));
   }
 
   /** Reframe on every stop when the given one (or any) would be off-screen; paths often leave the robot's framing. */
@@ -201,9 +231,10 @@ export class Studio {
     // A preset's length doesn't suit the default path that replaces it.
     const duration = fresh && this.store.state.pace === 'distance' ? DEFAULT_DURATION : this.store.state.duration;
     this.store.set({
-      q, draft: entry.spec ?? null, draftError: null, time: 0, contact: null, sessionVersion: this.store.state.sessionVersion + 1,
+      q, draft: entry.spec ?? null, draftError: entry.spec ? misplacedJoint(entry.spec) : null, time: 0, contact: null, sessionVersion: this.store.state.sessionVersion + 1,
       selectedStop: fresh ? null : this.store.state.selectedStop,
       ...(fresh ? defaultPlan(session, duration) : {}),
+      ...(isPassive(session.spec) && DRIVEN_MODES.includes(this.store.state.mode) ? { mode: 'pose' as const } : {}),
       focus, targets: refit ? [] : this.store.state.targets.slice(0, session.limbs.length), isolate: refit || switched ? null : this.store.state.isolate,
       section: refit || switched ? { axis: this.viewport.sectionAxis(), offset: 0 } : this.store.state.section,
     });
@@ -310,6 +341,11 @@ export class Studio {
       spec = parseRobot(raw);
     } catch (e) {
       this.store.set({ draftError: (e as Error).message });
+      return;
+    }
+    const misplaced = misplacedJoint(spec);
+    if (misplaced) {
+      this.store.set({ draftError: misplaced });
       return;
     }
     const entry = this.store.state.library.find((e) => e.id === this.store.state.activeId);

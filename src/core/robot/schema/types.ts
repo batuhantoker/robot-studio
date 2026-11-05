@@ -4,6 +4,7 @@
  * studio/MJCF-only; Python export is refused for those. `effector` is visual only, so Python export drops it.
  */
 import type { Vec3 } from '../../math/linear/vec';
+import type { RobotDesign } from './design';
 
 export type JointKind = 'revolute' | 'prismatic' | 'cylindrical' | 'universal' | 'spherical' | 'planar';
 export type DofType = 'hinge' | 'slide';
@@ -32,6 +33,8 @@ export interface LinkSpec {
   kp: number;
   kd: number;
   dofs: DofSpec[];
+  /** A revolute joint with no stops; `limits` are then only the range its slider shows. */
+  continuous?: boolean;
 }
 
 export interface RobotSpec {
@@ -45,6 +48,8 @@ export interface RobotSpec {
   links: LinkSpec[];
   /** Joint values it starts at, in DOF order; zero when absent or when links were added since. */
   home?: number[];
+  /** How its CAD is dressed; never read by kinematics, dynamics or the MJCF writer. */
+  design?: RobotDesign;
 }
 
 export class SpecError extends Error {
@@ -58,7 +63,7 @@ export class SpecError extends Error {
 export const LINK_FIELDS = [
   'name', 'axis', 'offset', 'mass', 'limits', 'radius', 'damping', 'armature', 'torque_limit', 'kp', 'kd',
 ] as const;
-export const STUDIO_LINK_FIELDS = ['joint', 'axis2'] as const;
+export const STUDIO_LINK_FIELDS = ['joint', 'axis2', 'continuous'] as const;
 
 export const LINK_DEFAULTS = {
   radius: 0.015,

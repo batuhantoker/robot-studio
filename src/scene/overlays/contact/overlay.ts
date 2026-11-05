@@ -1,20 +1,22 @@
-/** Ground contact: a red halo around every footprint where the robot meets the floor. */
+/** Ground contact: a soft halo around every footprint on the floor, and red only where a part has sunk through it. */
 import * as THREE from 'three';
 import type { Solid } from '../../../cad/common/lowest';
 import { type P2, offsetPolygon, roundedHull } from '../../../core/math/planar/hull';
 import { PALETTE } from '../../stage/palette';
-import { contactPatches } from './patches';
+import { footprints } from './patches';
+
+const RESTING = '#5c626b';
 
 class Triangles {
   readonly mesh: THREE.Mesh;
   private positions = new Float32Array(3 * 256);
   private readonly geometry = new THREE.BufferGeometry();
 
-  constructor(opacity: number) {
+  constructor(color: string, opacity: number) {
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
     this.geometry.setDrawRange(0, 0);
     const material = new THREE.MeshBasicMaterial({
-      color: PALETTE.accent, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide,
+      color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide,
       polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
     });
     this.mesh = new THREE.Mesh(this.geometry, material);
@@ -47,24 +49,30 @@ function band(out: number[], inner: P2[], outer: P2[], z: number): void {
 
 export class GroundContactOverlay {
   readonly group = new THREE.Group();
-  private readonly fill = new Triangles(0.22);
-  private readonly ring = new Triangles(0.85);
+  private readonly fill = new Triangles(RESTING, 0.1);
+  private readonly ring = new Triangles(RESTING, 0.32);
+  private readonly sunkFill = new Triangles(PALETTE.accent, 0.12);
+  private readonly sunkRing = new Triangles(PALETTE.accent, 0.7);
 
   constructor() {
-    this.group.add(this.fill.mesh, this.ring.mesh);
+    this.group.add(this.fill.mesh, this.ring.mesh, this.sunkFill.mesh, this.sunkRing.mesh);
   }
 
   /** Solids and floor in the holder's frame; `scale` is the robot's bounding radius. */
   update(list: Solid[], floor: number, scale: number): void {
-    const patches = contactPatches(list, floor, Math.max(0.001, scale * 0.004), scale * 0.01);
-    const fill: number[] = [], ring: number[] = [];
+    const tol = Math.max(0.001, scale * 0.004);
+    const patches = footprints(list, floor, tol, scale * 0.01, 3 * tol);
+    const fill: number[] = [], ring: number[] = [], sunkFill: number[] = [], sunkRing: number[] = [];
     const z = floor + scale * 0.0005;
-    for (const points of patches) {
-      const inner = roundedHull(points, scale * 0.004);
-      fan(fill, inner, z);
-      band(ring, inner, offsetPolygon(inner, scale * 0.012), z);
+    for (const { hull, sunk } of patches) {
+      const inner = roundedHull(hull, scale * 0.004);
+      fan(sunk ? sunkFill : fill, inner, z);
+      // Capped: sized to a tall robot's whole body, it reads as a hard outline round each foot.
+      band(sunk ? sunkRing : ring, inner, offsetPolygon(inner, Math.min(scale * 0.012, 0.008)), z);
     }
     this.fill.set(fill);
     this.ring.set(ring);
+    this.sunkFill.set(sunkFill);
+    this.sunkRing.set(sunkRing);
   }
 }

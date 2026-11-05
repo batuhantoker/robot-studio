@@ -49,7 +49,7 @@ export function modeSwitch(store: Store<StudioState>): ModeSwitch {
         b.classList.toggle('on', id === store.state.mode);
         b.setAttribute('aria-pressed', String(id === store.state.mode));
         b.disabled = !enabled(id);
-        b.title = b.disabled && id === 'pilot' ? 'Pilot needs a robot with legs or wheels' : modeInfo(id).hint;
+        b.title = !b.disabled ? modeInfo(id).hint : id === 'pilot' ? 'Pilot needs a robot with legs or wheels' : 'Nothing on this robot is driven';
       }
     },
   };

@@ -27,8 +27,7 @@ export function toMjcf(spec: RobotSpec, timestep = 0.002): string {
         name: dof.name,
         type: dof.type,
         axis: g17List(dof.axis),
-        range: g17List(dof.limits),
-        limited: 'true',
+        ...(link.continuous ? { limited: 'false' } : { range: g17List(dof.limits), limited: 'true' }),
         damping: pythonFloat(link.damping),
         armature: pythonFloat(link.armature),
       });

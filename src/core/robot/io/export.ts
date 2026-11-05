@@ -15,6 +15,7 @@ function linkDict(l: LinkSpec, studio: boolean): Record<string, unknown> {
     out.joint = l.joint;
     if (JOINT_KINDS[l.joint].dofs.some((t) => t.axis !== 'axis')) out.axis2 = [...l.axis2];
   }
+  if (studio && l.continuous) out.continuous = true;
   return out;
 }
 
@@ -27,12 +28,13 @@ const robotDict = (spec: RobotSpec, studio: boolean) => ({
   ...(studio && spec.effector !== DEFAULT_EFFECTOR ? { effector: spec.effector } : {}),
   links: spec.links.map((l) => linkDict(l, studio)),
   ...(studio && spec.home ? { home: [...spec.home] } : {}),
+  ...(studio && spec.design ? { design: spec.design } : {}),
 });
 
 /** Why `serial-arm-analyze` would reject this robot, or null when it accepts it. */
 export function pythonIncompatibility(spec: RobotSpec): string | null {
-  const other = spec.links.filter((l) => l.joint !== 'revolute').map((l) => `${l.name} (${l.joint})`);
-  return other.length ? `serial-arm-analyze supports revolute joints only; not: ${other.join(', ')}` : null;
+  const other = spec.links.filter((l) => l.joint !== 'revolute' || l.continuous).map((l) => `${l.name} (${l.continuous ? 'continuous' : l.joint})`);
+  return other.length ? `serial-arm-analyze supports limited revolute joints only; not: ${other.join(', ')}` : null;
 }
 
 /** The exact `SerialArm.to_dict()` shape and key order. */

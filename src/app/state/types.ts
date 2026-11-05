@@ -46,6 +46,8 @@ export interface LibraryEntry {
 export interface TwinRef {
   catalogId: string;
   chainIndex: number;
+  /** The source robot's name; twins saved before it have only the id. */
+  title?: string;
 }
 
 export interface Overlays {

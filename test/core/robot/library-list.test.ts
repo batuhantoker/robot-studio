@@ -10,6 +10,14 @@ const robot = (id: string, extra = {}) => ({
   license: { spdx: 'MIT', source: 'https://example.com/x' }, ...extra,
 });
 
+describe('the library', () => {
+  it('holds the 4-DOF Arm and none of the robots dropped from it', () => {
+    const ids = PRESETS.map((p) => p.id);
+    expect(ids).toContain('original_4dof');
+    for (const id of ['spatial_3link', 'spatial_6link', 'spatial_12link', 'planar_2link', 'so101', 'humanoid_arm', 'mobile_manipulator']) expect(ids).not.toContain(id);
+  });
+});
+
 describe('robot library in the README', () => {
   it('counts joints as the studio does, on every preset', () => {
     for (const { id, spec } of PRESETS) expect(presetDof(toStudioDict(spec)), id).toBe(specDofs(spec).length);

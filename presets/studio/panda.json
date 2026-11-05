@@ -1,5 +1,5 @@
 {
-  "name": "panda",
+  "name": "Franka Emika Panda",
   "units": "SI",
   "base": [
     0.0,
@@ -11,8 +11,108 @@
     0.0,
     0.0
   ],
-  "payload_mass": 0.5,
+  "payload_mass": 0,
   "home": [0, -0.785, 0, -2.356, 0, 1.571, 0.785],
+  "design": {
+    "source": "Proportions measured from MuJoCo Menagerie's franka_emika_panda meshes at the zero pose; those meshes are not used. Paint from the photo on p.31 of Franka Emika's Panda handbook (October 2018).",
+    "paint": {
+      "shell": { "color": "#ecebe7", "finish": "paint", "roughness": 0.5, "clearcoat": 0.15 },
+      "inlay": { "color": "#3b3e44", "finish": "plastic", "roughness": 0.45 }
+    },
+    "section": { "at": 0.02 },
+    "joints": {
+      "joint1": { "seat": 0, "radius": 0.055 },
+      "joint2": { "seat": 0, "parent": { "radius": 0.055, "depth": 0.125, "waist": 0.01}, "child": { "radius": 0.055, "depth": 0.125, "waist": 0.01} },
+      "joint3": { "seat": -0.122, "drive": { "opens": 0.11}, "parent": { "radius": 0.055, "depth": 0.05, "waist": 0.006}, "child": { "radius": 0.055, "depth": 0.05, "waist": 0.006} },
+      "joint4": { "seat": 0, "drive": { "in": "child"}, "parent": { "radius": 0.055, "depth": 0.111, "waist": 0.01}, "child": { "radius": 0.055, "depth": 0.111, "waist": 0.01} },
+      "joint5": { "seat": -0.26, "drive": { "opens": 0.11}, "parent": { "radius": 0.055, "depth": 0.05, "waist": 0.006}, "child": { "radius": 0.055, "depth": 0.05, "waist": 0.006} },
+      "joint6": { "seat": -0.046, "drive": { "in": "child", "cut": -0.051, "opens": 0.13}, "parent": { "radius": 0.05, "depth": 0.084, "waist": 0.008}, "child": { "radius": 0.05, "depth": 0.1, "waist": 0.008} },
+      "joint7": { "seat": 0.051, "radius": 0.048 }
+    },
+    "base": {
+      "label": "Base",
+      "cell": 0.0028,
+      "blend": 0.012,
+      "shapes": [
+        { "revolve": [0, 0, -0.07], "axis": [0, 0, 1], "outline": [[0.075, -0.09], [0.075, -0.05], [0.066, 0], [0.058, 0.05], [0.055, 0.07], [0.055, 0.075]] },
+        { "round": 0.008, "planes": [{ "at": [-0.1, 0, -0.058], "normal": [-0.55238, 0, 0.83359]}, { "at": [-0.08, 0, -0.16], "normal": [0, 0, -1]}, { "at": [-0.015, 0, -0.09], "normal": [1, 0, 0]}, { "at": [-0.08, 0.0745, -0.09], "normal": [0, 0.99034, 0.13865]}, { "at": [-0.08, -0.0745, -0.09], "normal": [0, -0.99034, 0.13865]}, { "at": [-0.152, 0, -0.09], "normal": [-1, 0, 0]}] },
+        { "box": [-0.04, 0, -0.14], "size": [0.122, 0.097, 0.008], "round": 0.003 }
+      ]
+    },
+    "links": {
+      "joint1": {
+        "label": "Link 1 casting",
+        "collar": 0.06,
+        "spheres": 110,
+        "shapes": [
+          { "cone": [[0, 0, 0.065], [0, -0.06, 0.17]], "r": [0.055, 0.055] }
+        ]
+      },
+      "joint2": {
+        "label": "Link 2 casting",
+        "spheres": 110,
+        "shapes": [
+          { "cone": [[0, 0.06, 0.023], [0, 0, 0.129]], "r": [0.055, 0.055] },
+          { "drum": [[0, 0, 0.122], [0, 0, 0.199]], "r": 0.055 }
+        ]
+      },
+      "joint3": {
+        "label": "Link 3 casting",
+        "spheres": 110,
+        "shapes": [
+          { "drum": [[0, 0, -0.127], [0, 0, -0.049]], "r": 0.055 },
+          { "cone": [[0, 0, -0.049], [0.0825, 0.055, 0]], "r": [0.055, 0.052] }
+        ],
+        "covers": [
+          { "label": "Link 3 inlay", "paint": "inlay", "at": [0.0825, 0.072, 0], "normal": [0, 1, 0], "width": 0.018 }
+        ]
+      },
+      "joint4": {
+        "label": "Link 4 casting",
+        "spheres": 110,
+        "shapes": [
+          { "cone": [[0, -0.055, 0], [-0.0825, 0, 0.066]], "r": [0.052, 0.055] },
+          { "drum": [[-0.0825, 0, 0.061], [-0.0825, 0, 0.129]], "r": 0.055 }
+        ],
+        "covers": [
+          { "label": "Link 4 inlay", "paint": "inlay", "at": [0, -0.072, 0], "normal": [0, -1, 0], "width": 0.018 }
+        ]
+      },
+      "joint5": {
+        "label": "Link 5 casting",
+        "spheres": 120,
+        "shapes": [
+          { "drum": [[0, 0, -0.265], [0, 0, -0.213]], "r": 0.055 },
+          { "cone": [[0, 0, -0.213], [0, 0.05, -0.138]], "r": [0.055, 0.038] },
+          { "cone": [[0, 0.05, -0.138], [0, 0.09, -0.048]], "r": [0.038, 0.04] }
+        ],
+        "covers": [
+          { "label": "Link 5 racetrack", "paint": "inlay", "at": [0, 0.098, 0], "normal": [0, 1, 0], "width": 0.015 }
+        ]
+      },
+      "joint6": {
+        "label": "Link 6 casting",
+        "spheres": 120,
+        "shapes": [
+          { "cone": [[0, -0.008, 0], [0.088, -0.005, 0.025]], "r": [0.05, 0.05] },
+          { "drum": [[0.088, 0, -0.058], [0.088, 0, 0.082]], "r": 0.05, "round": 0.014 },
+          { "crisp": true, "feature": "pilot", "drum": [[0.088, 0, 0.067], [0.088, 0, 0.0848]], "r": 0.031 }
+        ],
+        "covers": [
+          { "label": "Link 6 collar", "paint": "inlay", "at": [0, -0.03, 0], "normal": [0, -1, 0], "width": 0.018, "within": [{ "at": [0.046, 0, 0], "normal": [1, 0, 0]}] },
+          { "label": "Pilot disc", "paint": "inlay", "at": [0.088, 0, 0.0828], "normal": [0, 0, 1] }
+        ]
+      },
+      "joint7": {
+        "label": "Link 7",
+        "neck": false,
+        "shapes": [
+          { "drum": [[0, 0, -0.043], [0, 0, -0.113]], "r": 0.046 }
+        ],
+        "bolts": { "size": 0.0032, "seats": [{ "at": [0.021, 0.021, -0.1068], "facing": [0, 0, -1]}, { "at": [-0.021, 0.021, -0.1068], "facing": [0, 0, -1]}, { "at": [-0.021, -0.021, -0.1068], "facing": [0, 0, -1]}, { "at": [0.021, -0.021, -0.1068], "facing": [0, 0, -1]}] }
+      }
+    }
+  },
   "links": [
     {
       "name": "joint1",
@@ -26,7 +126,7 @@
         0.0,
         0.193
       ],
-      "mass": 4.97,
+      "mass": 6.912,
       "limits": [
         -2.8973,
         2.8973

@@ -13,11 +13,13 @@ export interface ModelCheckerOptions {
   home: number[];
   floorZ: number | null;
   tol: number;
+  /** Bodies of fitted tools: their hull is hidden, because the tool is drawn by its parts, but it still stands on the floor. */
+  tools?: number[];
 }
 
-export function modelChecker(h: ModelHandle, { floorZ, ...o }: ModelCheckerOptions): CollisionChecker {
+export function modelChecker(h: ModelHandle, { floorZ, tools = [], ...o }: ModelCheckerOptions): CollisionChecker {
   const body = (g: number) => arrays(h.model).geom_bodyid[g];
-  const shown = readGeoms(h).filter((g) => visibleGeom(g) && g.body > 0).map((g) => g.id);
+  const shown = readGeoms(h).filter((g) => (visibleGeom(g) || tools.includes(g.body)) && g.body > 0).map((g) => g.id);
   return new CollisionChecker(h, {
     ...o,
     self: hasCollisionGeoms(h),

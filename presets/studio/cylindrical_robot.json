@@ -1,0 +1,205 @@
+{
+  "name": "Cylindrical Robot (RPP)",
+  "units": "SI",
+  "base": [
+    0,
+    0,
+    0.16
+  ],
+  "tool": [
+    0,
+    0,
+    -0.1
+  ],
+  "payload_mass": 0,
+  "effector": "parallel",
+  "home": [
+    0,
+    0.2,
+    0.6
+  ],
+  "links": [
+    {
+      "name": "waist",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "offset": [
+        0,
+        0,
+        0.22
+      ],
+      "mass": 30.0,
+      "limits": [
+        -2.6179938779914944,
+        2.6179938779914944
+      ],
+      "radius": 0.05,
+      "damping": 3,
+      "armature": 0.8,
+      "torque_limit": 200,
+      "kp": 800,
+      "kd": 80
+    },
+    {
+      "name": "lift",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "mass": 14.0,
+      "limits": [
+        0,
+        0.5
+      ],
+      "radius": 0.03,
+      "damping": 15,
+      "armature": 1.5,
+      "torque_limit": 600,
+      "kp": 2000,
+      "kd": 200,
+      "joint": "prismatic"
+    },
+    {
+      "name": "reach",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "offset": [
+        0,
+        0,
+        -0.07
+      ],
+      "mass": 5.0,
+      "limits": [
+        0.48,
+        0.78
+      ],
+      "radius": 0.02,
+      "damping": 8,
+      "armature": 0.8,
+      "torque_limit": 300,
+      "kp": 1200,
+      "kd": 120,
+      "joint": "prismatic"
+    }
+  ],
+  "design": {
+    "source": "Textbook RPP layout. Generic: no maker's data, every dimension and mass an estimate.",
+    "paint": {
+      "shell": {
+        "color": "#d9dde0",
+        "finish": "paint",
+        "roughness": 0.44,
+        "clearcoat": 0.2
+      },
+      "dark": {
+        "color": "#34383d",
+        "finish": "paint",
+        "roughness": 0.55
+      }
+    },
+    "section": {
+      "at": 0.0
+    },
+    "joints": {
+      "waist": {
+        "seat": 0.03,
+        "radius": 0.12
+      },
+      "lift": {
+        "slide": {
+          "form": "rail",
+          "r": 0.05,
+          "outer": 0.088,
+          "guide": 0.2
+        }
+      },
+      "reach": {
+        "child": {
+          "radius": 0.04
+        },
+        "slide": {
+          "form": "quill",
+          "r": 0.03,
+          "outer": 0.06,
+          "guide": 0.345,
+          "centre": 0.2775,
+          "front": -0.02,
+          "back": -0.37
+        }
+      }
+    },
+    "base": {
+      "label": "Base",
+      "paint": "dark",
+      "wall": 0.009,
+      "blend": 0.012,
+      "spheres": 90,
+      "shapes": [
+        {
+          "revolve": [
+            0,
+            0,
+            -0.16
+          ],
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "outline": [
+            [
+              0.2,
+              0.0
+            ],
+            [
+              0.198,
+              0.02
+            ],
+            [
+              0.15,
+              0.06
+            ],
+            [
+              0.125,
+              0.12
+            ],
+            [
+              0.122,
+              0.2
+            ]
+          ]
+        }
+      ]
+    },
+    "links": {
+      "waist": {
+        "label": "Turntable",
+        "wall": 0.008,
+        "blend": 0.01,
+        "spheres": 80
+      },
+      "lift": {
+        "label": "Carriage",
+        "wall": 0.008,
+        "blend": 0.012,
+        "spheres": 110
+      },
+      "reach": {
+        "label": "Arm head",
+        "wall": 0.005
+      }
+    }
+  }
+}

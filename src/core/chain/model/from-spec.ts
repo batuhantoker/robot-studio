@@ -17,6 +17,7 @@ export function chainFromSpec(spec: RobotSpec): Chain {
       axis: dof.axis,
       limits: dof.limits,
       q0: 0,
+      ...(link.continuous ? { continuous: true } : {}),
     }));
     // Uniform capsules span 0 → offset; zero-length links are spheres at the joint.
     const com: Vec3 = link.offset.some((v) => v !== 0) ? scale(link.offset, 0.5) : [0, 0, 0];

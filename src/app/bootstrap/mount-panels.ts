@@ -1,4 +1,5 @@
 /** Mount every panel into the layout. */
+import { DRIVEN_MODES, isPassive } from '../../core/robot/config/passive';
 import { mountBuilder } from '../../ui/builder/panel';
 import { ikPanel } from '../../ui/analysis/ik-panel';
 import { physicsPanel } from '../../ui/analysis/physics-panel';
@@ -44,7 +45,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   const { store } = studio;
   const active = () => store.state.library.find((e) => e.id === store.state.activeId);
   const guide = mountGuide(store, () => document.querySelector('.top-right .help'));
-  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => m !== 'pilot' || studio.pilot.available(), guide.open, mountGraphs(layout.graphs, studio.bus, () => !!studio.physics?.lab?.running));
+  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => (m === 'pilot' ? studio.pilot.available() : !DRIVEN_MODES.includes(m) || !isPassive(studio.session?.spec)), guide.open, mountGraphs(layout.graphs, studio.bus, () => !!studio.physics?.lab?.running));
   const left = mountLeftTabs(layout.left);
   const base = libraryActions(store, (m) => store.set({ draftError: m }), () => studio.session);
   const actions = { ...base, create: () => (base.create(), left.show('build')) };
@@ -71,7 +72,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   layout.hudBottom.append(stack);
   mountModeBar(stack, store, studio.analysis);
   const view = mountViewMenu(layout.tools, store);
-  mountMotionBar(stack, store, () => studio.motion.presets, studio.task.available);
+  mountMotionBar(stack, store, () => studio.motion.presets);
   mountTaskBar(stack, store, studio.task);
   mountRubikBar(stack, store, studio.rubik);
   mountPilotBar(stack, store, studio.pilot, studio.bus);

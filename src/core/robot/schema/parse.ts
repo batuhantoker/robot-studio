@@ -2,11 +2,12 @@
 import { DEFAULT_EFFECTOR, isEffectorKind } from '../effectors/kinds';
 import { expandDofs, secondaryAxis } from '../joints/expand';
 import { isJointKind } from '../joints/kinds';
+import type { RobotDesign } from './design';
 import { parseLimits } from './limits';
 import { isObject, normalizeAxis, number, triple } from './numbers';
 import { LINK_DEFAULTS, LINK_FIELDS, type LinkSpec, type RobotSpec, STUDIO_LINK_FIELDS, SpecError } from './types';
 
-const ROBOT_KEYS = new Set(['name', 'units', 'base', 'tool', 'payload_mass', 'effector', 'links', 'home']);
+const ROBOT_KEYS = new Set(['name', 'units', 'base', 'tool', 'payload_mass', 'effector', 'links', 'home', 'design']);
 const LINK_KEYS = new Set<string>([...LINK_FIELDS, ...STUDIO_LINK_FIELDS]);
 const REQUIRED = ['name', 'axis', 'offset', 'mass'];
 const NAME_RE = /^[A-Za-z][A-Za-z0-9_]*$/;
@@ -39,6 +40,7 @@ function parseLink(raw: unknown, index: number): LinkSpec {
     kp: number(pick('kp'), 'kp', { positive: true }),
     kd: number(pick('kd'), 'kd', { minimum: 0 }),
     dofs: expandDofs(name, joint, axis, axis2, parseLimits(raw.limits, joint, name)),
+    ...(raw.continuous === true && joint === 'revolute' ? { continuous: true } : {}),
   };
 }
 
@@ -58,6 +60,7 @@ export function parseRobot(raw: unknown): RobotSpec {
   const effector = raw.effector ?? DEFAULT_EFFECTOR;
   if (!isEffectorKind(effector)) throw new SpecError('effector must be a known end effector');
   if (raw.home !== undefined && !(Array.isArray(raw.home) && raw.home.every(Number.isFinite))) throw new SpecError('home must be an array of numbers');
+  if (raw.design !== undefined && !isObject(raw.design)) throw new SpecError('design must be an object');
   return {
     name,
     units: 'SI',
@@ -67,5 +70,6 @@ export function parseRobot(raw: unknown): RobotSpec {
     effector,
     links,
     ...(raw.home ? { home: raw.home as number[] } : {}),
+    ...(raw.design ? { design: raw.design as RobotDesign } : {}),
   };
 }

@@ -12,6 +12,7 @@ import type { Store } from '../state/store';
 import type { StudioState } from '../state/types';
 import { playbackGuard } from '../collision/playback';
 import { updateIndicators } from './indicators';
+import type { Transform } from '../../core/math/linear/transform';
 import type { MotionClip } from '../../core/motion/types';
 import type { TaskClip } from '../../core/task/types';
 import { couple } from '../../core/prosthesis/motors';
@@ -27,6 +28,8 @@ export interface LoopDeps {
   physics: () => PhysicsMode | null;
   ik: IkMode;
   motion: () => MotionClip | null;
+  /** Hold the robot's frame on the stage for a clip that carries the body; null lets it settle again. */
+  body: (pose: Transform | null) => void;
   task: () => TaskClip | null;
   /** Pilot's pose for this frame, null until it has a rig for this robot. */
   pilot: (s: RobotSession, dt: number) => number[] | null;
@@ -68,6 +71,7 @@ function chooseQ(d: LoopDeps, s: RobotSession, st: StudioState, dt: number) {
 
 export function frameLoop(d: LoopDeps): (dt: number) => void {
   const guard = playbackGuard();
+  let carrying = false;
   return (dt) => {
     const s = d.session();
     if (!s || d.store.state.q.length !== s.joints.length) return;
@@ -84,6 +88,10 @@ export function frameLoop(d: LoopDeps): (dt: number) => void {
       d.store.set({ playing: false, time: stop.time, contact: stop.contact });
       ({ q, time } = stop);
     }
+    d.overlays.fan.show(st.mode === 'motion' ? d.motion()?.fan ?? null : null, time);
+    const carried = st.mode === 'motion' ? d.motion()?.body?.(time) ?? null : null;
+    if (carried || carrying) d.body(carried);
+    carrying = !!carried;
     const posed = pose(s, q, st.explode, st.focus, !simulating);
     const limb = focusLimb(s, st.focus);
     const parts = s.limbs.length > 1 ? bodyFor(s).partOf : [];

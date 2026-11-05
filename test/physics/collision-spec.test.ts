@@ -82,9 +82,9 @@ describe('hull model mirrors the procedural CAD', () => {
 });
 
 describe('the arm stops where the real one would', () => {
-  const stopOn = async (to: number[]) => {
+  const stopOn = async (to: number[], from = [0, 0, 0]) => {
     const { checker, steps } = await setup(presetSpec('spatial_3link'));
-    const g = guardMove((q) => checker.hit(q), [0, 0, 0], to, steps);
+    const g = guardMove((q) => checker.hit(q), from, to, steps);
     checker.dispose();
     return { q: g.q, pair: g.contact && [g.contact.a, g.contact.b].sort() };
   };
@@ -104,7 +104,8 @@ describe('the arm stops where the real one would', () => {
   });
 
   it('pitching the shoulder down stops on the column it sits on', async () => {
-    const g = await stopOn([0, Math.PI / 2, 0]);
+    // Elbow raised: a straight arm's tip meets the floor at 0.30, just before the shoulder meets the column.
+    const g = await stopOn([0, Math.PI / 2, -1.2], [0, 0, -1.2]);
     expect(g.pair).toEqual(['base_yaw link', 'shoulder link']);
     expect(g.q[1]).toBeGreaterThan(0.05);
     expect(g.q[1]).toBeLessThan(0.5);
