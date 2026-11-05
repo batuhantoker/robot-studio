@@ -6,6 +6,7 @@ import type { Vec3 } from '@/core/math/linear/vec';
 import { bodyOf, workStance } from '@/core/motion/body';
 import { slalom, wheelsOf } from '@/core/motion/generators/steer';
 import { presetsFor } from '@/core/motion/presets';
+import { standingStops } from '@/core/motion/stand-stops';
 import type { MotionRobot } from '@/core/motion/types';
 import { parseRobot } from '@/core/robot/schema/parse';
 import { solveWholeBody } from '@/core/solvers/ik/multi';
@@ -74,29 +75,46 @@ describe('a humanoid read as a body', () => {
   });
 });
 
-describe('humanoid work presets', () => {
-  it('offers bench work, a two-hand lift and turn & place, and leaves the head and legs alone', () => {
+describe('humanoid motions', () => {
+  it('offers nothing that works on objects it does not have, or swings joints for their own sake', () => {
     const { robot, q0 } = humanoid();
-    const presets = presetsFor(robot, q0, 'humanoid');
-    expect(presets.map((p) => p.id)).toEqual(expect.arrayContaining(['bench', 'lift', 'turn', 'reach', 'wave']));
-    const [L, R, head] = [index(robot, 'left_hand'), index(robot, 'right_hand'), index(robot, 'head_camera')];
-    const waist = robot.joints.findIndex((j) => j.name === 'waist_yaw');
-    const neck = robot.joints.findIndex((j) => j.name === 'neck');
-    const legs = robot.joints.flatMap((j, i) => (/leg|hip|knee|ankle/.test(j.name) ? [i] : []));
-    for (const id of ['bench', 'lift', 'turn']) {
-      const clip = presets.find((p) => p.id === id)!.build(robot, q0, 1);
-      const qs = Array.from({ length: 40 }, (_, k) => clip.at((k / 40) * clip.period));
-      for (const q of qs) {
-        expect(q[neck]).toBeCloseTo(q0[neck], 9);
-        expect(Math.max(...legs.map((i) => Math.abs(q[i] - qs[0][i])))).toBeLessThan(1e-9);
-        if (id !== 'turn') expect(q[waist]).toBeCloseTo(qs[0][waist], 9);
-      }
-      // Hands go out over the bench in front, and the loop closes.
-      expect(Math.max(...qs.map((q) => Math.max(tip(robot, q, L)[0], tip(robot, q, R)[0])))).toBeGreaterThan(tip(robot, q0, L)[0] + 0.1);
-      clip.at(0).forEach((v, i) => expect(v).toBeCloseTo(clip.at(clip.period)[i], 6));
-      if (id === 'turn') expect(Math.max(...qs.map((q) => Math.abs(q[waist])))).toBeGreaterThan(0.4);
+    const ids = presetsFor(robot, q0, 'humanoid').map((p) => p.id);
+    expect(ids).toContain('wave');
+    for (const gone of ['bench', 'lift', 'turn', 'reach', 'wave-joints']) expect(ids).not.toContain(gone);
+  });
+
+  it('waves the right hand up beside the head and leaves the rest of the robot alone', () => {
+    const { robot, q0 } = humanoid();
+    const clip = presetsFor(robot, q0, 'humanoid').find((p) => p.id === 'wave')!.build(robot, q0, 1);
+    const R = index(robot, 'right_hand'), L = index(robot, 'left_hand');
+    const own = new Set(robot.limbs[R].index.filter((i) => !robot.limbs[L].index.includes(i)));
+    const qs = Array.from({ length: 60 }, (_, k) => clip.at((k / 60) * clip.period));
+    for (const q of qs) q.forEach((v, i) => own.has(i) || expect(v).toBeCloseTo(q0[i], 9));
+    const rest = tip(robot, q0, R)[2], heights = qs.map((q) => tip(robot, q, R)[2]);
+    expect(Math.max(...heights)).toBeGreaterThan(rest + 0.3);
+    // The hand goes across and back while it is up, and the loop rests where it started.
+    const up = qs.filter((_, k) => heights[k] > rest + 0.25).map((q) => tip(robot, q, R)[1]);
+    expect(Math.max(...up) - Math.min(...up)).toBeGreaterThan(0.04);
+    qs[0].forEach((v, i) => expect(v).toBeCloseTo(q0[i], 6));
+  });
+
+  it('crouches over its feet and brings the hands up for its default stops', () => {
+    const { robot, q0 } = humanoid();
+    const body = bodyOf(robot, q0, 'humanoid');
+    const stops = standingStops(robot, q0, body)!;
+    expect(stops[0]).toEqual(q0);
+    expect(stops.at(-1)).toEqual(q0);
+    const legs = body.parts.filter((p) => p.kind === 'leg').map((p) => p.limb);
+    const frames = (q: number[], limb: number) => chainFrames(robot.limbs[limb].chain, limbQ(robot.limbs[limb], q)).tip;
+    const rise = legs.map((l) => frames(stops[1], l).p[2] - frames(q0, l).p[2]);
+    expect(rise[0]).toBeGreaterThan(0.05);
+    expect(rise[1]).toBeCloseTo(rise[0], 2);
+    for (const l of legs) {
+      expect(frames(stops[1], l).p[0]).toBeCloseTo(frames(q0, l).p[0], 2);
+      expect(frames(stops[1], l).p[1]).toBeCloseTo(frames(q0, l).p[1], 2);
     }
-    expect(tip(robot, q0, head)[2]).toBeGreaterThan(1.4);
+    const R = index(robot, 'right_hand');
+    expect(tip(robot, stops[2], R)[2]).toBeGreaterThan(tip(robot, q0, R)[2] + 0.1);
   });
 });
 
@@ -143,7 +161,10 @@ describe('a steered car', () => {
 describe('pick and place with a humanoid hand', () => {
   it('works with the right hand at the bench, legs planted, as a whole-robot cycle', () => {
     const { robot, q0 } = humanoid();
-    const session = { ...robot, id: 'h', home: q0, category: 'humanoid', base: 'floating', collision: null, assembly: { floorZ: 0 } } as unknown as RobotSession;
+    // A real hand is a rig on the arm's limb: Pick & place closes it; nothing carries in a bare palm.
+    const hand = { kind: 'parallel', size: 0.04, grip: { min: 0, max: 0.08, rest: 0.08, set: () => {} }, tool: { approach: [0, 0, -1], side: [0, 1, 0], beyond: 0 } };
+    const rigs = robot.limbs.map((l) => (/_hand$/.test(l.name) ? hand : null));
+    const session = { ...robot, id: 'h', home: q0, category: 'humanoid', base: 'floating', collision: null, assembly: { floorZ: 0 }, grips: true, rigs } as unknown as RobotSession;
     const found = taskSetup(session, -1)!;
     expect(found.label).toBe('Right arm');
     const { setup: t, spots } = arrange(found);

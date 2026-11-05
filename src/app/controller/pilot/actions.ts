@@ -4,9 +4,7 @@
  */
 import type { Vec3 } from '../../../core/math/linear/vec';
 import type { Body } from '../../../core/motion/body';
-import * as arm from '../../../core/motion/paths/arm';
-import { type BenchFrame, type Pose, benchFrame, benchReach, reachAhead, twoHandLift } from '../../../core/motion/paths/work';
-import { limbRoles } from '../../../core/motion/roles';
+import { type BenchFrame, type Pose, benchFrame, benchReach, reachAhead, twoHandLift, waveHand } from '../../../core/motion/paths/work';
 import type { MotionRobot } from '../../../core/motion/types';
 
 export interface HandAction {
@@ -26,8 +24,7 @@ export function handActions(robot: MotionRobot, ready: number[], body: Body): { 
   const w = benchFrame(robot, ready, body);
   if (!w) return null;
   const both = (path: (s: number) => Pose) => (u: number): [Vec3, Vec3] => path(u).hands;
-  const role = limbRoles(robot, ready)[w.right.limb];
-  const wave = arm.wave(role, 1);
+  const wave = waveHand(w, w.right, 1);
   return {
     frame: w,
     actions: [

@@ -143,30 +143,15 @@ export function twoHandLift(w: BenchFrame, size: number): (s: number) => Pose {
   ]);
 }
 
-/** Pick a box up off the bench in front, turn at the waist, set it down to the side, and turn back. */
-export function turnAndPlace(w: BenchFrame, size: number): (s: number) => Pose {
-  const len = Math.min(w.left.length, w.right.length);
-  // Without a waist yaw the arms alone swing the box, and only a little.
-  const angle = (w.yaw ? 0.75 : 0.3) * size;
-  const ahead = w.front + 0.15 * len, box = w.bench + 0.18 * len, carry = box + 0.22 * len, open = 0.12 * len;
-  const k = (phase: number, z: number, o: number, a: number): Key => [phase, ...holding(w, ahead, z, o, a), w.yaw ? a : 0];
-  return keyed([
-    k(0, carry, open, 0), k(0.1, box, open, 0), k(0.16, box, 0, 0), k(0.28, carry, 0, 0), k(0.46, carry, 0, angle),
-    k(0.56, box, 0, angle), k(0.62, box, open, angle), k(0.72, carry, open, angle), k(0.9, carry, open, 0),
-  ]);
-}
-
 /** Reach both hands straight ahead along the robot's forward axis, not each arm's own outward. */
 export function reachAhead(w: BenchFrame, size: number): (s: number) => Pose {
   const out = (a: Arm) => within(a, add(a.shoulder, add(scale(w.forward, 0.8 * a.length * size), [0, 0, -0.25 * a.length])));
   return keyed([[0, w.left.ready, w.right.ready], [0.4, out(w.left), out(w.right)], [0.55, out(w.left), out(w.right)]]);
 }
 
-/** Waist joints held at the pose `q`, with the yaw turned as the script says. */
-export function waistPins(w: BenchFrame, q: number[], pose: (s: number) => Pose): (s: number) => Map<number, number> {
-  return (s) => {
-    const m = new Map(w.shared.map((i) => [i, q[i]]));
-    if (w.yaw) m.set(w.yaw.joint, q[w.yaw.joint] + w.yaw.sense * pose(s).yaw);
-    return m;
-  };
+/** The hand up beside the head with the elbow bent, swaying across and back. */
+export function waveHand(w: BenchFrame, a: Arm, size: number): (s: number) => Vec3 {
+  const out = Math.sign(lateral(w, a.shoulder) - 0.5 * (lateral(w, w.left.shoulder) + lateral(w, w.right.shoulder))) || 1;
+  const up = add(a.shoulder, add(scale(w.side, out * 0.4 * a.length), add(scale(w.forward, 0.15 * a.length), [0, 0, 0.42 * a.length])));
+  return (s) => add(up, scale(w.side, size * 0.1 * a.length * Math.sin(6 * Math.PI * s)));
 }

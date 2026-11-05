@@ -99,9 +99,10 @@ export function bodyOf(robot: MotionRobot, q: number[], category = ''): Body {
 
   const parts: BodyPart[] = groups(robot, roles).map((members) => {
     const rs = members.map((i) => roles[i]);
-    // Feet are the lowest tip; elsewhere the branch with fewest joints of its own (a wrist over a fingertip).
+    // Feet are the lowest tip, the palm over a claw finger that hangs level with it; elsewhere the branch with fewest joints of its own (a wrist over a fingertip).
+    const level = (a: LimbRole, b: LimbRole) => Math.abs(b.tip[2] - a.tip[2]) <= Math.max(1e-3, 0.03 * a.length);
     const lead = rs[0].role === 'leg'
-      ? rs.reduce((a, b) => (b.tip[2] < a.tip[2] - 1e-3 || (Math.abs(b.tip[2] - a.tip[2]) <= 1e-3 && robot.limbs[b.limb].index.length < robot.limbs[a.limb].index.length) ? b : a))
+      ? rs.reduce((a, b) => (level(a, b) ? (robot.limbs[b.limb].index.length < robot.limbs[a.limb].index.length ? b : a) : b.tip[2] < a.tip[2] ? b : a))
       : rs.reduce((a, b) => {
         const [na, nb] = [robot.limbs[a.limb].index.length, robot.limbs[b.limb].index.length];
         const mid = mean(rs.map((r) => r.tip));
@@ -114,8 +115,10 @@ export function bodyOf(robot: MotionRobot, q: number[], category = ''): Body {
     // A fixed dual arm hanging its tools low still has arms, not legs.
     const kind: PartKind = wheelish && (lead.role !== 'leg' || category === 'mobile') ? 'wheel'
       : HEAD_NAME.test(name) ? 'head' : lead.role === 'leg' && category !== 'arm' ? 'leg' : lead.role !== 'other' ? 'arm' : 'other';
-    const lat = dot(sub(lead.tip, centre), left);
-    const side = nameSide(name) ?? (Math.abs(lat) < 0.15 * Math.max(lead.length, 1e-3) ? 'centre' : lat > 0 ? 'left' : 'right');
+    const near = 0.15 * Math.max(lead.length, 1e-3), tip = dot(sub(lead.tip, centre), left);
+    // A limb can reach in under the middle from a shoulder that is plainly on one side.
+    const lat = Math.abs(tip) < near ? dot(sub(lead.base, centre), left) : tip;
+    const side = nameSide(name) ?? (Math.abs(lat) < near ? 'centre' : lat > 0 ? 'left' : 'right');
     return { kind, limb: lead.limb, limbs: members, side, front: dot(sub(lead.tip, centre), forward) > 0, label: '', role: lead };
   });
 

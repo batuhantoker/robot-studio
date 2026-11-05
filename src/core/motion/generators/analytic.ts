@@ -19,29 +19,6 @@ export function jointWave(robot: MotionRobot, q0: number[], size: number, period
   };
 }
 
-/**
- * A ripple that travels through `joints` in order (hand to shoulder to hand, say), each swinging only toward
- * `dir` and back, so an arm opens away from the body instead of folding into it; every other joint holds.
- */
-export function ripple(robot: MotionRobot, q0: number[], joints: { i: number; dir: number }[], size: number, period = 4): MotionClip {
-  const n = Math.max(joints.length, 1);
-  const amp = joints.map(({ i }) => {
-    const [lo, hi] = robot.joints[i].limits;
-    return size * Math.min(0.16 * Math.min(hi - lo, 2 * Math.PI), 0.45);
-  });
-  return {
-    period,
-    at: (t) => {
-      const q = [...q0];
-      joints.forEach(({ i, dir }, k) => {
-        const phase = (2 * Math.PI * t) / period - (k / n) * Math.PI * 1.5;
-        q[i] = q0[i] + dir * amp[k] * (0.5 - 0.5 * Math.cos(phase));
-      });
-      return enforceLimits(robot.joints, q);
-    },
-  };
-}
-
 /** Joints of wheel limbs turn continuously; joints elsewhere hold their pose. */
 export function drive(robot: MotionRobot, q0: number[], wheels: Set<number>, size: number, period = 3): MotionClip {
   const spin = robot.joints.map((j, i) => wheels.has(i) && j.type === 'hinge' && (j.continuous || j.limits[1] - j.limits[0] >= 2 * Math.PI - 1e-6));

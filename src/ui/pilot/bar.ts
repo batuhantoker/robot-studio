@@ -103,11 +103,11 @@ export function mountPilotBar(el: HTMLElement, store: Store<StudioState>, view: 
           holdButton('↑', 'Reach forward (I)', [1, 0, 0], view), holdButton('↓', 'Draw back (K)', [-1, 0, 0], view),
           holdButton('←', 'Move left (J)', [0, 1, 0], view), holdButton('→', 'Move right (L)', [0, -1, 0], view),
           holdButton('⤒', 'Raise (U)', [0, 0, 1], view), holdButton('⤓', 'Lower (O)', [0, 0, -1], view)),
-        h('button.tb', { class: hs.closed ? 'on' : '', title: 'Close the hand on what it touches, or let go (Space)', onclick: () => view.toggleGrip?.() },
-          hs.closed ? 'Release' : 'Grip'),
+        h('button.tb', { class: hs.closed ? 'on' : '', title: hs.fingers ? 'Close the hand on what it touches, or let go (Space)' : 'No fingers on this arm: it holds what it is pressed to, or lets go (Space)', onclick: () => view.toggleGrip?.() },
+          hs.closed ? 'Release' : hs.fingers ? 'Grip' : 'Hold'),
         h('button.tb', { title: 'Hands back to walking (R)', onclick: () => view.restHands?.() }, 'Rest'),
         h('span.mu', { style: 'font-size:11px' }, hs.holding ? `Holding the ${hs.holding.toLowerCase()}` : hs.closed ? 'Closed on nothing: move it onto a part' : 'Bring the hand to a part and grip'),
-        key('I J K L U O', 'hand'), key('Tab', 'other hand'), key('Space', 'grip'));
+        key('I J K L U O', 'hand'), key('Tab', 'other hand'), key('Space', hs.fingers ? 'grip' : 'hold'));
     }
     hint = view.camera === 'pov' ? 'Drag, or click to take the mouse, to turn and look · Esc frees it' : 'Drag to look around';
     tick();

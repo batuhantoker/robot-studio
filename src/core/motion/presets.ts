@@ -1,18 +1,22 @@
 /** The motion presets that suit a robot, from its limbs' roles (legs, arms, wheels). */
 import type { Vec3 } from '../math/linear/vec';
-import { bodyOf } from './body';
-import { drive, jointWave, ripple } from './generators/analytic';
+import { type Body, bodyOf } from './body';
+import { drive, jointWave } from './generators/analytic';
 import { pendulumPresets, pendulumRow } from './generators/pendulum';
 import { slalom, wheelsOf } from './generators/steer';
 import { taskClip } from './generators/task';
 import * as arm from './paths/arm';
-import { type BenchFrame, type Pose, benchFrame, benchReach, reachAhead, turnAndPlace, twoHandLift, waistPins } from './paths/work';
 import { bob, footPath, gaitPhases } from './paths/gait';
+import { armSwings } from './stepping/arms';
+import { armWave, bowAt, bowRung, waveAt, waveRung } from './stepping/gesture';
+import { type LegGait, leggedAt, leggedRung } from './stepping/legged';
+import { marchAt, marchRung } from './stepping/march';
+import { squatAt, squatRung } from './stepping/squat';
 import { chainFrames } from '../chain/kinematics/frames';
 import { limbQ } from '../chain/limbs/types';
-import { easeOffLimits, readyPose } from './ready';
+import { readyPose } from './ready';
 import { type LimbRole, limbRoles } from './roles';
-import type { MotionPreset, MotionRobot } from './types';
+import type { Footing, MotionClip, MotionPreset, MotionRobot } from './types';
 
 type LimbPaths = (roles: LimbRole[], size: number) => Map<number, (s: number) => Vec3>;
 
@@ -40,53 +44,6 @@ function task(id: string, label: string, hint: string, period: number, paths: Li
   };
 }
 
-/**
- * The arm pair's own joints, left hand to left shoulder then right shoulder to right hand, each turned the way
- * that carries its hand out, forward and up from the body. The waist and legs hold.
- */
-function armRipple(robot: MotionRobot, q0: number[], body: ReturnType<typeof bodyOf>): { i: number; dir: number }[] {
-  const w = benchFrame(robot, q0, body)!;
-  const own = (limb: number) => robot.limbs[limb].index.filter((i) => !w.shared.includes(i));
-  const hand = (limb: number, q: number[]) => chainFrames(robot.limbs[limb].chain, limbQ(robot.limbs[limb], q)).tip.p;
-  const way = (limb: number, i: number, out: number) => {
-    const q = [...q0];
-    q[i] += 1e-3;
-    const d = hand(limb, q).map((v, k) => v - hand(limb, q0)[k]);
-    const score = out * (d[0] * w.side[0] + d[1] * w.side[1]) + 0.5 * (d[0] * w.forward[0] + d[1] * w.forward[1]) + 0.3 * d[2];
-    return Math.sign(score) || 1;
-  };
-  return [
-    ...own(w.left.limb).reverse().map((i) => ({ i, dir: way(w.left.limb, i, 1) })),
-    ...own(w.right.limb).map((i) => ({ i, dir: way(w.right.limb, i, -1) })),
-  ];
-}
-
-/** Both hands of an arm pair on keyed targets; legs stay where they stand. */
-function pairTask(id: string, label: string, hint: string, period: number, make: (w: BenchFrame, size: number) => (s: number) => Pose): MotionPreset {
-  return {
-    id, label, hint,
-    build: (robot, q0, size) => {
-      const body = bodyOf(robot, q0, 'humanoid');
-      const arms = body.parts.filter((p) => p.kind === 'arm').flatMap((p) => robot.limbs[p.limb].index);
-      // A straight elbow or a shoulder on its stop stalls warm-started IK, as a straight knee does.
-      const ready = easeOffLimits(robot, q0, arms, 0.05, 0.08);
-      const w = benchFrame(robot, ready, body)!;
-      const path = make(w, size);
-      // A hand modelled as fingertip chains keeps its fingers still; IK would curl them into each other.
-      const fingers = body.parts.filter((p) => p.kind === 'arm' && p.limbs.length > 1).flatMap((p) => {
-        const common = p.limbs.map((i) => new Set(robot.limbs[i].index)).reduce((a, b) => new Set([...a].filter((i) => b.has(i))));
-        return robot.limbs[p.limb].index.filter((i) => !common.has(i));
-      });
-      const waist = waistPins(w, ready, path);
-      const pins = (s: number) => new Map([...fingers.map((i): [number, number] => [i, ready[i]]), ...waist(s)]);
-      return taskClip(robot, ready, (s) => {
-        const [l, r] = path(s).hands;
-        return robot.limbs.map((_, i) => (i === w.left.limb ? l : i === w.right.limb ? r : null));
-      }, period, 48, { pins, posture: ready });
-    },
-  };
-}
-
 const each = (pick: (r: LimbRole) => boolean, path: (r: LimbRole, size: number) => (s: number) => Vec3): LimbPaths =>
   (roles, size) => new Map(roles.filter(pick).map((r) => [r.limb, path(r, size)]));
 
@@ -98,18 +55,72 @@ const gait = (kind: 'trot' | 'walk' | 'tripod' | 'march', withArms = false): Lim
   return map;
 };
 
-export function presetsFor(robot: MotionRobot, q0: number[], category: string): MotionPreset[] {
-  // A hand's fingers are not arms: tool paths and pick and place make no sense on a fingertip.
-  if (category === 'hand') return [{ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple through every finger', build: (r, q, s) => jointWave(r, q, s) }];
+/** How a robot's stepping is settled: per motion, a `rung` from the generated table, null if it cannot, missing if the table has never seen it. */
+export interface Stepping {
+  footing: () => Footing;
+  rungs?: Record<string, number | null>;
+}
+
+/** A motion with a ladder of easier versions: the body it needs, the first rung that body can do, and the clip at a rung. */
+interface Stepper {
+  search(r: MotionRobot, q: number[], shape: Footing, body: Body, size?: number, budget?: number): number | null;
+  at(r: MotionRobot, q: number[], shape: Footing, body: Body, size: number, rung: number): MotionClip | null;
+}
+
+const onLegs = (kind: LegGait): Stepper => ({
+  search: (...a) => leggedRung(kind, ...a),
+  at: (...a) => leggedAt(kind, ...a),
+});
+
+const planted: Stepper = { search: squatRung, at: squatAt };
+const STEPPERS: Record<string, Stepper> = {
+  march: { search: marchRung, at: marchAt }, squat: planted, bob: planted, trot: onLegs('trot'), walk: onLegs('walk'), tripod: onLegs('tripod'),
+  wave: { search: waveRung, at: waveAt }, bow: { search: bowRung, at: bowAt },
+};
+
+/** The stepping motions a body has the legs for. */
+export function steppersFor(body: Body): string[] {
+  const legs = body.parts.filter((p) => p.kind === 'leg').length;
+  return legs === 2 ? ['march', 'squat', ...(body.parts.some((p) => p.kind === 'arm') ? ['wave'] : []), 'bow'] : legs === 4 ? ['trot', 'walk', 'bob'] : legs >= 6 ? ['tripod', 'bob'] : [];
+}
+
+/** The first rung of a stepping motion this body can do: what the generated table holds. */
+export const steppingRung = (id: string, robot: MotionRobot, q0: number[], footing: Footing, body: Body): number | null => STEPPERS[id].search(robot, q0, footing, body);
+
+/** Milliseconds a robot the table has never seen may search for a gait, when the motion is asked for. */
+const SEARCH = 3000;
+
+/** Nothing is solved here: this runs while a robot opens. A body with no rung in the table finds its gait when the motion is played. */
+function stepping(preset: Omit<MotionPreset, 'build'>, category: string, { footing, rungs }: Stepping): MotionPreset | null {
+  const rung = rungs?.[preset.id], how = STEPPERS[preset.id];
+  if (rung === null) return null;
+  return {
+    ...preset,
+    build: (r, q, size) => {
+      const body = bodyOf(r, q, category), shape = footing();
+      const at = rung ?? how.search(r, q, shape, body, size, SEARCH);
+      const clip = at === null ? null : how.at(r, q, shape, body, size, at);
+      if (!clip) throw new Error(`no ${preset.id} for this body`);
+      return clip;
+    },
+  };
+}
+
+/** `walks` says how the robot stands and what is known of its gait; with it, a biped's March carries its body. */
+export function presetsFor(robot: MotionRobot, q0: number[], category: string, walks?: Stepping): MotionPreset[] {
+  // A hand's fingers are not arms: its grips and gestures come from src/app/controller/grasp, around real objects.
+  if (category === 'hand') return [];
   const row = category === 'other' ? pendulumRow(robot, q0) : null;
   if (row) return pendulumPresets(row);
   const roles = limbRoles(robot, q0);
   const body = bodyOf(robot, q0, category);
   // One limb per real end effector: a hand's fingertip chains would fight over the same arm joints.
   const leads = new Set(body.parts.map((p) => p.limb));
-  const legs = roles.filter((r) => r.role === 'leg' && leads.has(r.limb)).length;
-  const arms = roles.filter((r) => r.role === 'arm' && leads.has(r.limb)).length;
-  const isArm = (r: LimbRole) => r.role === 'arm' && leads.has(r.limb);
+  // A bolted dual arm hanging its tools low has arms, however its limbs read.
+  const bolted = category === 'arm';
+  const legs = bolted ? 0 : roles.filter((r) => r.role === 'leg' && leads.has(r.limb)).length;
+  const isArm = (r: LimbRole) => (r.role === 'arm' || (bolted && r.role === 'leg')) && leads.has(r.limb);
+  const arms = roles.filter(isArm).length;
   const out: MotionPreset[] = [];
   const wheels = new Set(roles.filter((r) => r.role !== 'arm').flatMap((r) => robot.limbs[r.limb].index));
   if (category === 'mobile' || category === 'aerial') {
@@ -118,37 +129,39 @@ export function presetsFor(robot: MotionRobot, q0: number[], category: string): 
       out.push({ id: 'slalom', label: 'Slalom', hint: 'Wheels roll, steering sweeps', build: (r, q, s) => slalom(r, q, wheelsOf(r, q, bodyOf(r, q, category)), s) });
     }
   } else if (legs >= 4) {
-    out.push(task('trot', 'Trot', 'Diagonal legs together', 1.2, gait('trot')));
-    if (legs === 4) out.push(task('walk', 'Walk', 'Four-beat lateral sequence', 1.8, gait('walk')));
-    if (legs >= 6) out.push(task('tripod', 'Tripod', 'Alternating tripods', 1.4, gait('tripod')));
-    out.push(task('bob', 'Bob', 'All feet together', 2, each((r) => r.role === 'leg', bob)));
+    const steps = [
+      task('trot', 'Trot', 'Diagonal legs together', 1.2, gait('trot')),
+      task('walk', 'Walk', 'One foot at a time', 1.8, gait('walk')),
+      task('tripod', 'Tripod', 'Alternating tripods', 1.4, gait('tripod')),
+      task('bob', 'Bob', 'Crouch and rise, every foot planted', 2, each((r) => r.role === 'leg', bob)),
+    ].filter((p) => steppersFor(body).includes(p.id));
+    out.push(...steps.flatMap((p) => (walks ? stepping(p, category, walks) ?? [] : p)));
   } else if (legs === 2) {
-    out.push(task('march', 'March', 'Knees up, arms swing', 1.6, gait('march', true)));
-    out.push(task('squat', 'Squat', 'Both legs fold', 2.4, each((r) => r.role === 'leg', bob)));
+    const march = task('march', 'March', 'Knees up, arms swing', 1.6, gait('march', true));
+    // Limb roles call anything hanging low a leg; only a body that stands on two of them can step.
+    const standing = body.parts.filter((p) => p.kind === 'leg').length === 2;
+    const squat = task('squat', 'Squat', 'Sit down and stand up, arms out for balance', 2.4, each((r) => r.role === 'leg', bob));
+    const wave = { id: 'wave', label: 'Wave', hint: 'Hand up, three waves, weight on the far foot' };
+    const bow = { id: 'bow', label: 'Bow', hint: 'Bend at the hips, hold, rise, feet planted' };
+    out.push(...[march, squat].flatMap((p) => (!walks ? p : standing ? stepping(p, category, walks) ?? [] : [])));
+    if (walks && standing) out.push(...[...(arms ? [wave] : []), bow].flatMap((p) => stepping(p, category, walks) ?? []));
   }
   // Some humanoid manifests list one leg chain; the other leg is still there.
   const biped = legs === 2 || (category === 'humanoid' && legs >= 1);
-  const pair = arms >= 2 && biped && !!benchFrame(robot, q0, body);
   if (arms && biped) {
-    out.push(task('wave', 'Wave', 'One hand up', 1.6, (roles, size) => {
-      const hand = roles.filter(isArm).sort((a, b) => Number(a.left) - Number(b.left))[0];
-      return new Map([[hand.limb, arm.wave(hand, size)]]);
-    }));
-    if (pair) {
-      out.push(pairTask('reach', 'Reach', 'Both hands forward', 2.4, reachAhead));
-      out.push(pairTask('bench', 'Bench work', 'Each hand reaches out and works the bench', 4.8, benchReach));
-      out.push(pairTask('lift', 'Two-hand lift', 'Grip a box, lift it to the chest, set it down', 5.2, twoHandLift));
-      out.push(pairTask('turn', 'Turn & place', 'Lift, turn at the waist, set down aside', 6, turnAndPlace));
-    } else if (arms >= 2) out.push(task('reach', 'Reach', 'Both hands forward', 2.4, each(isArm, arm.reach)));
+    // A body that cannot balance a wave still has an arm to wave.
+    if (!out.some((p) => p.id === 'wave') && armSwings(robot, q0, body).length) {
+      out.push({ id: 'wave', label: 'Wave', hint: 'Hand up, three waves', build: (r, q, s) => {
+        const clip = armWave(r, q, bodyOf(r, q, category), s);
+        if (!clip) throw new Error('no arm to wave');
+        return clip;
+      } });
+    }
   } else if (arms) {
     out.push(task('circle', 'Circle', 'Tool traces a circle', 3, each(isArm, arm.circle)));
     out.push(task('eight', 'Figure 8', 'Tool traces a lemniscate', 4, each(isArm, arm.figureEight)));
-    out.push(task('pick', 'Pick & place', 'Down at A, carry, down at B', 4, each(isArm, arm.pickAndPlace)));
   }
-  // On legs a whole-body ripple tips the feet and rocks the robot; a pair of arms carries it hand to hand instead,
-  // and a biped with no arms has nothing else to ripple.
-  const ripples = arms >= 2 && (biped || category === 'humanoid') && !!benchFrame(robot, q0, body);
-  if (ripples) out.push({ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple from one hand across the shoulders to the other', build: (r, q, s) => ripple(r, q, armRipple(r, q, bodyOf(r, q, 'humanoid')), s) });
-  else if (!(legs === 2 && !arms)) out.push({ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple through every joint', build: (r, q, s) => jointWave(r, q, s) });
+  // A robot that stands on its legs does not ripple them with its body pinned in the air.
+  if (!biped && !(walks && legs)) out.push({ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple through every joint', build: (r, q, s) => jointWave(r, q, s) });
   return out;
 }

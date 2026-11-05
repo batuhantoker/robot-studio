@@ -48,3 +48,19 @@ export function clearWaypoints(s: { collision: CollisionChecker | null; joints: 
   // Still touching somewhere: the playback stop will hold it there.
   return fitted();
 }
+
+/** Stops that only work together, as bent knees under flat feet do: drawn in as one from the first until the plan clears. */
+export function clearTogether(s: { collision: CollisionChecker | null; joints: RobotJoint[] }, waypoints: number[][], duration: number): number[][] {
+  const c = s.collision;
+  const base = waypoints[0];
+  if (!c || !base || c.hit(base)) return waypoints;
+  const limits = s.joints.map((j) => j.limits);
+  const times = Array.from({ length: SAMPLES + 1 }, (_, i) => (duration * i) / SAMPLES);
+  let w = waypoints;
+  for (let k = 1; k > 0.2; k *= 0.8) {
+    w = waypoints.map((p) => p.map((v, j) => base[j] + (v - base[j]) * k));
+    if (!times.some((t) => c.hit(stateAt(limits, w, duration, t).q))) return w;
+  }
+  // Still touching somewhere: the playback stop will hold it there.
+  return w;
+}

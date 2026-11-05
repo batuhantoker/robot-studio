@@ -39,6 +39,15 @@ describe('fitting a motion clear of contact', () => {
     expect(p.build).toHaveBeenCalledTimes(1);
   });
 
+  it('checks the lead-in as well as the loop', () => {
+    const lead: MotionPreset = {
+      id: 'lead', label: 'Lead', hint: '',
+      build: (_r, q0: number[], size: number) => ({ period: 1, lead: 1, at: (t: number) => [q0[0] + (t < 1 ? size * Math.sin(Math.PI * t) : 0)] }),
+    };
+    const clip = clearClip(robot(0.7), lead, [0], 1);
+    expect(Math.max(...Array.from({ length: 200 }, (_, i) => clip.at(i / 200)[0]))).toBeLessThanOrEqual(0.7);
+  });
+
   it('starts as asked from a pose already touching', () => {
     expect(reach(clearClip(robot(-1), swing(), [0], 1))).toBeCloseTo(1, 2);
   });
