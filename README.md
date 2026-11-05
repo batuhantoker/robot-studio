@@ -26,10 +26,10 @@
 
 <p align="center">
   <a href="https://robotics-studio-one.vercel.app"><img src="docs/media/simulation.gif" width="100%" alt="MuJoCo drives a six-joint arm through a quintic trajectory while applied torque and tracking error plot live"></a>
-  <br><sub>MuJoCo (WebAssembly) drives the <code>spatial_6link</code> preset through a quintic trajectory; applied torque and tracking error plot live. <a href="https://robotics-studio-one.vercel.app">Try it in your browser.</a></sub>
+  <br><sub>MuJoCo (WebAssembly) drives a six-joint arm through a quintic trajectory; applied torque and tracking error plot live. <a href="https://robotics-studio-one.vercel.app">Try it in your browser.</a></sub>
 </p>
 
-You build an arm from a catalogue of joints, or open one of 162 robots: arms,
+You build an arm from a catalogue of joints, or open one of 163 robots: arms,
 humanoids, legged and wheeled machines, many from real CAD. The studio poses them,
 explains their kinematics with live numbers, simulates them in MuJoCo, drives them
 around a workshop, and takes them apart teardown-style. MuJoCo is the official
@@ -144,13 +144,24 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
     windings, magnet rotor, strain-wave gear, bearings and encoder; a ball-screw axis;
     a telescoping sleeve; a Cardan yoke; a ball and socket; an XY stage.
   - Robots are saved in the browser and export as Python JSON, studio JSON or MJCF.
-- **15 presets, ready to pose and edit.**
-  - Five real arms are built from their published DH tables, and a test checks each
-    against its table: UR5e, Franka Panda, KUKA iiwa 14, ABB IRB 120 and PUMA 560.
-  - Classic layouts: a SCARA and the Stanford arm with its telescoping boom.
-  - Newer machines: a home-robot mobile manipulator, LeRobot's SO-101 and a
-    humanoid arm with spherical shoulder and wrist.
-  - Sources are listed in [`presets/studio`](presets/studio/README.md).
+- **16 presets, the robots a robotics course teaches.**
+  - Real arms from published tables, each tested against its source: PUMA 560, Stanford
+    Arm, Universal Robots UR5e, Franka Emika Panda, KUKA LBR iiwa 14 R820, ABB IRB 120,
+    Barrett WAM and Adept Cobra 600.
+  - KUKA youBot, the mobile manipulator from Modern Robotics.
+  - The textbook types: Planar 2R and 3R, Anthropomorphic (RRR), Cartesian Gantry (PPP)
+    and Cylindrical (RPP). These are generic, and their numbers are labelled estimates.
+  - The 4-DOF Arm this project grew from.
+  - Each of those is modelled as real link castings with drives inside, in its real paint,
+    and clears itself for real at home. Sources are listed in
+    [`presets/studio`](presets/studio/README.md).
+  - A Double Pendulum, two bars on pins with no motors. Set a pose and let it go: the true
+    equations of motion, or a fan of 20 or 200 pendulums a millionth of a radian apart, which
+    move as one bar and then come apart. Physics lets MuJoCo do the same. It is a teaching
+    model, not any maker's rig.
+- **Grippers on any arm.** Fit a tool under Build → End effector, on a CAD arm too: it
+  sits on the true flange, the tool point moves with it, and it collides. An arm with
+  nothing that grips offers no Pick & place.
 - **Humanoids and multi-limb robots.** Every limb is live. The focus picker in the top
   bar chooses which limb the math explains, and whole-body IK moves several end
   effectors at once.
@@ -165,11 +176,11 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
 - **Several robots on one stage.** Up to four, each placed in the stage frame; click one
   to control it. One MuJoCo heap holds them all, so the page caps the count.
 - **Motion.** One-click motions matched to the loaded robot:
-  - circle, figure 8 and pick-and-place for arms;
+  - circle and figure 8 for arms;
   - trot, walk or tripod gaits for legged robots;
-  - march, squat, wave and reach for humanoids;
+  - march, squat, wave and bow for humanoids, with the hips and weight moving and the feet planted;
   - drive or spin for wheeled and aerial robots;
-  - a joint wave for anything.
+  - a joint wave for anything that doesn't stand on its legs.
 - **Teardown.** The View menu (the eye over the stage) switches between solid, glass
   and section views, and holds the looks (studio, clay, technical, materials) and the
   overlays (axes, CoM, velocity ellipsoid, trail, workspace).
@@ -198,7 +209,7 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - the damped-least-squares IK trace;
   - gravity statics as Jacobian-transpose sums;
   - the quintic profile;
-  - the original Kane closed form, shown for `original_4dof`;
+  - the original Kane closed form, shown for the 4-DOF Arm;
   - the equations of motion and the control law.
 - **Analysis tab.** It shows the current mode's tools and lists the others as cards.
   - IK against a draggable target, with the solver iterations replayed.
@@ -221,8 +232,10 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - The real meshes stay bound to the twin's links. Changing a length slice-stretches
     only the middle of the link, so housings keep their shape. Thickness scales the
     cross-section.
-  - Links whose joint kind or direction you change, and links you add, fall back to
-    procedural modules.
+  - A real joint keeps its kind. Changing its direction, or adding a joint past the
+    flange, draws a procedural module sized to fit that CAD.
+  - Grippers and tools go on the arm's measured flange under End effector, and Pick &
+    place works with them. An arm with its own tool keeps it.
 
 ## Robot library
 
@@ -231,28 +244,29 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
 </p>
 
 <!-- robot-library:start -->
-**162 robots** from 71 makers. Click a name to open that robot in the live studio. 17 models whose upstream states no license are not published: `npm run robots:fetch` builds them on your own machine.
+**163 robots** from 71 makers. Click a name to open that robot in the live studio. 17 models whose upstream states no license are not published: `npm run robots:fetch` builds them on your own machine.
 
 <details>
-<summary><b>Studio presets</b> (15)</summary>
+<summary><b>Studio presets</b> (16)</summary>
 
 | Robot | Maker | Joints | License |
 |---|---|--:|---|
-| [humanoid_arm](https://robotics-studio-one.vercel.app/?robot=preset:humanoid_arm) | Studio | 7 | — |
-| [iiwa14](https://robotics-studio-one.vercel.app/?robot=preset:iiwa14) | Studio | 7 | — |
-| [irb120](https://robotics-studio-one.vercel.app/?robot=preset:irb120) | Studio | 6 | — |
-| [mobile_manipulator](https://robotics-studio-one.vercel.app/?robot=preset:mobile_manipulator) | Studio | 8 | — |
-| [original_4dof](https://robotics-studio-one.vercel.app/?robot=preset:original_4dof) | Studio | 4 | — |
-| [panda](https://robotics-studio-one.vercel.app/?robot=preset:panda) | Studio | 7 | — |
-| [planar_2link](https://robotics-studio-one.vercel.app/?robot=preset:planar_2link) | Studio | 2 | — |
-| [puma560](https://robotics-studio-one.vercel.app/?robot=preset:puma560) | Studio | 6 | — |
-| [scara](https://robotics-studio-one.vercel.app/?robot=preset:scara) | Studio | 4 | — |
-| [so101](https://robotics-studio-one.vercel.app/?robot=preset:so101) | Studio | 5 | — |
-| [spatial_3link](https://robotics-studio-one.vercel.app/?robot=preset:spatial_3link) | Studio | 3 | — |
-| [spatial_6link](https://robotics-studio-one.vercel.app/?robot=preset:spatial_6link) | Studio | 6 | — |
-| [spatial_12link](https://robotics-studio-one.vercel.app/?robot=preset:spatial_12link) | Studio | 12 | — |
-| [stanford_arm](https://robotics-studio-one.vercel.app/?robot=preset:stanford_arm) | Studio | 6 | — |
-| [ur5e](https://robotics-studio-one.vercel.app/?robot=preset:ur5e) | Studio | 6 | — |
+| [4-DOF Arm](https://robotics-studio-one.vercel.app/?robot=preset:original_4dof) | Studio | 4 | — |
+| [ABB IRB 120](https://robotics-studio-one.vercel.app/?robot=preset:irb120) | Studio | 6 | — |
+| [Adept Cobra 600](https://robotics-studio-one.vercel.app/?robot=preset:scara) | Studio | 4 | — |
+| [Anthropomorphic Arm (RRR)](https://robotics-studio-one.vercel.app/?robot=preset:anthropomorphic_rrr) | Studio | 3 | — |
+| [Barrett WAM](https://robotics-studio-one.vercel.app/?robot=preset:wam) | Studio | 7 | — |
+| [Cartesian Gantry (PPP)](https://robotics-studio-one.vercel.app/?robot=preset:cartesian_gantry) | Studio | 3 | — |
+| [Cylindrical Robot (RPP)](https://robotics-studio-one.vercel.app/?robot=preset:cylindrical_robot) | Studio | 3 | — |
+| [Double Pendulum](https://robotics-studio-one.vercel.app/?robot=preset:double_pendulum) | Studio | 2 | — |
+| [Franka Emika Panda](https://robotics-studio-one.vercel.app/?robot=preset:panda) | Studio | 7 | — |
+| [KUKA LBR iiwa 14 R820](https://robotics-studio-one.vercel.app/?robot=preset:iiwa14) | Studio | 7 | — |
+| [KUKA youBot](https://robotics-studio-one.vercel.app/?robot=preset:youbot) | Studio | 8 | — |
+| [Planar 2R Arm](https://robotics-studio-one.vercel.app/?robot=preset:planar_2r) | Studio | 2 | — |
+| [Planar 3R Arm](https://robotics-studio-one.vercel.app/?robot=preset:planar_3r) | Studio | 3 | — |
+| [PUMA 560](https://robotics-studio-one.vercel.app/?robot=preset:puma560) | Studio | 6 | — |
+| [Stanford Arm](https://robotics-studio-one.vercel.app/?robot=preset:stanford_arm) | Studio | 6 | — |
+| [Universal Robots UR5e](https://robotics-studio-one.vercel.app/?robot=preset:ur5e) | Studio | 6 | — |
 
 </details>
 
