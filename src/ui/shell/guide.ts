@@ -19,7 +19,7 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { target: '.robot-title', title: 'Your robot', text: 'Click its name to browse 163 robots: arms, humanoids, legged, CAD.' },
+  { target: '.robot-title', title: 'Your robot', text: 'Click its name to browse the library: arms, humanoids, legged, CAD.' },
   { target: '.modes', phone: '.mode-button', title: 'Modes', text: 'Eight ways to use the robot. Each mode changes the stage and the bar under it.' },
   { target: '.dock-stack > *', mode: 'motion', click: '.motion-bar .seg .tb:not(.on)', title: 'The mode’s bar', text: 'Controls for the current mode live under the robot. Here: demo motions.' },
   { target: '.dock-stack > *', mode: 'trajectory', title: 'Trajectory', text: 'Add stops, drag them in the view, scrub the path, then render a video.' },
