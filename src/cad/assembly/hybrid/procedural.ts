@@ -1,5 +1,5 @@
 /** A procedural joint module (and tube) for a twin link that no longer matches its CAD. */
-import type { RobotSpec } from '../../../core/robot/schema/types';
+import type { LinkSpec } from '../../../core/robot/schema/types';
 import { JOINT_KINDS } from '../../../core/robot/joints/kinds';
 import { v3 } from '../../common/orient';
 import type { MaterialSet } from '../../materials/library';
@@ -8,8 +8,7 @@ import { JOINT_MODULES } from '../../registry/joint-modules';
 import type { Slot } from '../spec/slots';
 import type { ModuleInfo } from '../types';
 
-export function proceduralLink(spec: RobotSpec, k: number, mats: MaterialSet, starts: number[], slots: Slot[], modules: ModuleInfo[]) {
-  const link = spec.links[k];
+export function proceduralLink(link: LinkSpec, k: number, mats: MaterialSet, starts: number[], slots: Slot[], modules: ModuleInfo[]) {
   const m = JOINT_MODULES[link.joint]({ mats, link, index: k });
   const id = `joint:${link.name}`;
   m.stages.forEach((stage, i) => {

@@ -34,10 +34,11 @@ function uniqueName(raw: Raw, base: string): string {
   for (let i = 1; ; i++) if (!names.has(`${base}_${i}`)) return `${base}_${i}`;
 }
 
-/** Append a link of the given kind, continuing the chain along a sensible direction. */
+/** Append a link of the given kind, continuing the chain along a sensible direction; a planar base goes under the chain instead. */
 export function addLink(raw: Raw, joint: JointKind): Raw {
-  const prev = raw.links.at(-1);
-  const radius = Math.max(((prev?.radius as number) ?? 0.02) * 0.85, 0.008);
+  const base = joint === 'planar';
+  const prev = base ? raw.links[0] : raw.links.at(-1);
+  const radius = Math.max(((prev?.radius as number) ?? 0.02) * (base ? 1 : 0.85), 0.008);
   const axisFor: Record<JointKind, number[]> = {
     revolute: [0, 1, 0], prismatic: [1, 0, 0], cylindrical: [0, 0, 1], universal: [0, 1, 0], spherical: [1, 0, 0], planar: [0, 0, 1],
   };
@@ -50,7 +51,9 @@ export function addLink(raw: Raw, joint: JointKind): Raw {
   };
   if (joint !== 'revolute') link.joint = joint;
   if (JOINT_KINDS[joint].dofs.some((d) => d.axis !== 'axis')) link.axis2 = joint === 'planar' ? [1, 0, 0] : [0, 0, 1];
-  return { ...raw, links: [...raw.links, link] };
+  if (!base) return { ...raw, links: [...raw.links, link] };
+  const home = raw.home as number[] | undefined;
+  return { ...raw, links: [link, ...raw.links], ...(home ? { home: [...JOINT_KINDS.planar.dofs.map(() => 0), ...home] } : {}) };
 }
 
 export const blankRobot = (): Raw => ({

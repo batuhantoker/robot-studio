@@ -11,14 +11,14 @@ export interface BoundGeom {
   toLink: THREE.Matrix4;
 }
 
-const matrixOf = (R: ArrayLike<number>, p: ArrayLike<number>) =>
+export const matrixOf = (R: ArrayLike<number>, p: ArrayLike<number>) =>
   new THREE.Matrix4().set(R[0], R[1], R[2], p[0], R[3], R[4], R[5], p[1], R[6], R[7], R[8], p[2], 0, 0, 0, 1);
 
 /** Geoms per chain joint (index n is unused; index -1 entries land in `base`). */
-export function bindGeoms(h: ModelHandle, mc: ModelChain, twin: Twin) {
+export function bindGeoms(h: ModelHandle, mc: ModelChain, twin: Twin, hides?: (geom: GeomInfo) => boolean) {
   const links: BoundGeom[][] = mc.chain.joints.map(() => []);
   const base: BoundGeom[] = [];
-  for (const geom of readGeoms(h).filter(visibleGeom)) {
+  for (const geom of readGeoms(h).filter((g) => visibleGeom(g) && !hides?.(g))) {
     const at = mc.attach[geom.body];
     const geomPose = new THREE.Matrix4().compose(
       new THREE.Vector3(...geom.pos),

@@ -1,5 +1,5 @@
 /** Editor for one link: joint kind from the catalogue, axes, offset, mass, limits, gains. */
-import { JOINT_KINDS, JOINT_KIND_LIST } from '../../core/robot/joints/kinds';
+import { JOINT_KINDS } from '../../core/robot/joints/kinds';
 import type { JointKind, LinkSpec } from '../../core/robot/schema/types';
 import { DEG } from '../dom/format';
 import { h } from '../dom/h';
@@ -12,6 +12,12 @@ export interface LinkCardHandlers {
   move(delta: -1 | 1): void;
   remove(): void;
   focus(): void;
+}
+
+export interface LinkRules {
+  kinds: JointKind[];
+  moves: boolean;
+  removes: boolean;
 }
 
 const AXES: [string, number[]][] = [['X', [1, 0, 0]], ['Y', [0, 1, 0]], ['Z', [0, 0, 1]]];
@@ -34,12 +40,15 @@ function limitRows(link: LinkSpec, change: (p: RawLink) => void) {
   });
 }
 
-export function linkCard(link: LinkSpec, index: number, open: boolean, focused: boolean, on: LinkCardHandlers): HTMLElement {
+/** `kinds` are what the link may be; a twin's links stay in their order, and only its last can go. */
+export function linkCard(link: LinkSpec, index: number, open: boolean, focused: boolean, on: LinkCardHandlers, { kinds, moves, removes }: LinkRules): HTMLElement {
   const info = JOINT_KINDS[link.joint];
   const body = h('div', { style: open ? '' : 'display:none' },
     field('Name', textInput(link.name, (name) => on.change({ name }))),
-    field('Joint', select(JOINT_KIND_LIST.map((k) => [k.kind, `${k.label} · ${k.dofs.length} DOF`]), link.joint, (joint: JointKind) => on.change({ joint, limits: undefined }))),
-    h('p.note', {}, `${info.motion}. ${info.useCase}.`),
+    field('Joint', kinds.length > 1
+      ? select(kinds.map((k) => [k, `${JOINT_KINDS[k].label} · ${JOINT_KINDS[k].dofs.length} DOF`]), link.joint, (joint: JointKind) => on.change({ joint, limits: undefined }))
+      : h('span', {}, `${info.label} · ${info.dofs.length} DOF`)),
+    h('p.note', {}, kinds.length > 1 ? `${info.motion}. ${info.useCase}.` : `${info.motion}. A real CAD joint keeps its kind.`),
     field('Axis', axisPicker(link.axis, (axis) => on.change({ axis }))),
     info.dofs.some((d) => d.axis !== 'axis') ? field('Axis 2', axisPicker(link.axis2, (axis2) => on.change({ axis2 }))) : null,
     field('Offset mm', vecInput(link.offset, (offset) => on.change({ offset }), { scale: 1000, step: 5, digits: 1 })),
@@ -51,10 +60,10 @@ export function linkCard(link: LinkSpec, index: number, open: boolean, focused: 
       numberInput(link.kp, (kp) => on.change({ kp }), { step: 1 }),
       numberInput(link.kd, (kd) => on.change({ kd }), { step: 0.1 }))),
     h('div.row', { style: 'margin-top:6px' },
-      h('button.tb', { onclick: () => on.move(-1) }, '↑'),
-      h('button.tb', { onclick: () => on.move(1) }, '↓'),
+      moves ? h('button.tb', { onclick: () => on.move(-1) }, '↑') : null,
+      moves ? h('button.tb', { onclick: () => on.move(1) }, '↓') : null,
       h('div', { style: 'flex:1' }),
-      h('button.tb', { onclick: on.remove }, 'Remove')));
+      removes ? h('button.tb', { onclick: on.remove }, 'Remove') : null));
   const header = h('header', { onclick: () => on.focus() },
     h('span.cap.mu', {}, String(index + 1).padStart(2, '0')),
     h('b', {}, link.name),

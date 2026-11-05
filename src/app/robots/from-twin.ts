@@ -1,5 +1,8 @@
 /** Session for an edited CAD twin: twin spec physics, real meshes bound and stretched per link. */
-import { buildHybridAssembly } from '../../cad/assembly/hybrid/build';
+import { type TwinFit, buildHybridAssembly } from '../../cad/assembly/hybrid/build';
+import { armFit } from '../../cad/assembly/mjcf/mounts';
+import { fixedTool, ownTool } from '../../cad/assembly/mjcf/own-tools';
+import { paintAssembly } from '../../cad/materials/paint/apply';
 import { chainFrames } from '../../core/chain/kinematics/frames';
 import { chainFromSpec } from '../../core/chain/model/from-spec';
 import { singleLimb } from './single-limb';
@@ -15,7 +18,18 @@ import { type CatalogRobot, fetchRobotFiles } from './catalog';
 import { contactTol, moduleLabel } from './contact';
 import { restingFloorZ } from './resting-floor';
 import type { RobotSession } from './session';
+import { geomRetires } from './tools';
 import { restTwin, twinScale } from './twin-rest';
+
+/** The arm's measured flange and what a tool replaces there, when the arm is known; one with its own tool has no seat for another. */
+function twinFit(robot: CatalogRobot, ref: TwinRef, cad: ModelHandle): TwinFit {
+  const fit = ownTool(robot.id) || fixedTool(robot.id) ? null : armFit(robot.id);
+  return {
+    mount: fit?.mounts.find((m) => m.limb === ref.chainIndex) ?? null,
+    size: fit?.size ?? null,
+    hides: fit?.hide ? geomRetires(cad, fit.hide) : undefined,
+  };
+}
 
 export async function sessionFromTwin(id: string, spec: RobotSpec, ref: TwinRef, robot: CatalogRobot): Promise<RobotSession> {
   const cad = await ModelHandle.fromFiles(await fetchRobotFiles(robot), robot.xml);
@@ -27,10 +41,16 @@ export async function sessionFromTwin(id: string, spec: RobotSpec, ref: TwinRef,
   const m = arrays(handle.model);
   const site = handle.id(OBJ.site, 'end_effector');
   const dofs = specDofs(spec);
-  const assembly = buildHybridAssembly(spec, rest, cad, mc, twinScale(mc.chain));
+  const assembly = buildHybridAssembly(spec, rest, cad, mc, twinScale(mc.chain), twinFit(robot, ref, cad));
+  paintAssembly(assembly, robot);
   const chain = chainFromSpec(spec);
-  const home = homePose(spec);
+  const room = assembly.effector ? armFit(robot.id)?.home : undefined;
+  // As on the catalog arm: resting against the body at home, a tool's contact would pass for a designed one.
+  const home = homePose(spec).map((v, k) => room?.[dofs[k].name] ?? v);
+  // A tool doesn't move the floor: the arm stays on its own feet.
+  if (assembly.effector) assembly.effector.group.visible = false;
   assembly.floorZ = restingFloorZ(assembly, [chainFrames(chain, home)]);
+  if (assembly.effector) assembly.effector.group.visible = true;
   const collision = await hullChecker(chain, assembly.hull ?? [], {
     home, floorZ: assembly.floorZ, tol: contactTol(reachEstimate(spec)), label: moduleLabel(assembly),
   });
@@ -51,6 +71,9 @@ export async function sessionFromTwin(id: string, spec: RobotSpec, ref: TwinRef,
     torqueLimits: spec.links.flatMap((l) => l.dofs.map(() => l.torque_limit)),
     rest: Float64Array.from(m.qpos0),
     collision,
+    grips: !!assembly.effector?.grip,
+    rigs: [assembly.effector ?? null],
+    fitted: null,
     mujocoTips: () => {
       const x = state(handle.data).site_xpos;
       return [[x[3 * site], x[3 * site + 1], x[3 * site + 2]]];
