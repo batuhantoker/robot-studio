@@ -2,6 +2,8 @@
 export default [
   {
     slug: 'agibot-x2', title: 'AgiBot X2 Ultra', vendor: 'AgiBot', category: 'humanoid', base: 'floating',
+    // Bump `rev` to rebuild one robot: CI restores cached builds, and a pipeline fix alone does not touch their key.
+    rev: 2,
     tags: ['humanoid', 'biped'],
     description: 'Compact full-body humanoid from AgiBot with articulated legs, waist, arms and head.',
     repo: 'AgibotTech/agibot_x2_urdf', urdf: 'X2_URDF-v1.4.0/X2-Ultra_simple_collision.urdf',
@@ -44,6 +46,8 @@ export default [
   },
   {
     slug: 'star1', title: 'RobotEra STAR1', vendor: 'RobotEra', category: 'humanoid', base: 'floating',
+    // Eight chains went to the fingers and left out the right leg.
+    maxChains: 16,
     tags: ['humanoid', 'biped', 'dexterous-hands'],
     description: 'Full-size humanoid from RobotEra with dexterous multi-fingered hands.',
     repo: 'roboterax/models', urdf: 'star1/urdf/l3_with_hand_fixedpin_xml.urdf',

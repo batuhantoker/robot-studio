@@ -125,11 +125,15 @@ function wheelRig(s: RobotSession, body: Body, parts: BodyPart[], ground: number
   return { drive: { kind: 'wheels', wheels, curvature }, parts, forward: body.forward, ready: [...s.home], topSpeed, topTurn };
 }
 
-/** The limb of each leg that ends in a driven wheel (Go2-W, M20, Beni): its last joint turns freely about a level axis. */
+/**
+ * The limb of each leg that ends in a driven wheel (Go2-W, M20, Beni): its last joint alone is free, about a level axis.
+ * A URDF that leaves every joint unlimited, as Bittle's does, says nothing about wheels.
+ */
 function wheelLimbs(s: RobotSession, legs: BodyPart[]): number[] {
   const rolls = (i: number) => {
     const l = s.limbs[i], last = l.chain.joints.at(-1);
-    return last?.type === 'hinge' && !!last.continuous && Math.abs(chainFrames(l.chain, limbQ(l, s.home)).axes.at(-1)![2]) < 0.5;
+    if (last?.type !== 'hinge' || !last.continuous || l.chain.joints.slice(0, -1).some((j) => j.continuous)) return false;
+    return Math.abs(chainFrames(l.chain, limbQ(l, s.home)).axes.at(-1)![2]) < 0.5;
   };
   // A part's lead limb can be a motor branch ending at the same point, so look through all it merged.
   const found = legs.map((p) => p.limbs.find(rolls));

@@ -69,6 +69,8 @@ def convert(job):
     if job.get("hull"):
         mesh = mesh.convex_hull
     elif job.get("decimate") and len(mesh.faces) > job["decimate"]:
+        # Loaded unprocessed, an STL is a soup of separate triangles, and decimating those tears holes in the surface.
+        mesh.merge_vertices()
         mesh = mesh.simplify_quadric_decimation(face_count=job["decimate"])
     if len(mesh.faces) <= STL_MAX_FACES:
         out = job["dest"] + ".stl"

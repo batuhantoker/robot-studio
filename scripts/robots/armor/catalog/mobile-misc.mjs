@@ -2,6 +2,8 @@
 export default [
   {
     slug: 'bb25', title: 'BB25', vendor: 'Eliott Radcliffe (DC-Engineer)', category: 'mobile', base: 'mobile',
+    // The URDF's base link is a 1 x 1 m placeholder slab under the real chassis.
+    dropGeoms: 'size="0\\.5 0\\.5 0\\.05"',
     tags: ['wheeled', 'differential-drive', 'education'],
     description: 'Small two-wheel differential-drive educational robot designed by DC-Engineer.',
     repo: 'radcli14/BB25', urdf: 'BB25/URDF/bb25.urdf',

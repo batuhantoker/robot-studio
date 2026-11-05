@@ -26,6 +26,7 @@ const robotDict = (spec: RobotSpec, studio: boolean) => ({
   payload_mass: spec.payload_mass,
   ...(studio && spec.effector !== DEFAULT_EFFECTOR ? { effector: spec.effector } : {}),
   links: spec.links.map((l) => linkDict(l, studio)),
+  ...(studio && spec.home ? { home: [...spec.home] } : {}),
 });
 
 /** Why `serial-arm-analyze` would reject this robot, or null when it accepts it. */

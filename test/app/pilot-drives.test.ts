@@ -44,6 +44,11 @@ describe('Pilot drives', () => {
     expect(drivesOf(s, body)).toEqual([]);
   });
 
+  it('does not take a leg with every joint unlimited for a wheel, as on Bittle', () => {
+    const { s, body } = robot([limb([WHEEL, WHEEL], 0), limb([WHEEL, WHEEL], 2)], [[0], [1]]);
+    expect(drivesOf(s, body)).toEqual([]);
+  });
+
   it('needs every leg to roll', () => {
     const { s, body } = robot([limb([joint(LEVEL), joint(LEVEL), WHEEL], 0), limb([joint(LEVEL), joint(LEVEL), joint(LEVEL)], 3)], [[0], [1]]);
     expect(drivesOf(s, body)).toEqual([]);

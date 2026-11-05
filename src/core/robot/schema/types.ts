@@ -43,6 +43,8 @@ export interface RobotSpec {
   /** What the last link carries; the tool point stays `tool`. */
   effector: EffectorKind;
   links: LinkSpec[];
+  /** Joint values it starts at, in DOF order; zero when absent or when links were added since. */
+  home?: number[];
 }
 
 export class SpecError extends Error {

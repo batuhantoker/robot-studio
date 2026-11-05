@@ -6,7 +6,7 @@ import { parseLimits } from './limits';
 import { isObject, normalizeAxis, number, triple } from './numbers';
 import { LINK_DEFAULTS, LINK_FIELDS, type LinkSpec, type RobotSpec, STUDIO_LINK_FIELDS, SpecError } from './types';
 
-const ROBOT_KEYS = new Set(['name', 'units', 'base', 'tool', 'payload_mass', 'effector', 'links']);
+const ROBOT_KEYS = new Set(['name', 'units', 'base', 'tool', 'payload_mass', 'effector', 'links', 'home']);
 const LINK_KEYS = new Set<string>([...LINK_FIELDS, ...STUDIO_LINK_FIELDS]);
 const REQUIRED = ['name', 'axis', 'offset', 'mass'];
 const NAME_RE = /^[A-Za-z][A-Za-z0-9_]*$/;
@@ -57,6 +57,7 @@ export function parseRobot(raw: unknown): RobotSpec {
   if (typeof name !== 'string' || !name.trim()) throw new SpecError('name must be a nonempty string');
   const effector = raw.effector ?? DEFAULT_EFFECTOR;
   if (!isEffectorKind(effector)) throw new SpecError('effector must be a known end effector');
+  if (raw.home !== undefined && !(Array.isArray(raw.home) && raw.home.every(Number.isFinite))) throw new SpecError('home must be an array of numbers');
   return {
     name,
     units: 'SI',
@@ -65,5 +66,6 @@ export function parseRobot(raw: unknown): RobotSpec {
     payload_mass: number(raw.payload_mass ?? 0, 'payload_mass', { minimum: 0 }),
     effector,
     links,
+    ...(raw.home ? { home: raw.home as number[] } : {}),
   };
 }

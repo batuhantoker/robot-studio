@@ -1,8 +1,27 @@
 /** Holds the playing motion clip: presets for the loaded robot, rebuilt from the pose you are in. */
+import { enforceLimits } from '../../../core/chain/limbs/limits';
 import { presetsFor } from '../../../core/motion/presets';
 import { gripPresets } from '../../../core/prosthesis/grips';
 import type { MotionClip, MotionPreset } from '../../../core/motion/types';
 import type { RobotSession } from '../../robots/session';
+
+const SAMPLES = 120;
+const SIZES = [1, 0.8, 0.6, 0.45, 0.3, 0.2];
+
+/** The largest clip that stays clear of contact, as the default trajectory is fitted; the playback stop still guards it. */
+export function clearClip(s: RobotSession, p: MotionPreset, q: number[], size: number): MotionClip {
+  const c = s.collision;
+  // Hands play choreography, which must not be rescaled; a pose already touching has nothing to clear.
+  if (!c || s.prosthesis || c.hit(q)) return p.build(s, q, size);
+  let clip = p.build(s, q, size);
+  for (const k of SIZES) {
+    if (k < 1) clip = p.build(s, q, size * k);
+    const { period } = clip;
+    const touches = Array.from({ length: SAMPLES }, (_, i) => (period * i) / SAMPLES).some((t) => c.hit(enforceLimits(s.joints, clip.at(t))));
+    if (!touches) break;
+  }
+  return clip;
+}
 
 export class MotionPlayer {
   presets: MotionPreset[] = [];
@@ -25,7 +44,7 @@ export class MotionPlayer {
     if (!p) return (this.clip = null);
     const key = `${s.id}|${p.id}|${size.toFixed(2)}|${q.map((v) => v.toFixed(3)).join(',')}`;
     if (key !== this.built) {
-      this.clip = p.build(s, q, size);
+      this.clip = clearClip(s, p, q, size);
       this.built = key;
     }
     return this.clip;

@@ -72,6 +72,8 @@ export default [
   },
   {
     slug: 'unitree-h2-plus', title: 'Unitree H2 Plus', vendor: 'Unitree Robotics', category: 'humanoid',
+    // Eight chains went to the fingers and left out the right leg.
+    maxChains: 16,
     base: 'floating', tags: ['humanoid', 'biped', 'dexterous-hands'],
     description: 'Unitree H2 variant fitted with dexterous multi-fingered hands.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/h2_plus/H2_Plus.urdf',

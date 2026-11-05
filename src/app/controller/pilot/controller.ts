@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { type Vec3, add, norm, scale } from '../../../core/math/linear/vec';
 import { type Command, STILL, Stepper, advanceBase, fitCommand, wheelState } from '../../../core/motion/locomotion';
+import { solidBox } from '../../../cad/common/lowest';
 import { chainFrames } from '../../../core/chain/kinematics/frames';
 import { limbQ } from '../../../core/chain/limbs/types';
 import { type IkTarget, solveWholeBody } from '../../../core/solvers/ik/multi';
@@ -405,7 +406,7 @@ export class PilotController {
   /** A point on the robot to look out from: a humanoid's eyes, else above the front of the body. */
   private measureEye(s: RobotSession): void {
     const { overlay } = this.studio.viewport;
-    const box = new THREE.Box3().setFromObject(s.assembly.root);
+    const box = solidBox(s.assembly.root);
     const origin = overlay.localToWorld(new THREE.Vector3());
     const f = this.rig!.forward;
     const ground = overlay.worldToLocal(new THREE.Vector3(0, 0, s.assembly.floorZ)).z;
@@ -431,7 +432,7 @@ export class PilotController {
     if (!s || !rig) return;
     const { camera, controls } = this.studio.viewport.stage;
     controls.enabled = true;
-    const sphere = new THREE.Box3().setFromObject(s.assembly.root).getBoundingSphere(new THREE.Sphere());
+    const sphere = solidBox(s.assembly.root).getBoundingSphere(new THREE.Sphere());
     if (this.saved) [camera.near, camera.fov] = [this.saved.near, this.saved.fov];
     const f = new THREE.Vector3(...rig.forward);
     // Far enough back that the whole robot and the ground ahead fit the narrow studio lens.

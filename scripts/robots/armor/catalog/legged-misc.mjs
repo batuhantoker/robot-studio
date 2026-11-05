@@ -25,6 +25,9 @@ export default [
   },
   {
     slug: 'cassie', title: 'Agility Robotics Cassie', vendor: 'Agility Robotics', category: 'legged',
+    // Zero leaves the legs trailing behind the body; `rev` rebuilds its meshes with the welded decimation.
+    home: Object.fromEntries(['left', 'right'].flatMap((s) => [[`hip_flexion_${s}`, 1.396], [`knee_joint_${s}`, -1.355], [`ankle_joint_${s}`, -0.566], [`toe_joint_${s}`, -0.52]])),
+    rev: 2,
     base: 'floating', tags: ['biped', 'research'],
     description: 'Ostrich-like bipedal research robot from Agility Robotics, modelled with its torso shell.',
     repo: 'UMich-BipedLab/cassie_description', urdf: 'urdf/cassie_with_torso.urdf',

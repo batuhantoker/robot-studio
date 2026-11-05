@@ -4,6 +4,7 @@
  * depends on how fast this machine draws.
  */
 import * as THREE from 'three';
+import { solidBox } from '../../../cad/common/lowest';
 import { PALETTE } from '../../../scene/stage/palette';
 import { BACKDROPS, type Backdrop } from '../../../scene/stage/surroundings';
 import { download, fileStem } from '../../../ui/dom/download';
@@ -193,7 +194,7 @@ export class TrajectoryRecorder {
     canvas.addEventListener('webglcontextlost', lost);
     if (tube) viewport.overlay.add(tube);
     if (settings.orbit) {
-      const subject = new THREE.Box3().setFromObject(session.assembly.root);
+      const subject = solidBox(session.assembly.root);
       if (tube) subject.expandByObject(tube);
       orbit = turntable(subject, view, camera.fov);
       camera.near = orbit.distance / 200;

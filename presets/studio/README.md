@@ -16,6 +16,9 @@ the Python package, so they may use any joint kind.
 | `so101` | Zero-pose anchors and axes of MuJoCo Menagerie's `so101.xml` | 5 revolute |
 | `humanoid_arm` | Adult arm proportions: 300 mm upper arm, 270 mm forearm | 2 spherical, 1 revolute |
 
+A preset can set `home`, the joint values it starts at, in DOF order. The vendored
+`../serial-arm` files must stay byte-identical, so theirs live in `src/app/presets/load.ts`.
+
 `test/core/robot/studio-presets.test.ts` checks two things. Each DH-derived preset
 matches its table at random poses to 1e-9 m. Every preset's FK and gravity torque
 match MuJoCo.

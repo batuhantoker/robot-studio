@@ -15,7 +15,7 @@ import { contactPairs, lowestPoint } from './measure.mjs';
 import { excludeContacts, hideCollisionGeoms, liftRoots, meshFiles, rotateRoots } from './mjcf-post.mjs';
 
 const [rel, category, rootQuat, options] = process.argv.slice(2);
-const { home, maxChains, extraGeoms } = JSON.parse(options ?? '{}');
+const { home, maxChains, extraGeoms, dropGeoms } = JSON.parse(options ?? '{}');
 const loader = await createLoader();
 const { mj } = loader;
 const abs = (p) => path.join(ROBOTS_DIR, ...p.split('/'));
@@ -68,8 +68,10 @@ function main() {
   excludeContacts(root, pairs);
   out.excluded = pairs.length;
   save();
-  const finished = withHome(fs.readFileSync(abs(`${rel}/robot.xml`), 'utf8'), home, rel);
-  fs.writeFileSync(abs(`${rel}/robot.xml`), extraGeoms ? finished.replace(/<worldbody>\s*<body\b[^>]*>/, `$&${extraGeoms}`) : finished);
+  let finished = withHome(fs.readFileSync(abs(`${rel}/robot.xml`), 'utf8'), home, rel);
+  if (dropGeoms) finished = finished.replace(new RegExp(`\\s*<geom\\b[^>]*${dropGeoms}[^>]*/>`, 'g'), '');
+  if (extraGeoms) finished = finished.replace(/<worldbody>\s*<body\b[^>]*>/, `$&${extraGeoms}`);
+  fs.writeFileSync(abs(`${rel}/robot.xml`), finished);
 
   for (const f of meshNames()) {
     if (!meshFiles(root).includes(f)) fs.rmSync(abs(`${rel}/meshes/${f}`));

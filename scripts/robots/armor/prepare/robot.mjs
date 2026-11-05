@@ -47,7 +47,7 @@ export async function prepareRobot(robot, repoDirs = robot.dirs) {
   const fileFor = (r) => meshes.get(meshKey(resolved.get(r.ref), r.hull))?.file ?? null;
   fs.writeFileSync(path.join(out, 'robot.urdf'), finishUrdf(model, fileFor));
 
-  const facts = await compileInChild(`armor/${robot.slug}`, robot.category, robot.rootQuat, { home: robot.home, maxChains: robot.maxChains, extraGeoms: robot.extraGeoms });
+  const facts = await compileInChild(`armor/${robot.slug}`, robot.category, robot.rootQuat, { home: robot.home, maxChains: robot.maxChains, extraGeoms: robot.extraGeoms, dropGeoms: robot.dropGeoms });
   if (facts.error) throw new Error(`MuJoCo: ${facts.error}`);
   if (facts.errors?.length) throw new Error(facts.errors.join('; '));
 

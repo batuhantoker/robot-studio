@@ -12,6 +12,7 @@
     0.0
   ],
   "payload_mass": 0.2,
+  "home": [0, 0, 0, 0.45, 0, 0, 0, 0],
   "links": [
     {
       "name": "drive",

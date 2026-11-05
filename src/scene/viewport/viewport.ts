@@ -4,7 +4,7 @@ import { ORIGIN, reanchorPoint, relativeBase, sceneRadius, stageBase } from '../
 import type { RobotBase } from '../../app/state/types';
 import type { Assembly } from '../../cad/assembly/types';
 import { moduleOf } from '../../cad/assembly/types';
-import { lowestZ, solids } from '../../cad/common/lowest';
+import { lowestZ, solidBox, solids } from '../../cad/common/lowest';
 import type { PropShelf } from '../stage/environment';
 import { createStudio } from '../stage/lights';
 import { type Post, createPost } from '../stage/post';
@@ -236,7 +236,7 @@ export class Viewport {
   /** Frame the camera on every robot on the stage. */
   frameAll(): void {
     const box = new THREE.Box3();
-    for (const [, root] of this.robots()) box.expandByObject(root);
+    for (const [, root] of this.robots()) solidBox(root, box);
     if (box.isEmpty()) return;
     const sphere = box.getBoundingSphere(new THREE.Sphere());
     // Fit into what panels and sheets leave of the stage; frame() fits the whole canvas.
@@ -277,13 +277,13 @@ export class Viewport {
   /** Bounding radius of the assembly as currently posed. */
   radius(): number {
     if (!this.assembly) return 0.5;
-    return new THREE.Box3().setFromObject(this.assembly.root).getBoundingSphere(new THREE.Sphere()).radius || 0.5;
+    return solidBox(this.assembly.root).getBoundingSphere(new THREE.Sphere()).radius || 0.5;
   }
 
   /** Frame the camera on an arbitrary box (e.g. a workspace envelope) plus the robot. */
   fitBox(box: THREE.Box3): void {
     if (!this.assembly || box.isEmpty()) return;
-    box.union(new THREE.Box3().setFromObject(this.assembly.root));
+    solidBox(this.assembly.root, box);
     const sphere = box.getBoundingSphere(new THREE.Sphere());
     this.stage.frame(sphere.radius, sphere.center, { box, room: this.room() });
   }
@@ -291,7 +291,7 @@ export class Viewport {
   /** Frame the camera on the assembly as currently posed. */
   fit(): void {
     const sphere = this.refitStage();
-    if (sphere && this.assembly) this.stage.frame(sphere.radius, sphere.center, { box: new THREE.Box3().setFromObject(this.assembly.root), room: this.room() });
+    if (sphere && this.assembly) this.stage.frame(sphere.radius, sphere.center, { box: solidBox(this.assembly.root), room: this.room() });
   }
 
   /** Share of the canvas the dock, sheets and side panels leave uncovered, by width and height. */
@@ -308,11 +308,11 @@ export class Viewport {
     this.floorZ = this.assembly.floorZ;
     groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
     this.holder.updateMatrixWorld(true);
-    const sphere = new THREE.Box3().setFromObject(this.assembly.root).getBoundingSphere(new THREE.Sphere());
+    const sphere = solidBox(this.assembly.root).getBoundingSphere(new THREE.Sphere());
     this.scale = sphere.radius;
     const others = [...this.others.values()].map((b) => {
       this.ground(b);
-      const s = new THREE.Box3().setFromObject(b.assembly.root).getBoundingSphere(new THREE.Sphere());
+      const s = solidBox(b.assembly.root).getBoundingSphere(new THREE.Sphere());
       return { x: s.center.x, y: s.center.y, r: s.radius };
     });
     const st = this.stance && { ...this.stance, hand: this.stance.hand + this.holder.position.z - this.floorZ };

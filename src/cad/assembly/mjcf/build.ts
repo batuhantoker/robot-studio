@@ -27,6 +27,10 @@ function owners(bodies: BodyInfo[], limbs: ModelChain[]) {
   });
 }
 
+/** An alpha on most of a robot is an export artefact; a few translucent parts are glass or a visor. */
+export const strayAlpha = (alphas: ArrayLike<number>): boolean =>
+  Array.from(alphas).filter((a) => a < 1).length > alphas.length / 2;
+
 export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: ModelChain[], scale: number): Assembly {
   const own = owners(bodies, limbs);
   const mats = new MaterialSet();
@@ -38,12 +42,14 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
     root.add(g);
     return g;
   });
-  for (const geom of readGeoms(h).filter(visibleGeom)) {
+  const drawn = readGeoms(h).filter(visibleGeom);
+  const opaque = strayAlpha(drawn.map((g) => g.rgba[3]));
+  for (const geom of drawn) {
     let geometry = geom.mesh >= 0 ? cache.get(geom.mesh) : primitiveGeometry(geom);
     if (geom.mesh >= 0 && !geometry) cache.set(geom.mesh, (geometry = meshGeometry(readMesh(h, geom.mesh))));
     if (!geometry) continue;
     const body = bodies[geom.body];
-    const { material, cls } = mats.cad(geom.rgba, `${geom.name} ${body.name} ${geom.mesh >= 0 ? h.name(OBJ.mesh, geom.mesh) : ''}`);
+    const { material, cls } = mats.cad(opaque ? [geom.rgba[0], geom.rgba[1], geom.rgba[2], 1] : geom.rgba, `${geom.name} ${body.name} ${geom.mesh >= 0 ? h.name(OBJ.mesh, geom.mesh) : ''}`);
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(...geom.pos);
     mesh.quaternion.set(geom.quat[1], geom.quat[2], geom.quat[3], geom.quat[0]);

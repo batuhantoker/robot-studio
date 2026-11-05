@@ -21,6 +21,9 @@ export default [
   },
   {
     slug: 'jaka-k1', title: 'JAKA K1', vendor: 'JAKA Robotics', category: 'arm', base: 'fixed',
+    // The URDF is a torso with no stand, and arms at rest reach below it, so it gets a pedestal.
+    extraGeoms: '<geom type="cylinder" size="0.085 0.55" pos="0 0 -0.55" contype="0" conaffinity="0" group="1" rgba="0.82 0.84 0.87 1" density="0"/><geom type="cylinder" size="0.34 0.02" pos="0 0 -1.08" contype="0" conaffinity="0" group="1" rgba="0.82 0.84 0.87 1" density="0"/>',
+    home: { rb1_j1: 1.57, rb1_j2: -1.222, rb1_j3: -1.177, rb1_j4: -1.614, rb2_j1: -1.57, rb2_j2: -1.222, rb2_j3: 1.177, rb2_j4: -1.614 },
     tags: ['cobot', 'dual-arm'],
     description: 'Dual-arm collaborative robot from JAKA with two seven-axis arms on a torso.',
     repo: 'JAKARobotics/JAKA_K1', urdf: 'jaka_k1_ros2/src/jaka_k1_description/k1-de/urdf/jaka_k1.urdf',

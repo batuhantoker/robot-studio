@@ -47,7 +47,7 @@ export function jointRows(session: RobotSession, store: Store<StudioState>) {
     el.append(h('span.name', {}, j.name, ' ', row.torque), row.val, slider, h('span.range.mono', {}, range), row.bar);
     return el;
   };
-  const el = h('div', {}, ...groups(session).map((g) => h('details.limb-group', { open: true, dataset: { limb: String(g.limb) } },
+  const el = h('div', {}, ...groups(session).map((g) => h(g.title ? 'details.limb-group' : 'div.limb-group', { open: !!g.title, dataset: { limb: String(g.limb) } },
     g.title ? h('summary.cap', { onclick: () => g.limb >= 0 && store.set({ focus: g.limb }) }, `${g.title} · ${g.joints.length}`) : null,
     ...g.joints.map(build))));
   return {

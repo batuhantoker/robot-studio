@@ -29,6 +29,15 @@ export function solids(root: THREE.Object3D): Solid[] {
   return out.sort((a, b) => a.bound - b.bound);
 }
 
+/** Bounds of what is drawn. Box3.setFromObject also counts hidden inertia boxes, which can sit far outside the robot. */
+export function solidBox(root: THREE.Object3D, into = new THREE.Box3()): THREE.Box3 {
+  root.updateWorldMatrix(true, true);
+  const part = new THREE.Box3();
+  const list = solids(root);
+  for (const { mesh } of list) into.union(part.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld));
+  return list.length ? into : into.expandByObject(root);
+}
+
 /** Raw vertex positions: x of vertex i at `array[offset + i * stride]`. */
 export function vertexArray(mesh: THREE.Mesh): { array: ArrayLike<number>; stride: number; offset: number; count: number } {
   const p = mesh.geometry.attributes.position as THREE.BufferAttribute | THREE.InterleavedBufferAttribute;
