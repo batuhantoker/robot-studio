@@ -3,7 +3,7 @@ import { buildEntries } from '@/app/library/entries';
 import { applyFilter } from '@/app/library/filter/apply';
 import { EMPTY_FILTER } from '@/app/library/filter/types';
 import type { Catalog, CatalogRobot } from '@/app/robots/catalog';
-import { gripClip, gripPresets, openMotors } from '@/core/prosthesis/grips';
+import { openMotors } from '@/core/prosthesis/grasp';
 import { couple, gripMotors, jointsFor, motorMap, motorsOf, onLinkage, type Prosthesis } from '@/core/prosthesis/motors';
 import { ModelHandle } from '@/physics/model/handle';
 // @ts-expect-error plain JS fetch scripts
@@ -86,18 +86,15 @@ describe('prosthesis motors', () => {
     expect(couple(map, stopped)).toEqual(stopped.map((v) => expect.closeTo(v, 9)));
   });
 
-  it('plays a grip from the open hand into the grip and back', () => {
+  it('opens from the hand\'s own open grip, and reads a grip back through the linkage', () => {
     const map = motorMap(twoMotor, digits);
-    expect(gripPresets(map).map((p) => p.id)).toEqual(['grip-pinch']);
     expect(openMotors(map)).toEqual([0.1, 0]);
-    const clip = gripClip(map, twoMotor.grips![1], [0, 0, 0], 1, 4);
-    const at = (t: number) => motorsOf(map, clip.at(t));
-    expect(at(0)[0]).toBeCloseTo(0.1, 6);
-    expect(at(2)[0]).toBeCloseTo(0.3, 6);
-    expect(at(2)[1]).toBeCloseTo(-0.6, 6);
+    const q = jointsFor(map, gripMotors(map, twoMotor.grips![1], openMotors(map)), [0, 0, 0]);
+    expect(motorsOf(map, q)[0]).toBeCloseTo(0.3, 6);
+    expect(motorsOf(map, q)[1]).toBeCloseTo(-0.6, 6);
     expect(gripMotors(map, { name: 'x', label: 'X', motors: { slide: 5 } }, [0.2, 0])).toEqual([0.2, 1]);
     // The pinch puts the little finger right on its open stop; the fit still recovers both motors.
-    expect(clip.at(2)[2]).toBeCloseTo(0, 12);
+    expect(q[2]).toBeCloseTo(0, 12);
   });
 
   it('drives every chain joint of each hand with catalog motors exactly once', () => {
