@@ -1,4 +1,6 @@
 /** Pick and place for the loaded arm: plans the cycle, keeps pads and object in the scene, drives the jaws. */
+import { armFit } from '../../../cad/assembly/mjcf/mounts';
+import { fixedTool, ownTool } from '../../../cad/assembly/mjcf/own-tools';
 import { compose } from '../../../core/math/linear/transform';
 import type { Vec3 } from '../../../core/math/linear/vec';
 import { isClip, planTask } from '../../../core/task/plan/check';
@@ -9,20 +11,24 @@ import { TaskProp } from '../../../scene/task/prop';
 import type { Snapshot } from '../../live/bus';
 import type { Studio } from '../studio';
 import { bindFloorClicks } from './floor-click';
+import { layoutJob } from './layout-job';
 import { reachJob } from './reach-job';
 import { TaskStands } from '../../../scene/task/stands';
-import { type TaskSetup, arrange, partPick, taskSetup, wholeBody } from './setup';
+import { type Arranged, type TaskSetup, partPick, taskSetup, toolLimb, wholeBody } from './setup';
 import type { Prop } from '../../../scene/stage/environment';
 import * as THREE from 'three';
 
 /** A part's footprint centre on the surface it stands on. */
+const fits = (id: string) => !!armFit(id) || !!ownTool(id);
+
 const baseOf = (p: Prop) => {
   const b = new THREE.Box3().setFromObject(p.object), c = b.getCenter(new THREE.Vector3());
   const paint = ((p.object as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined)?.color;
   return { label: p.label, size: p.size, base: [c.x, c.y, b.min.z] as Vec3, color: paint ? `#${paint.getHexString()}` : undefined };
 };
-import { workingArm } from './limb-setup';
+import { EFFECTOR_KINDS } from '../../../core/robot/effectors/kinds';
 import { bodyFor } from '../../robots/body';
+import { twinToolIssue } from '../../robots/fitted';
 
 export class TaskController {
   clip: TaskClip | null = null;
@@ -32,6 +38,13 @@ export class TaskController {
   private part: Prop | null = null;
   /** Set when no floor or stand height gives this arm a contact-free grasp. */
   private noLayout: string | null = null;
+  /** The search for spots can take seconds, so it waits for the user to enter Pick & place, never a robot's load. */
+  private laidOut = false;
+  private cancelLayout: (() => void) | null = null;
+  /** A load that asked for fresh spots, waiting for its layout. */
+  private fresh = false;
+  /** Height the current spots were chosen for. */
+  private spotsZ: number | undefined;
   private reach: ReachCell[] = [];
   /** Height the reach map was built at: the selected spot's. */
   private reachZ: number | null = null;
@@ -48,14 +61,14 @@ export class TaskController {
     this.pads.limit = (p, vertical) => this.limit(p, vertical);
     viewport.overlay.add(this.pads.group);
     viewport.stage.root.add(this.prop.group, this.stands.group);
-    bindFloorClicks(viewport.stage, () => (store.state.mode === 'task' && this.setup && !this.pads.gizmo.axis ? this.setup : null),
+    bindFloorClicks(viewport.stage, () => (store.state.mode === 'task' && this.laidOut && !this.pads.gizmo.axis ? this.setup : null),
       () => viewport.robotBodies(), (ray) => viewport.sceneryHit(ray), (p) => this.move(store.state.task.moving, p, true));
     // The viewport fits the setting to a new robot after this event; spots are chosen against that.
     store.on(['sessionVersion'], () => setTimeout(() => this.load(), 0));
     // On a multi-limb robot the focused arm is the one that works.
-    store.on(['focus'], () => this.setup?.limb !== undefined && studio.session && workingArm(studio.session, store.state.focus) !== this.setup.limb && this.load());
+    store.on(['focus'], () => this.setup?.limb !== undefined && studio.session && toolLimb(studio.session, store.state.focus) !== this.setup.limb && this.load());
     store.on(['task'], () => (this.refresh(), this.schedule()));
-    store.on(['mode'], () => this.refresh());
+    store.on(['mode', 'playing'], () => (this.layOut(), this.refresh()));
     // The viewport rebuilds the setting in its own listener; measure what stands under the spots after it.
     store.on(['surroundings'], () => setTimeout(() => (this.reseat(), this.refresh()), 0));
     studio.bus.on((snap) => this.sync(snap), 1000);
@@ -66,12 +79,23 @@ export class TaskController {
   /** Why pick and place is off for this robot. */
   missing = (): string => {
     const s = this.studio.session;
-    if (!s || s.source !== 'cad') return 'Needs a gripper: choose one under Build → End effector.';
-    return bodyFor(s).parts.some((p) => p.kind === 'arm') ? 'This arm’s own hand is not driven yet; pick and place needs a studio gripper.' : 'This robot has no arm to pick with.';
+    const kind = s?.fitted ?? s?.spec?.effector;
+    const tool = kind ? EFFECTOR_KINDS[kind] : null;
+    if (s?.spec && s.rigs[0] === null) {
+      const twin = this.studio.store.state.library.find((e) => e.id === s.id)?.twin;
+      return (twin && twinToolIssue(twin)) ?? 'Nothing on the flange. Choose a gripper under Build → End effector.';
+    }
+    if (tool && !s!.grips) return `A ${tool.label.toLowerCase()} cannot hold anything. Choose a gripper under Build → End effector.`;
+    if (s?.prosthesis) return 'A hand on its own has no arm to reach with.';
+    const fixed = s && fixedTool(s.id);
+    if (fixed) return `This arm carries a ${fixed}, which cannot hold anything.`;
+    if (s && !s.spec && !fits(s.id)) return bodyFor(s).parts.some((p) => p.kind === 'arm') ? 'This robot has no hand or gripper to hold anything with.' : 'This robot has no arm to pick with.';
+    return `This ${s?.category === 'humanoid' ? 'robot' : 'arm'} has no gripper. Fit one under Build → End effector.`;
   };
   object = () => this.setup?.object.label ?? null;
   onChange = (fn: () => void) => void this.listeners.push(fn);
-  status(): { text: string; bad: boolean } {
+  status(): { text: string; bad: boolean; busy?: boolean } {
+    if (this.cancelLayout) return { text: `Finding spots for the ${this.setup?.object.label.toLowerCase()}…`, bad: false, busy: true };
     if (this.problem) return { text: this.problem.message, bad: true };
     if (this.noLayout) return { text: this.noLayout, bad: true };
     if (!this.clip) return { text: 'Place both spots', bad: true };
@@ -81,37 +105,61 @@ export class TaskController {
 
   private load(reset = false): void {
     this.cancelReach();
+    this.cancelLayout?.();
+    this.cancelLayout = null;
     this.reachZ = null;
     const s = this.studio.session;
-    const found = s ? taskSetup(s, this.studio.store.state.focus) : null;
-    // Clear of the setting if it can be; a crowded bench shouldn't leave the arm with no spots at all.
-    const arranged = found ? arrange(found, (p) => this.clear(p, found)) : null;
-    if (found && arranged && !arranged.spots) Object.assign(arranged, arrange(found));
-    const before = this.setup?.surfaceZ;
-    const t = (this.setup = arranged?.setup ?? null);
+    this.setup = s ? taskSetup(s, this.studio.store.state.focus) : null;
+    if (!this.setup) this.spotsZ = undefined;
+    this.laidOut = false;
+    this.fresh ||= reset;
+    this.clip = this.problem = this.noLayout = null;
     this.showPart(null);
-    // Start from a real part on the bench when one is in reach; a hand takes its size and name.
+    this.prop.set(this.setup?.object ?? null);
+    this.pads.setReach([], 0);
+    this.reach = [];
+    this.layOut();
+    this.refresh();
+    this.listeners.forEach((fn) => fn());
+  }
+
+  /** Starts the search for spots once the user is in Pick & place. */
+  private layOut(): void {
+    const t = this.setup, s = this.studio.session;
+    if (!t || this.laidOut || this.cancelLayout || this.studio.store.state.mode !== 'task') return;
+    this.cancelLayout = layoutJob(t, (p) => this.clear(p, t), () => this.studio.session === s, (found) => this.settle(found));
+    this.listeners.forEach((fn) => fn());
+  }
+
+  private settle(arranged: Arranged): void {
+    this.cancelLayout = null;
+    this.laidOut = true;
+    const t = (this.setup = arranged.setup);
+    let reset = this.fresh;
+    this.fresh = false;
+    // Start from a real part on the bench when one is in reach.
     const parts = this.studio.viewport.props().all();
-    const real = t && arranged?.spots && parts.length ? partPick(t, arranged.spots, parts.map(baseOf)) : null;
-    if (t && real && arranged?.spots) {
+    const real = arranged.spots && parts.length ? partPick(t, arranged.spots, parts.map(baseOf)) : null;
+    if (real && arranged.spots) {
       arranged.spots[0] = real.pick;
       t.object = real.object;
       this.part = parts[real.index];
       reset = true;
     }
-    this.prop.set(t?.object ?? null);
-    this.pads.setReach([], 0);
-    this.reach = [];
+    this.prop.set(t.object);
     const { task } = this.studio.store.state;
     this.plan();
     // Spots kept from a robot that worked at another height would hang in the air or sink into the floor.
-    const stale = !task.pick || !task.place || before === undefined || Math.abs(before - (t?.surfaceZ ?? 0)) > 1e-9;
-    this.noLayout = t && !arranged?.spots
-      ? `No floor or stand height lets this arm grasp the ${t.object.label.toLowerCase()} without its links touching; click the floor to try a spot`
+    const stale = !task.pick || !task.place || this.spotsZ === undefined || Math.abs(this.spotsZ - t.surfaceZ) > 1e-9;
+    this.spotsZ = t.surfaceZ;
+    this.noLayout = !arranged.spots
+      ? `No floor or stand height gives this arm a clear grasp from above on the ${t.object.label.toLowerCase()}; click the floor to try a spot`
       : null;
-    if (t && (!this.clip || stale || reset)) {
-      const spots = arranged?.spots;
+    if (!this.clip || stale || reset) {
+      const spots = arranged.spots;
       this.studio.store.set({ task: { ...task, pick: spots?.[0] ?? null, place: spots?.[1] ?? null } });
+      // Now, not after the debounce: the panel would flash "Place both spots" as a fault.
+      this.plan();
     }
     this.refresh();
     setTimeout(() => this.refresh(), 0);
@@ -138,7 +186,7 @@ export class TaskController {
 
   private plan(): void {
     clearTimeout(this.timer);
-    const t = this.setup;
+    const t = this.laidOut ? this.setup : null;
     const { pick, place } = this.studio.store.state.task;
     const planned = t && pick && place ? planTask({ ctx: t.ctx, home: t.home, pick, place, object: t.object, lift: t.lift, base: t.base }, t.probe) : null;
     const result = planned && t?.expand && isClip(planned) ? wholeBody(planned, t.expand) : planned;
@@ -170,16 +218,24 @@ export class TaskController {
 
   private refresh(): void {
     const st = this.studio.store.state;
-    const t = this.setup;
+    const t = this.laidOut ? this.setup : null;
     const on = st.mode === 'task' && !!t;
     this.pads.selected = st.task.moving;
     this.pads.show(on);
+    // The gizmo and reach dots are for placing spots; over a running cycle they read as debug marks.
+    const editing = on && !st.playing;
+    this.pads.gizmo.getHelper().visible = editing;
+    if (t) this.pads.setReach(editing ? this.reach : [], 0.011 * t.radius);
     this.prop.group.visible = on;
     this.stands.group.visible = on;
     if (this.part) this.part.object.visible = !on;
-    const rig = this.studio.session?.assembly.effector;
-    if (rig?.payload) rig.payload.visible = !on;
-    if (!on) rig?.grip?.set(rig.grip.rest);
+    const rigs = this.studio.session?.rigs ?? [];
+    // Limb markers grab a limb in IK and Trajectory; anywhere else they only read as holes in the robot.
+    this.markers(st.mode === 'ik' || st.mode === 'trajectory');
+    for (const rig of rigs) {
+      if (rig?.payload) rig.payload.visible = st.mode === 'physics';
+      if (!on) rig?.grip?.set(rig.grip.rest);
+    }
     if (!t) return;
     const bad = this.problem && this.problem.where !== 'path' ? this.problem.where : null;
     // Sized to be found at arm scale, not just to the (often small) object.
@@ -212,10 +268,15 @@ export class TaskController {
     return below >= t.floorZ && Math.abs(z - below) < 0.03 * t.radius ? below : z;
   }
 
+  /** Each marker, not the group: the Rubik controller owns the group's flag. */
+  private markers(on: boolean): void {
+    this.studio.overlays.effectors.group.children.forEach((m) => (m.visible = on));
+  }
+
   private sync(snap: Snapshot): void {
     const t = this.setup, clip = this.clip;
     if (this.studio.store.state.mode !== 'task' || !t || !clip || snap.session !== this.studio.session) return;
-    t.rig?.grip?.set(clip.at(snap.time).gap);
+    t.rig.grip?.set(clip.at(snap.time).gap);
     const s = clip.object(snap.time);
     const hand = t.limb !== undefined ? snap.posed.limbs[t.limb] : snap.posed.frames;
     this.prop.place(s.held ? compose(hand.tip, s.offset) : s.pose);

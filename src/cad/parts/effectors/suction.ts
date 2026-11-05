@@ -8,7 +8,7 @@ import { type Profile, finnedShell, hollowCylinder, lathe, solidCylinder } from 
 import { part } from '../../common/part';
 import { block } from '../shapes/blocks';
 import { coil, hexNut } from '../shapes/mechanical';
-import { adapterPlate, opening, PLATE_FACE, SCREWS_OPEN, sideHose, stackOpen, toolFrame } from './mount';
+import { adapterPlate, hoseStub, opening, PLATE_FACE, SCREWS_OPEN, stackOpen, toolFrame } from './mount';
 import type { EffectorBuilder } from './types';
 
 function bellows(s: number, y0: number, y1: number): Profile {
@@ -56,8 +56,7 @@ export const suctionCup: EffectorBuilder = (o) => {
     tipGroup,
     lamp,
     part(lathe(finnedShell(s * 0.16, s * 0.16, 0, s * 0.34, 3), 32).rotateZ(-Math.PI / 2).translate(s * 0.6, s * 0.4, 0), mats, 'cap', { label: 'Silencer', layer: 'structure', explode: at(bodyOpen, 0.6) }),
-    part(lathe([[0, 0], [s * 0.12, 0], [s * 0.12, s * 0.08], [s * 0.09, s * 0.1], [s * 0.09, s * 0.22], [0, s * 0.22]], 24).rotateZ(Math.PI / 2).translate(-s * 0.6, s * 0.4, 0), mats, 'brass', { label: 'Air fitting', layer: 'structure', explode: at(bodyOpen, -0.5) }),
-    sideHose(mats, new THREE.Vector3(-s * 0.82, s * 0.4, 0), s, 'Air line', at(bodyOpen, -1.2), -1),
+    ...hoseStub(mats, new THREE.Vector3(-s * 0.6, s * 0.4, 0), s, ['Air fitting', 'Air line'], bodyOpen, -1),
     part(hexNut(s * 0.36, s * 0.08, s * 0.17, s * 0.7), mats, 'steel', { label: 'Lock nut', layer: 'fastener', explode: at(nutOpen) }),
     part(lathe(solidCylinder(s * 0.15, s * (flex0 - 0.12), s * flex0, s * 0.02), 24), mats, 'brass', { label: 'Cup fitting', layer: 'structure', explode: at(fittingOpen) }),
     hullBox(s * 1.2, s * 0.52, s * 0.84, new THREE.Vector3(0, s * 0.4, 0)),

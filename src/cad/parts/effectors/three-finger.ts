@@ -38,8 +38,7 @@ export const threeFingerGripper: EffectorBuilder = (o) => {
   const span = Math.max(reach - palm, s * 1.4);
   // The distal link's rounded end stops on the tool point.
   const [L1, L2] = [span * 0.55, (span * 0.45 - s * 0.13) / Math.cos(TILT)];
-  const ring = part(torusAbout('y', s * 0.94, s * 0.03).translate(0, s * 0.82, 0), mats, 'accent', { label: 'Status ring', layer: 'sensor', explode: at(2) });
-  ring.material = mats.get('accent').clone();
+  const ring = part(torusAbout('y', s * 0.94, s * 0.03).translate(0, s * 0.82, 0), mats, 'steel', { label: 'Status ring', layer: 'sensor', explode: at(2) });
   const nut = new THREE.Group();
   nut.add(part(thickAlongY(plate(spider(s * 0.17, s * 0.5, s * 0.14, s * 0.07), s * 0.08)).translate(0, s * 0.74, 0), mats, 'alu', { label: 'Drive nut', layer: 'drive', explode: at(1) }));
   const screw = mergeGeometries([

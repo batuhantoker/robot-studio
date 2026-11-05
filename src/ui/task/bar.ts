@@ -6,7 +6,7 @@ import { h, replace } from '../dom/h';
 export interface TaskView {
   available(): boolean;
   object(): string | null;
-  status(): { text: string; bad: boolean };
+  status(): { text: string; bad: boolean; busy?: boolean };
   missing?(): string;
   onChange(fn: () => void): void;
 }
@@ -27,9 +27,9 @@ export function mountTaskBar(el: HTMLElement, store: Store<StudioState>, view: T
       title: 'Then drag the arrows, or click the floor',
       onclick: () => store.set({ task: { ...s.task, moving: k } }),
     }, k === 'pick' ? `Pick ${view.object()?.toLowerCase() ?? ''}` : 'Place')) : []));
-    const st = ready ? view.status() : { text: view.missing?.() ?? 'Needs a gripper: choose one under Build → End effector.', bad: true };
+    const st: ReturnType<TaskView['status']> = ready ? view.status() : { text: view.missing?.() ?? 'Needs a gripper: choose one under Build → End effector.', bad: true };
     play.textContent = s.playing ? '❚❚' : '▶';
-    play.disabled = !ready || st.bad;
+    play.disabled = !ready || st.bad || !!st.busy;
     status.textContent = st.text;
     status.classList.toggle('accent', st.bad);
   };

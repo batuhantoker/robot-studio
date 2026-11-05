@@ -4,9 +4,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { hullCylinder } from '../../common/hull';
 import { type Profile, finnedShell, hollowCylinder, lathe, solidCylinder } from '../../common/lathe';
 import { part } from '../../common/part';
-import { pin, torusAbout } from '../shapes/blocks';
+import { torusAbout } from '../shapes/blocks';
 import { flutedCutter } from '../shapes/mechanical';
-import { adapterPlate, opening, PLATE_FACE, SCREWS_OPEN, sideHose, stackOpen, toolFrame } from './mount';
+import { adapterPlate, hoseStub, opening, PLATE_FACE, SCREWS_OPEN, stackOpen, toolFrame } from './mount';
 import type { EffectorBuilder } from './types';
 
 export const millingSpindle: EffectorBuilder = (o) => {
@@ -32,8 +32,7 @@ export const millingSpindle: EffectorBuilder = (o) => {
     part(torusAbout('y', s * 0.17, s * 0.045).translate(0, s * 1.56, 0), mats, 'steel', { label: 'Front bearing', layer: 'bearing', explode: at(bearingOpen) }),
     part(lathe(solidCylinder(s * 0.72, s * 0.14, s * 0.3, s * 0.04)), mats, 'cap', { label: 'Rear cap', layer: 'housing', explode: at(capOpen) }),
     part(lathe(hollowCylinder(s * 0.62, s * 0.13, s * 1.5, s * 1.62, s * 0.03)), mats, 'alu', { label: 'Front cap', layer: 'housing', explode: at(frontOpen) }),
-    part(pin(s * 0.1, s * 0.2, 'x').translate(s * 0.8, s * 0.22, 0), mats, 'cap', { label: 'Power connector', layer: 'cable', explode: at(capOpen) }),
-    sideHose(mats, new THREE.Vector3(s * 0.9, s * 0.22, 0), s, 'Power cable', at(capOpen, 1.2)),
+    ...hoseStub(mats, new THREE.Vector3(s * 0.715, s * 0.22, 0), s, ['Power connector', 'Power cable'], capOpen),
     hullCylinder(s * 0.72, s * 0.14, s * 1.62),
     hullCylinder(s * 0.38, s * 1.62, s * 1.92),
     hullCylinder(s * 0.13, s * 1.92, reach),

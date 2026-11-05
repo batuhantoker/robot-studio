@@ -27,7 +27,7 @@ export interface Effector {
   grip: GripControl | null;
   /** Flange to working end (fingertips, cup lip, nozzle) along the approach; may exceed the tool point. */
   reach: number;
-  /** The static payload marker, hidden while a task object stands in for it. */
+  /** The payload marker, shown only in Physics mode. */
   payload: THREE.Object3D | null;
 }
 

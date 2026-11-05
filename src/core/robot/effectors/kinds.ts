@@ -5,15 +5,17 @@ export interface EffectorInfo {
   kind: EffectorKind;
   label: string;
   use: string;
+  /** Can it hold an object? */
+  grips: boolean;
 }
 
 export const EFFECTOR_KINDS: Record<EffectorKind, EffectorInfo> = {
-  parallel: { kind: 'parallel', label: 'Parallel gripper', use: 'Two jaws for boxes and machined parts' },
-  three_finger: { kind: 'three_finger', label: 'Three-finger gripper', use: 'Self-centring grip on round parts' },
-  suction: { kind: 'suction', label: 'Vacuum cup', use: 'Cartons, sheet metal and glass' },
-  torch: { kind: 'torch', label: 'Welding torch', use: 'Arc welding along a seam' },
-  spindle: { kind: 'spindle', label: 'Milling spindle', use: 'Drilling, milling and deburring' },
-  flange: { kind: 'flange', label: 'Tool flange', use: 'Bare flange; a pointer marks an offset tool point' },
+  parallel: { kind: 'parallel', grips: true, label: 'Parallel gripper', use: 'Two jaws for boxes and machined parts' },
+  three_finger: { kind: 'three_finger', grips: true, label: 'Three-finger gripper', use: 'Self-centring grip on round parts' },
+  suction: { kind: 'suction', grips: true, label: 'Vacuum cup', use: 'Cartons, sheet metal and glass' },
+  torch: { kind: 'torch', grips: false, label: 'Welding torch', use: 'Arc welding along a seam' },
+  spindle: { kind: 'spindle', grips: false, label: 'Milling spindle', use: 'Drilling, milling and deburring' },
+  flange: { kind: 'flange', grips: false, label: 'Tool flange', use: 'Bare flange; a pointer marks an offset tool point' },
 };
 
 export const EFFECTOR_LIST = Object.values(EFFECTOR_KINDS);

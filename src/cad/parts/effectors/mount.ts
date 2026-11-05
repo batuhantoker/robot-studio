@@ -1,16 +1,24 @@
 /**
- * Pieces every effector shares: tool frame, adapter plate, payload, side hose.
+ * Pieces every effector shares: tool frame, adapter plate, payload, hose port.
  * Tools explode in stack order along the approach so no part passes through another; sideways only for pairs and pins.
  */
 import * as THREE from 'three';
 import { boltCircle } from '../../common/fasteners';
-import { hullCylinder, hullSphere } from '../../common/hull';
-import { lathe } from '../../common/lathe';
+import { hullBox, hullCylinder } from '../../common/hull';
+import { type Profile, lathe, solidCylinder } from '../../common/lathe';
 import { axisFrame } from '../../common/orient';
 import { part } from '../../common/part';
 import type { MaterialSet } from '../../materials/library';
 import { pin } from '../shapes/blocks';
 import type { EffectorOptions } from './types';
+
+/** A little wider than a wrist flange, so the plate reads as its own part with its screws in view past a tool's body. */
+const PLATE_R = 0.9;
+
+/** A port's fitting and stub radii and its reach out of the body (tool sizes). */
+const FIT_R = 0.08;
+const STUB_R = 0.06;
+const STUB_LEN = 0.32;
 
 /** Explode offset in tool sizes: `y` along the approach, `x`/`z` sideways. */
 export const opening = (s: number) => (y: number, x = 0, z = 0) => new THREE.Vector3(x * s, y * s, z * s);
@@ -45,31 +53,38 @@ export function adapterPlate(g: THREE.Group, mats: MaterialSet, s: number): void
   const at = opening(s);
   const face = PLATE_FACE * s;
   const profile: [number, number][] = [
-    [0, -0.05 * s], [0.3 * s, -0.05 * s], [0.32 * s, 0], [0.75 * s, 0], [0.78 * s, 0.03 * s], [0.78 * s, face - 0.03 * s], [0.75 * s, face], [0, face],
+    [0, -0.05 * s], [0.3 * s, -0.05 * s], [0.32 * s, 0], [(PLATE_R - 0.03) * s, 0], [PLATE_R * s, 0.03 * s], [PLATE_R * s, face - 0.03 * s], [(PLATE_R - 0.03) * s, face], [0, face],
   ];
   g.add(
     part(lathe(profile), mats, 'alu', { label: 'Adapter plate', layer: 'structure', explode: at(0.2) }),
-    boltCircle(mats, 4, s * 0.55, s * 0.065, face, 1, { label: 'Plate screws', layer: 'fastener', explode: at(SCREWS_OPEN) }),
+    boltCircle(mats, 8, s * 0.75, s * 0.075, face, 1, { label: 'Plate screws', layer: 'fastener', explode: at(SCREWS_OPEN) }),
     part(pin(s * 0.045, s * 0.12, 'y').translate(-s * 0.42, face, 0), mats, 'steel', { label: 'Dowel pin', layer: 'fastener', explode: at(SCREWS_OPEN) }),
-    hullCylinder(s * 0.78, 0, face),
+    hullCylinder(s * PLATE_R, 0, face),
   );
 }
 
+/** Payload is physics, not part of the tool: drawn only in Physics mode, and with no hull of its own. */
 export function payloadBall(g: THREE.Group, mats: MaterialSet, s: number, payload: number, y: number, explode: THREE.Vector3): THREE.Object3D | null {
   if (!(payload > 0)) return null;
   const ball = part(new THREE.SphereGeometry(s * 0.34, 24, 16), mats, 'payload', { label: `Payload ${payload} kg`, layer: 'structure', explode });
   ball.position.set(0, y, 0);
-  g.add(ball, hullSphere(s * 0.34, new THREE.Vector3(0, y, 0)));
+  ball.visible = false;
+  g.add(ball);
   return ball;
 }
 
-/** A flexible line (air, power, weld wire) leaving a tool sideways and curling back towards the arm. */
-export function sideHose(mats: MaterialSet, from: THREE.Vector3, s: number, label: string, explode: THREE.Vector3, side: 1 | -1 = 1): THREE.Mesh {
-  const curve = new THREE.CatmullRomCurve3([
-    from,
-    from.clone().add(new THREE.Vector3(side * s * 0.6, -s * 0.2, 0)),
-    from.clone().add(new THREE.Vector3(side * s * 1.0, -s * 1.2, 0)),
-    from.clone().add(new THREE.Vector3(side * s * 0.9, -s * 2.4, 0)),
-  ]);
-  return part(new THREE.TubeGeometry(curve, 24, s * 0.09, 8), mats, 'rubber', { label, layer: 'cable', explode });
+/**
+ * A port on the tool body: a fitting and a capped stub, straight out along x. Nothing runs back past the plate, so it
+ * cannot reach the wrist behind it, and its own hull keeps it out of anything beside the tool.
+ */
+export function hoseStub(mats: MaterialSet, from: THREE.Vector3, s: number, labels: [string, string], open: number, side: 1 | -1 = 1): THREE.Object3D[] {
+  const at = opening(s);
+  const [fit, stub, seat] = [FIT_R * s, STUB_R * s, 0.14 * s];
+  const out = (g: THREE.BufferGeometry) => g.rotateZ(-side * Math.PI / 2).translate(from.x, from.y, from.z);
+  const fitting: Profile = [[0, 0], [fit, 0], [fit, 0.1 * s], [stub, 0.12 * s], [stub, seat], [0, seat]];
+  return [
+    part(out(lathe(fitting, 24)), mats, 'brass', { label: labels[0], layer: 'cable', explode: at(open, side * 0.3) }),
+    part(out(lathe(solidCylinder(stub, seat, STUB_LEN * s, 0.02 * s), 24)), mats, 'rubber', { label: labels[1], layer: 'cable', explode: at(open, side * 0.7) }),
+    hullBox(STUB_LEN * s, 2 * fit, 2 * fit, from.clone().add(new THREE.Vector3(side * STUB_LEN * s / 2, 0, 0))),
+  ];
 }

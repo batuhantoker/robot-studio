@@ -33,8 +33,12 @@ export const parallelGripper: EffectorBuilder = (o) => {
   // A pad's contact face sits 0.24 s inside its jaw's centre line; the racks run on the pinion's pitch circle.
   const face = s * 0.24, pitchR = s * 0.18;
   const pinion = part(spurGear(s * 0.2, 12, s * 0.1).translate(0, s * 0.77, 0), mats, 'steel', { label: 'Pinion', layer: 'drive', explode: at(1) });
-  const light = part(block(s * 1.1, s * 0.06, s * 0.04).translate(0, s * 0.3, s * 0.56), mats, 'accent', { label: 'Status light', layer: 'sensor', explode: at(2) });
-  light.material = mats.get('accent').clone();
+  const light = part(block(s * 0.1, s * 0.06, s * 0.04).translate(s * 0.72, s * 0.3, s * 0.56), mats, 'accent', { label: 'Status LED', layer: 'sensor', explode: at(2) });
+  // Green: the studio's overlays are red, and a red mark on the housing reads as one of them.
+  const led = mats.get('accent').clone() as THREE.MeshPhysicalMaterial;
+  led.color.set('#3fae6a');
+  led.emissive.set('#3fae6a');
+  light.material = led;
   g.add(
     part(block(s * 1.84, s * 0.88, s * 1.1).translate(0, s * 0.58, 0), mats, 'shell', { label: 'Housing', layer: 'housing', explode: at(2) }),
     part(lathe(solidCylinder(s * 0.27, s * 0.27, s * 0.6, s * 0.03)), mats, 'magnet', { label: 'Motor', layer: 'drive', explode: at(1) }),

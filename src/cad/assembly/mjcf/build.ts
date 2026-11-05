@@ -31,9 +31,15 @@ function owners(bodies: BodyInfo[], limbs: ModelChain[]) {
 export const strayAlpha = (alphas: ArrayLike<number>): boolean =>
   Array.from(alphas).filter((a) => a < 1).length > alphas.length / 2;
 
-export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: ModelChain[], scale: number): Assembly {
+/** Procedural tools riding bodies of the model, drawn with these materials. */
+export interface DrawnTools {
+  mats: MaterialSet;
+  parts: { body: string; group: THREE.Group }[];
+}
+
+export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: ModelChain[], scale: number, tools?: DrawnTools, crease?: number): Assembly {
   const own = owners(bodies, limbs);
-  const mats = new MaterialSet();
+  const mats = tools?.mats ?? new MaterialSet();
   const root = new THREE.Group();
   const cache = new Map<number, THREE.BufferGeometry>();
   const groups = bodies.map((b) => {
@@ -46,11 +52,12 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
   const opaque = strayAlpha(drawn.map((g) => g.rgba[3]));
   for (const geom of drawn) {
     let geometry = geom.mesh >= 0 ? cache.get(geom.mesh) : primitiveGeometry(geom);
-    if (geom.mesh >= 0 && !geometry) cache.set(geom.mesh, (geometry = meshGeometry(readMesh(h, geom.mesh))));
+    if (geom.mesh >= 0 && !geometry) cache.set(geom.mesh, (geometry = meshGeometry(readMesh(h, geom.mesh), crease)));
     if (!geometry) continue;
     const body = bodies[geom.body];
     const { material, cls } = mats.cad(opaque ? [geom.rgba[0], geom.rgba[1], geom.rgba[2], 1] : geom.rgba, `${geom.name} ${body.name} ${geom.mesh >= 0 ? h.name(OBJ.mesh, geom.mesh) : ''}`);
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = geom.mesh >= 0 ? h.name(OBJ.mesh, geom.mesh) : geom.name;
     mesh.position.set(...geom.pos);
     mesh.quaternion.set(geom.quat[1], geom.quat[2], geom.quat[3], geom.quat[0]);
     mesh.castShadow = mesh.receiveShadow = true;
@@ -59,6 +66,7 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
     tag(mesh, { label: `${body.name}${geom.name ? ` · ${geom.name}` : ''}`, layer: 'housing', explode: fan, material: cls });
     groups[geom.body].add(mesh);
   }
+  tools?.parts.forEach((t) => groups[h.id(OBJ.body, t.body)].add(t.group));
   for (const b of bodies) {
     if (b.id === 0 || !groups[b.id].children.length) continue;
     const box = inertiaBox(b, new THREE.Box3().setFromObject(groups[b.id]).getSize(new THREE.Vector3()).length());
@@ -67,7 +75,7 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
   const cables = tendonCables(h, mats);
   if (cables) root.add(cables.root);
   const modules: ModuleInfo[] = bodies
-    .filter((b) => groups[b.id].children.length)
+    .filter((b) => groups[b.id].children.length && !tools?.parts.some((t) => t.body === b.name))
     .map((b) => ({
       id: groups[b.id].userData.module as string,
       label: b.name,
@@ -111,6 +119,7 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
     update,
     dispose() {
       cache.forEach((g) => g.dispose());
+      tools?.parts.forEach((t) => t.group.traverse((o) => (o as THREE.Mesh).geometry?.dispose()));
       cables?.dispose();
       mats.dispose();
     },

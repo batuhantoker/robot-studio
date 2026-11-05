@@ -6,7 +6,7 @@ import { type Profile, hollowCylinder, lathe, solidCylinder } from '../../common
 import { part } from '../../common/part';
 import { pin } from '../shapes/blocks';
 import { coil } from '../shapes/mechanical';
-import { adapterPlate, opening, PLATE_FACE, SCREWS_OPEN, sideHose, stackOpen, toolFrame } from './mount';
+import { adapterPlate, hoseStub, opening, PLATE_FACE, SCREWS_OPEN, stackOpen, toolFrame } from './mount';
 import type { EffectorBuilder } from './types';
 
 const scaled = (p: Profile, s: number): Profile => p.map(([r, y]) => [r * s, y * s]);
@@ -37,7 +37,7 @@ export const weldingTorch: EffectorBuilder = (o) => {
     part(lathe(solidCylinder(s * 0.6, s * 0.7, s * 0.9, s * 0.05)), mats, 'cap', { label: 'Sensor cap', layer: 'housing', explode: at(capOpen) }),
     screwsAt(mats, [new THREE.Vector3(s * 0.42, s * 1.02, 0)], s * 0.06, 'x', 1, { label: 'Clamp screw', layer: 'fastener', explode: at(clampOpen, 0.6) }),
     part(pin(s * 0.025, s * 0.24, 'y').translate(0, s * (R - 0.08), 0), mats, 'steel', { label: 'Filler wire', layer: 'drive', explode: at(tipOpen) }),
-    sideHose(mats, new THREE.Vector3(s * 0.6, s * 0.45, 0), s, 'Torch cable', at(sensorOpen, 1.2)),
+    ...hoseStub(mats, new THREE.Vector3(s * 0.615, s * 0.45, 0), s, ['Cable fitting', 'Torch cable'], sensorOpen),
     hullCylinder(s * 0.62, s * 0.14, s * 0.9),
     hullCylinder(s * 0.38, s * 0.9, reach),
   );

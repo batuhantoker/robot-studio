@@ -4,12 +4,12 @@ import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { GeomInfo, MeshBuffers } from '../../../physics/extract/geoms';
 import { GEOM } from '../../../physics/runtime/arrays';
 
-export function meshGeometry(mesh: MeshBuffers): THREE.BufferGeometry {
+export function meshGeometry(mesh: MeshBuffers, crease = Math.PI / 6): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(mesh.vertices, 3));
   g.setIndex(new THREE.BufferAttribute(mesh.faces, 1));
   // toCreasedNormals welds on a 1/100-unit grid, 1 cm in metres: weld in millimetres instead.
-  return toCreasedNormals(g.scale(1000, 1000, 1000), Math.PI / 6).scale(0.001, 0.001, 0.001);
+  return toCreasedNormals(g.scale(1000, 1000, 1000), crease).scale(0.001, 0.001, 0.001);
 }
 
 /** Primitive geoms; MuJoCo sizes are half-extents/radii, cylinders and capsules along local Z. */

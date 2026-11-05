@@ -1,0 +1,18 @@
+{
+  "apptronik_apollo": {"wrist": true, "size": 0.045, "hide": "^(FB_palm|idx-F|thumb-F|pinky|ring|mid|collision_._hand_plate)", "push": 0.004},
+  "armor-abb-irb2400": {"limbs": [0]},
+  "armor-abb-irb6640": {"face": 0.04, "r": 0.1},
+  "armor-abb-irb6700": {"limbs": [0]},
+  "armor-abb-yumi": {"size": 0.036},
+  "armor-agibot-x2": {"wrist": true, "size": 0.036, "hide": "^(left|right)_wrist_roll_link$", "face": 0.03, "r": 0.03},
+  "armor-deeprobotics-dr02": {"wrist": true, "size": 0.04, "hide": "^(left|right)_hand_link$"},
+  "armor-fourier-gr1": {"wrist": true, "size": 0.038},
+  "armor-icub": {"wrist": true, "size": 0.03, "hide": "^(r|l)_hand$", "face": 0.02, "r": 0.025},
+  "armor-kawasaki-bx300l": {"limbs": [0]},
+  "armor-mr3-mini": {"r": 0.02, "size": 0.025, "limbs": [1], "hide": "^(tool_base|x_axis|y_axis|z_axis)$"},
+  "armor-par6": {"size": 0.031},
+  "armor-parol6": {"size": 0.031},
+  "armor-techman-tm5-900": {"face": 0.0, "r": 0.032},
+  "armor-unitree-h1-2": {"wrist": true, "size": 0.04},
+  "armor-unitree-h2": {"wrist": true, "size": 0.04, "hide": "^(left|right)_hand_link$"}
+}
