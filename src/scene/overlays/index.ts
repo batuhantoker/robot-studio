@@ -12,6 +12,8 @@ import { EffectorsOverlay } from './effectors';
 import { EllipsoidOverlay } from './ellipsoid';
 import { StopsOverlay } from './stops';
 import { TargetOverlay } from './target';
+import { PALETTE } from '../stage/palette';
+import { RunsOverlay } from './runs';
 import { TrailOverlay } from './trail';
 import { WorkspaceOverlay } from './workspace';
 
@@ -37,6 +39,9 @@ export class OverlaySet {
   readonly ellipsoids = new THREE.Group();
   private ellipsoidList: EllipsoidOverlay[] = [];
   readonly trail = new TrailOverlay();
+  /** Physics mode: where the tool should go, against the trail of where it went. */
+  readonly goal = new TrailOverlay(PALETTE.ink, 0.45);
+  readonly runs = new RunsOverlay();
   readonly stops = new StopsOverlay();
   readonly workspace = new WorkspaceOverlay();
   readonly target: TargetOverlay;
@@ -46,7 +51,7 @@ export class OverlaySet {
 
   constructor(stage: Stage, onTarget: (p: Vec3) => void) {
     this.target = new TargetOverlay(stage.camera, stage.renderer.domElement, stage.controls, onTarget);
-    this.group.add(this.axes.group, this.com.group, this.effectors.group, this.ellipsoids, this.trail.group, this.stops.group, this.workspace.group, this.target.group);
+    this.group.add(this.axes.group, this.com.group, this.effectors.group, this.ellipsoids, this.trail.group, this.goal.group, this.runs.group, this.stops.group, this.workspace.group, this.target.group);
   }
 
   /** Touch screens get larger handles: stop badges and the IK gizmo. */
@@ -71,6 +76,8 @@ export class OverlaySet {
     this.stops.setScale(reach, this.touch ? TOUCH : 1);
     this.comCount = -1;
     this.trail.clear();
+    this.goal.clear();
+    this.runs.clear();
     this.workspace.clear();
   }
 
@@ -79,6 +86,7 @@ export class OverlaySet {
     this.com.group.visible = flags.com;
     this.ellipsoids.visible = flags.ellipsoid;
     this.trail.group.visible = flags.trail;
+    this.goal.group.visible = this.runs.group.visible = flags.trail && mode === 'physics';
     this.workspace.group.visible = flags.workspace;
     // Hidden, the gizmo must not catch drags; disabled mid-drag, it would swallow the release and keep orbit locked.
     if (!this.target.gizmo.dragging) this.target.group.visible = this.target.gizmo.enabled = mode === 'ik';

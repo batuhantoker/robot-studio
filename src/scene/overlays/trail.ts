@@ -11,9 +11,9 @@ export class TrailOverlay {
   private geometry = new THREE.BufferGeometry();
   private count = 0;
 
-  constructor() {
+  constructor(color: string = PALETTE.accent, opacity = 0.8) {
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
-    this.group.add(new THREE.Line(this.geometry, new THREE.LineBasicMaterial({ color: PALETTE.accent, transparent: true, opacity: 0.8 })));
+    this.group.add(new THREE.Line(this.geometry, new THREE.LineBasicMaterial({ color, transparent: true, opacity })));
   }
 
   setPath(points: Vec3[]): void {

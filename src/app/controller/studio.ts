@@ -79,6 +79,7 @@ export class Studio {
     this.viewport.onFrame((dt) => {
       tick(dt);
       hud(dt);
+      this.physics?.tick(dt);
     });
     // A switch changes activeKey (and usually activeId) in one update; a library pick changes only activeId.
     store.on(['activeId', 'activeKey'], (s, changed) => void (changed.has('activeKey') ? this.activate(s.q.length === 0, false, true) : this.activate(true)));
@@ -188,7 +189,12 @@ export class Studio {
     const focus = refit ? session.defaultFocus : Math.min(this.store.state.focus, session.limbs.length - 1);
     this.swapIn(key, session);
     this.analysis.clearWorkspace();
-    this.physics = new PhysicsMode(session);
+    this.physics?.dispose();
+    this.physics = new PhysicsMode(session, () => this.store.state.focus, {
+      newRun: () => this.overlays.trail.clear(),
+      addRun: (path, score) => this.overlays.runs.add(path, score),
+      clearRuns: () => this.overlays.runs.clear(),
+    });
     this.motion.load(session, q);
     const fresh = refit || this.store.state.waypoints[0]?.length !== n;
     // A preset's length doesn't suit the default path that replaces it.
@@ -318,7 +324,11 @@ export class Studio {
   }
 
   private enterMode(s: StudioState): void {
-    if (s.mode === 'physics') this.physics?.reset(planOf(s));
+    if (s.mode === 'physics') {
+      this.physics?.reset(planOf(s));
+      this.analysis.refreshProfile();
+      if (!s.touring && s.tab !== 'analysis') this.store.set({ tab: 'analysis' });
+    } else this.physics?.release();
     // Pins left over from an earlier IK visit would snap the robot back to that pose on the next drag.
     if (s.mode !== 'ik' && s.targets.length) this.store.set({ targets: [] });
     this.pinLimbs(s, true);

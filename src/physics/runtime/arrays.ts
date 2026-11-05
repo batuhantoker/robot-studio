@@ -15,12 +15,15 @@ export interface ModelArrays {
   site_bodyid: Num; site_pos: Num; site_quat: Num;
   mesh_vertadr: Num; mesh_vertnum: Num; mesh_vert: Num; mesh_faceadr: Num; mesh_facenum: Num; mesh_face: Num;
   actuator_trnid: Num; actuator_gear: Num; actuator_forcerange: Num; actuator_ctrlrange: Num;
+  dof_M0: Num; dof_jntid: Num; dof_armature: Float64Array; body_subtreemass: Num;
+  neq: number; eq_type: Num; eq_obj1id: Num; eq_obj2id: Num; eq_data: Num;
 }
 
 export interface DataArrays {
   qpos: Float64Array; qvel: Float64Array; qacc: Float64Array; ctrl: Float64Array;
   xpos: Float64Array; xquat: Float64Array; site_xpos: Float64Array;
-  qfrc_bias: Float64Array; qfrc_actuator: Float64Array; time: number;
+  qfrc_bias: Float64Array; qfrc_actuator: Float64Array; qfrc_applied: Float64Array; time: number;
+  subtree_com: Float64Array; xanchor: Float64Array;
 }
 
 export const arrays = (m: MjModel) => m as unknown as ModelArrays;

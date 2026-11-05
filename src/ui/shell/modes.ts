@@ -18,7 +18,7 @@ export const MODES: ModeInfo[] = [
   { id: 'task', label: 'Pick & place', hint: 'Set a pick and a place spot, then run it', group: 'play' },
   { id: 'ik', label: 'IK', hint: 'Drag a target, the joints follow', group: 'plan' },
   { id: 'trajectory', label: 'Trajectory', hint: 'Stops, timing, video and data export', group: 'plan' },
-  { id: 'physics', label: 'Physics', hint: 'MuJoCo tracks the trajectory', group: 'study' },
+  { id: 'physics', label: 'Physics', hint: 'Tune the controller by hand, or teach it with RL', group: 'study' },
   { id: 'workspace', label: 'Workspace', hint: 'Reachable volume and its limits', group: 'study' },
 ];
 
