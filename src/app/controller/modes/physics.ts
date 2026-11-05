@@ -1,17 +1,21 @@
-/** Live MuJoCo tracking of the current trajectory, one scored run after another, for any robot. */
+/** Live MuJoCo tracking, one scored run after another, for any robot: on its stand, or on a floor it can fall over on. */
 import type { SimReadout } from '../../live/bus';
 import type { RobotSession } from '../../robots/session';
-import { movesJoints } from '../../../core/control/motion';
-import { RunScore, type RunStats } from '../../../core/control/score';
 import { chainFrames } from '../../../core/chain/kinematics/frames';
 import { limbQ } from '../../../core/chain/limbs/types';
+import { movesJoints } from '../../../core/control/motion';
+import type { RunScore, RunStats } from '../../../core/control/score';
+import { type Transform, quatToMat } from '../../../core/math/linear/transform';
 import type { Vec3 } from '../../../core/math/linear/vec';
-import { defaultWaypoints } from '../../../core/trajectory/quintic/sample';
-import { Plant } from '../../../physics/control/plant';
-import { type Reference, type RunFrame, sampleReference } from '../../../physics/control/rollout';
-import { TrackingSim } from '../../../physics/control/tracking';
-import { jointLimits } from '../../robots/focus';
 import type { Plan } from '../../../core/trajectory/plan';
+import { defaultWaypoints } from '../../../core/trajectory/quintic/sample';
+import { type Rig, floorRig, hasCollision, standRig } from '../../../physics/control/rig';
+import { type Reference, type RunFrame, runScore, sampleReference } from '../../../physics/control/rollout';
+import { STAND_SECONDS } from '../../../physics/control/stand';
+import { TrackingSim } from '../../../physics/control/tracking';
+import { compileFloorCopy } from '../../../physics/model/floor-copy';
+import { catalog, fetchRobotFiles } from '../../robots/catalog';
+import { jointLimits } from '../../robots/focus';
 import { ControlLab } from '../learn/lab';
 import type { Method } from '../learn/run';
 import { player } from './trajectory';
@@ -28,6 +32,14 @@ export interface PhysicsStage {
   newRun(): void;
   addRun(path: Vec3[], score: number): void;
   clearRuns(): void;
+  /** Carry the robot on its simulated root; null hands it back to its grounding. */
+  setBody(pose: Transform | null): void;
+}
+
+interface Bench {
+  rig: Rig;
+  sim: TrackingSim;
+  lab: ControlLab;
 }
 
 interface Replay {
@@ -46,18 +58,22 @@ const STEP_BUDGET = 6;
 const LEARN_SHARE = 0.55;
 const LEARN_MAX = 40;
 const MAX_LAG = 0.05;
+/** A balance lesson runs past the scored test, or the network learns to last exactly that long. */
+const BALANCE_SECONDS = 8;
+
+const emptyHistory = (): PhysicsHistory => ({ t: [], error: [], applied: [], requested: [] });
 
 export class PhysicsMode {
-  readonly sim: TrackingSim | null = null;
-  readonly plant: Plant | null = null;
-  readonly lab: ControlLab | null = null;
   readonly reason: string | null = null;
-  history: PhysicsHistory = { t: [], error: [], applied: [], requested: [] };
+  history = emptyHistory();
   last: SimReadout | null = null;
   /** The run in progress, so far. */
   current: RunStats | null = null;
   /** The trajectory leaves the judged joints still, so the lab is running its own test motion. */
   ownMotion = false;
+  private readonly onStand: Bench | null = null;
+  private floorBench: Bench | null = null;
+  private bench: Bench | null = null;
   private wall = 0;
   private step = 0;
   private run: RunScore | null = null;
@@ -66,27 +82,29 @@ export class PhysicsMode {
   private reference: Reference | null = null;
   private referencePlan: Plan | null = null;
   private referenceLimb = -1;
+  private holdHome: Reference | null = null;
   private restartPending = false;
   private disposed = false;
   /** The limb this run is judging. */
   private limb = 0;
   private replay: Replay | null = null;
   private waiting: Replay | null = null;
+  /** Step the robot fell on, this run. */
+  private fell: number | null = null;
+  private shoveLeft = 0;
+  private target = new Float64Array(0);
 
   constructor(readonly session: RobotSession, private readonly focus: () => number, private readonly stage: PhysicsStage) {
     if (!session.joints.length) {
       this.reason = 'This model has no joints to drive.';
       return;
     }
-    const plant = new Plant(session);
-    if (!plant.driven.some(Boolean)) {
+    const rig = standRig(session);
+    if (!rig.plant.driven.some(Boolean)) {
       this.reason = 'Nothing on this model can be driven: an equality constraint moves every joint.';
       return;
     }
-    this.plant = plant;
-    const lab = new ControlLab(session, plant, focus, (restart) => this.gainsChanged(restart), (frames, stats) => this.practised(frames, stats));
-    this.lab = lab;
-    this.sim = new TrackingSim(session.handle, session.qposAdr, session.dofAdr, lab.toGains(lab.gains), session.rest, { driven: plant.driven, held: plant.held, routes: plant.routes, compensate: lab.compensate });
+    this.onStand = this.bench = this.benchFor(rig);
     // The lab's private MjData and the plant's restore both need the model still alive.
     const dispose = session.dispose;
     session.dispose = () => {
@@ -95,34 +113,98 @@ export class PhysicsMode {
     };
   }
 
+  get sim(): TrackingSim | null {
+    return this.bench?.sim ?? null;
+  }
+
+  get lab(): ControlLab | null {
+    return this.bench?.lab ?? null;
+  }
+
+  get onFloor(): boolean {
+    return !!this.bench?.rig.stand;
+  }
+
+  /** Why this robot can't go on a floor, or null when it can; undefined when the idea doesn't apply. */
+  get floorBlock(): string | null | undefined {
+    const s = this.session;
+    // A drone sitting on the ground would pass the stand test by doing nothing.
+    if (s.base === 'fixed' || s.category === 'aerial' || s.source !== 'cad' || ('fitted' in s && s.fitted) || !this.catalogEntry()) return undefined;
+    return hasCollision(s.handle) ? null : 'This model has no collision shapes, so nothing on it can touch a floor.';
+  }
+
+  /** Put the robot on the floor or back on its stand; returns why not, if it can't. */
+  async setFloor(on: boolean, plan: Plan): Promise<string | null> {
+    if (on === this.onFloor || !this.onStand) return null;
+    this.bench?.lab.halt();
+    this.bench?.rig.plant.leave();
+    if (on && !this.floorBench) {
+      const robot = this.catalogEntry();
+      if (!robot) return 'This robot has no model to put on a floor.';
+      try {
+        const handle = await compileFloorCopy(await fetchRobotFiles(robot), robot.xml);
+        if (this.disposed) {
+          handle.dispose();
+          return null;
+        }
+        this.floorBench = this.benchFor(floorRig(this.onStand.rig, handle));
+      } catch (e) {
+        this.bench!.rig.plant.enter();
+        const why = (e as Error).message ?? String(e);
+        return /alloc|memory/i.test(why) ? 'Not enough memory for a second copy of this robot, so it stays on its stand.' : `This model can’t go on a floor: ${why}`;
+      }
+    }
+    this.bench = on ? this.floorBench : this.onStand;
+    if (!on) this.stage.setBody(null);
+    this.stage.clearRuns();
+    this.reset(plan);
+    return null;
+  }
+
+  /** Push the robot, right now. */
+  shove(): void {
+    const stand = this.bench?.rig.stand;
+    if (!stand) return;
+    this.shoveLeft = stand.shoveSteps;
+    this.mixed = true;
+  }
+
   reset(plan: Plan): void {
-    if (!this.sim || this.disposed) return;
-    this.plant!.enter();
+    if (!this.bench || this.disposed) return;
+    this.bench.rig.plant.enter();
     this.begin(this.referenceFor(plan));
   }
 
   /** Leaving the mode: the shared model goes back to what the other modes expect. */
   release(): void {
-    this.lab?.stopLearning();
-    this.plant?.leave();
+    for (const b of [this.onStand, this.floorBench]) {
+      b?.lab.halt();
+      b?.rig.plant.leave();
+    }
     this.stage.clearRuns();
+    this.stage.setBody(null);
   }
 
   learn(method: Method, plan: Plan): void {
     this.stage.clearRuns();
     this.replay = this.waiting = null;
-    this.lab?.learn(method, this.referenceFor(plan));
+    const { rig, sim } = this.bench!;
+    if (method === 'balance') {
+      const hold = { q: rig.home, qd: rig.home.map(() => 0) };
+      this.lab?.learn(method, sampleReference(() => hold, BALANCE_SECONDS, sim.dt));
+    } else this.lab?.learn(method, this.referenceFor(plan));
   }
 
   /** Advance simulated time to follow wall time; returns joint positions. */
   advance(dtWall: number, plan: Plan): number[] | null {
-    const { sim } = this;
-    if (!sim) return null;
+    if (!this.bench) return null;
     // A robot loaded while already in this mode never got the mode's entry reset.
     if (!this.run) this.reset(plan);
-    if (this.lab!.running) return this.showPractice(dtWall);
+    const { sim, lab, rig } = this.bench;
+    if (lab.running) return this.showPractice(dtWall);
     const ref = this.referenceFor(plan);
     if (this.restartPending || ref !== this.reference || this.limb !== this.focus()) this.begin(ref);
+    const target = this.target;
     this.wall += Math.min(dtWall, MAX_LAG);
     const deadline = performance.now() + STEP_BUDGET;
     while (sim.time < this.wall) {
@@ -131,19 +213,31 @@ export class PhysicsMode {
         this.begin(ref);
         break;
       }
-      this.last = sim.step(ref.q[this.step], ref.qd[this.step]);
-      this.run!.add(this.last.error, this.last.applied, this.last.saturated);
+      if (rig.stand) {
+        const up = rig.stand.watch(rig.handle.data, this.step, this.shoveLeft > 0);
+        if (this.shoveLeft > 0) this.shoveLeft--;
+        if (!up && this.fell === null) this.fell = this.step;
+      }
+      const net = lab.balance && lab.theta;
+      if (net && this.step % lab.balance!.every === 0) lab.balance!.update(rig.handle.data, net, target);
+      this.last = sim.step(net ? target : ref.q[this.step], ref.qd[this.step]);
+      if (this.fell === null) this.run!.add(this.last.error, this.last.applied, this.last.saturated);
       this.step++;
       if ((this.step & 15) === 0 && performance.now() > deadline) break;
     }
     this.wall = Math.min(this.wall, sim.time + MAX_LAG);
     sim.sync();
-    this.current = this.run!.stats();
+    this.current = this.statsNow(ref);
     if (this.last) this.record(sim.time);
-    return sim.q();
+    const q = sim.q();
+    if (rig.stand) {
+      const a = rig.stand.rootAdr;
+      this.draw(q, Array.from((rig.handle.data as unknown as { qpos: Float64Array }).qpos.subarray(a, a + 7)));
+    }
+    return q;
   }
 
-  /** Give a running learner its slice of this frame. */
+  /** Give whatever is running headless its slice of this frame. */
   tick(dt: number): void {
     this.lab?.tick(performance.now() + Math.min(LEARN_SHARE * dt * 1000, LEARN_MAX));
   }
@@ -152,31 +246,68 @@ export class PhysicsMode {
     if (this.disposed) return;
     this.release();
     this.disposed = true;
+    this.floorBench?.rig.handle.dispose();
+  }
+
+  private benchFor(rig: Rig): Bench {
+    const lab = new ControlLab(this.session, rig, this.focus, {
+      onGains: (restart) => this.gainsChanged(restart),
+      onPractice: (frames, stats) => this.practised(frames, stats),
+      reference: () => this.reference,
+    });
+    const sim = new TrackingSim(rig.handle, rig.qposAdr, rig.dofAdr, lab.toGains(lab.gains), rig.rest, {
+      driven: rig.plant.driven, held: rig.plant.held, routes: rig.plant.routes, compensate: lab.compensate,
+    });
+    return { rig, sim, lab };
+  }
+
+  private catalogEntry() {
+    return catalog()?.robots.find((r) => r.id === this.session.id);
+  }
+
+  /** The session's own model is what gets drawn, so the floor copy's pose is carried over to it. */
+  private draw(q: ArrayLike<number>, root: number[]): void {
+    this.onStand!.sim.show(q);
+    const lift = this.session.assembly.floorZ - this.bench!.rig.floorZ;
+    this.stage.setBody({ R: quatToMat(root.slice(3)), p: [root[0], root[1], root[2] + lift] });
+  }
+
+  private statsNow(ref: Reference): RunStats {
+    return this.run!.stats((this.fell ?? ref.q.length) / ref.q.length);
   }
 
   private referenceFor(plan: Plan): Reference {
+    const { rig, sim } = this.bench!;
+    if (rig.stand) {
+      this.ownMotion = false;
+      const hold = { q: rig.home, qd: rig.home.map(() => 0) };
+      return (this.holdHome ??= sampleReference(() => hold, STAND_SECONDS, sim.dt));
+    }
     const p = this.referencePlan;
     const same = p && p.waypoints === plan.waypoints && p.duration === plan.duration && p.opts === plan.opts && p.pace === plan.pace;
-    if (same && this.reference && this.referenceLimb === this.focus()) return this.reference;
+    if (same && this.reference && this.reference !== this.holdHome && this.referenceLimb === this.focus()) return this.reference;
     this.referencePlan = plan;
     this.referenceLimb = this.focus();
     const limits = jointLimits(this.session);
     this.ownMotion = !movesJoints(plan.waypoints, this.lab!.judged());
     const played = this.ownMotion ? { waypoints: defaultWaypoints(limits, this.session.home), duration: plan.duration } : plan;
-    return (this.reference = sampleReference(player(limits, played), plan.duration, this.sim!.dt));
+    return sampleReference(player(limits, played), plan.duration, sim.dt);
   }
 
   private begin(ref: Reference): void {
-    const { sim, lab } = this;
+    const { sim, lab, rig } = this.bench!;
     this.reference = ref;
-    sim!.gains = lab!.toGains(lab!.gains);
-    sim!.compensate = lab!.compensate;
-    sim!.reset(Array.from(ref.q[0]));
-    this.run = new RunScore(lab!.judged(), lab!.limits);
-    this.history = { t: [], error: [], applied: [], requested: [] };
+    this.target = Float64Array.from(ref.q[0]);
+    sim.gains = lab.toGains(lab.gains);
+    sim.compensate = lab.compensate;
+    sim.reset(Array.from(ref.q[0]));
+    this.run = runScore({ joints: lab.judged(), limits: lab.limits, stand: rig.stand });
+    this.history = emptyHistory();
     this.limb = this.focus();
     this.stage.newRun();
     this.replay = this.waiting = null;
+    this.fell = null;
+    this.shoveLeft = 0;
     this.wall = 0;
     this.step = 0;
     this.mixed = false;
@@ -186,12 +317,11 @@ export class PhysicsMode {
   }
 
   private endRun(): void {
-    if (!this.mixed) this.lab!.record(this.run!.stats());
+    if (!this.mixed) this.lab!.record(this.statsNow(this.reference!));
   }
 
   private gainsChanged(restart: boolean): void {
-    const { sim, lab } = this;
-    if (!sim || !lab) return;
+    const { sim, lab } = this.bench!;
     sim.gains = lab.toGains(lab.gains);
     sim.compensate = lab.compensate;
     this.mixed = true;
@@ -202,7 +332,8 @@ export class PhysicsMode {
   private practised(frames: RunFrame[], stats: RunStats): void {
     const { limbs } = this.session;
     const limb = limbs[Math.min(this.focus(), limbs.length - 1)];
-    this.stage.addRun(frames.map((f) => chainFrames(limb.chain, limbQ(limb, f.q)).tip.p), stats.score);
+    // Overlays ride with a carried robot, so a path on a floor wouldn't stay where it was drawn.
+    if (!this.onFloor) this.stage.addRun(frames.map((f) => chainFrames(limb.chain, limbQ(limb, f.q)).tip.p), stats.score);
     this.waiting = { frames, stats, at: 0 };
   }
 
@@ -214,13 +345,14 @@ export class PhysicsMode {
       this.replay = this.waiting;
       this.waiting = null;
       this.stage.newRun();
-      this.history = { t: [], error: [], applied: [], requested: [] };
+      this.history = emptyHistory();
     }
     const r = this.replay;
     r.at += dtWall / REPLAY_SECONDS;
     const i = Math.min(Math.floor(r.at * r.frames.length), r.frames.length - 1);
     const f = r.frames[i];
-    sim.show(f.q);
+    if (f.root) this.draw(f.q, f.root);
+    else sim.show(f.q);
     this.current = r.stats;
     this.last = { requested: f.applied, applied: f.applied, error: f.error, saturated: f.applied.map(() => false) };
     this.record(((this.reference?.q.length ?? 0) * sim.dt * i) / r.frames.length);

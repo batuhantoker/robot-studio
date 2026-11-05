@@ -9,7 +9,7 @@ export interface ModelArrays {
   body_jntadr: Num; body_jntnum: Num;
   jnt_type: Num; jnt_bodyid: Num; jnt_pos: Num; jnt_axis: Num; jnt_range: Num; jnt_limited: Num; jnt_qposadr: Num; jnt_dofadr: Num;
   qpos0: Num;
-  geom_type: Num; geom_bodyid: Num; geom_size: Num; geom_pos: Num; geom_quat: Num; geom_rgba: Num; geom_dataid: Num; geom_matid: Num;
+  geom_type: Num; geom_bodyid: Num; geom_size: Num; geom_pos: Float64Array; geom_quat: Num; geom_rgba: Num; geom_dataid: Num; geom_matid: Num;
   geom_group: Num;
   mat_rgba: Num;
   site_bodyid: Num; site_pos: Num; site_quat: Num;
@@ -17,13 +17,14 @@ export interface ModelArrays {
   actuator_trnid: Num; actuator_gear: Num; actuator_forcerange: Num; actuator_ctrlrange: Num;
   dof_M0: Num; dof_jntid: Num; dof_armature: Float64Array; body_subtreemass: Num;
   neq: number; eq_type: Num; eq_obj1id: Num; eq_obj2id: Num; eq_data: Num;
+  geom_contype: Int32Array; geom_conaffinity: Int32Array; body_contype: Int32Array; body_conaffinity: Int32Array;
 }
 
 export interface DataArrays {
   qpos: Float64Array; qvel: Float64Array; qacc: Float64Array; ctrl: Float64Array;
   xpos: Float64Array; xquat: Float64Array; site_xpos: Float64Array;
   qfrc_bias: Float64Array; qfrc_actuator: Float64Array; qfrc_applied: Float64Array; time: number;
-  subtree_com: Float64Array; xanchor: Float64Array;
+  subtree_com: Float64Array; xanchor: Float64Array; xfrc_applied: Float64Array;
 }
 
 export const arrays = (m: MjModel) => m as unknown as ModelArrays;

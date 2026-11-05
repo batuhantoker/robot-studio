@@ -21,9 +21,12 @@ function card(m: Metric) {
 }
 
 /** Returns the button that shows and hides it. */
-export function mountGraphs(host: HTMLElement, bus: LiveBus): HTMLElement {
+/** `frozen` holds the graphs still: a lesson's replays run at several times real speed, so their speeds and torques would mislead. */
+export function mountGraphs(host: HTMLElement, bus: LiveBus, frozen: () => boolean = () => false): HTMLElement {
   const history = new LiveHistory();
-  bus.on((s) => history.record(s), HISTORY_HZ);
+  bus.on((s) => {
+    if (!frozen()) history.record(s);
+  }, HISTORY_HZ);
   let seconds: Seconds = '30';
   const cards = METRICS.map(card);
   const chipKey = (m: Metric) => `graphs:${m.id}`;
@@ -35,7 +38,7 @@ export function mountGraphs(host: HTMLElement, bus: LiveBus): HTMLElement {
     const now = history.samples.at(-1)?.t ?? 0, from = now - Number(seconds);
     const samples = history.samples.filter((x) => x.t >= from);
     const view = { session: s.session, focus: s.focus, samples, t: samples.map((x) => x.t) };
-    limb.textContent = s.session.limbs.length > 1 ? limbLabel(s.session, s.focus) : '';
+    limb.textContent = frozen() ? 'Held during the lesson' : s.session.limbs.length > 1 ? limbLabel(s.session, s.focus) : '';
     for (const c of cards) {
       if (c.el.hidden) continue;
       const series = c.m.series(view);

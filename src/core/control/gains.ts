@@ -38,3 +38,9 @@ export function gainRange(inertia: number, key: GainKey, start = 0): GainRange {
 }
 
 export const clampGain = (v: number, r: GainRange) => Math.min(Math.max(v, r.lo), r.hi);
+
+const SIDE = /(^|[_\-/ ])(fl|fr|rl|rr|hl|hr|bl|br|lf|rf|lh|rh|lb|rb|l|r|left|right|front|rear|back|hind)(?=[_\-/ ]|$)/gi;
+
+/** A joint's name with its side taken off, so mirrored joints read the same: FL_calf_joint and RR_calf_joint are both calf. */
+export const jointRole = (name: string): string =>
+  name.replace(SIDE, '$1').replace(/[_ ]?joint$/i, '').replace(/^[_\-/ ]+|[_\-/ ]+$/g, '').replace(/[_\-/ ]{2,}/g, '_') || name;

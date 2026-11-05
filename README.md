@@ -207,8 +207,11 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
     supersampling, or export the samples (t, q, qd, qdd, tool path) as CSV or JSON.
   - A control lab on every robot: MuJoCo tracks the motion under PID torque control
     and scores each run. Tune every joint's gains by hand, then let policy gradient
-    or cross-entropy learn them from the score alone, live in the browser. Robots on
-    legs or wheels sit on a test stand for now, so this tunes joints, not balance.
+    or cross-entropy learn them from the score alone, live in the browser.
+  - Robots on legs or wheels start on a test stand, then go on the floor to stand,
+    take a shove and fall. Gains can get a quadruped standing; a small neural policy
+    keeps a humanoid up two to three times longer on shoves it never trained on,
+    though it doesn't balance yet.
   - Workspace and limits, as described above.
 - **Real robot CAD.** Imported robots render from MuJoCo's compiled meshes, and their
   serial chain is extracted for the same math. In glass view each body shows MuJoCo's

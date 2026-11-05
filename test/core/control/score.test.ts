@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { movesJoints } from '@/core/control/motion';
 import { RunScore, scoreOf } from '@/core/control/score';
 
-const still = { rmsDeg: 0, peakDeg: 0, saturation: 0, jitter: 0 };
+const still = { rmsDeg: 0, peakDeg: 0, saturation: 0, jitter: 0, upright: 1 };
 
 describe('scoreOf', () => {
   it('is 100 for perfect tracking and falls with error, saturation and buzz', () => {
@@ -10,6 +10,10 @@ describe('scoreOf', () => {
     expect(scoreOf({ ...still, rmsDeg: 1 })).toBeLessThan(scoreOf({ ...still, rmsDeg: 0.5 }));
     expect(scoreOf({ ...still, saturation: 0.1 })).toBeLessThan(100);
     expect(scoreOf({ ...still, jitter: 0.1 })).toBeLessThan(100);
+  });
+
+  it('gives a robot that fell almost nothing, however still it lies', () => {
+    expect(scoreOf({ ...still, upright: 0.3 })).toBeLessThan(10);
   });
 });
 

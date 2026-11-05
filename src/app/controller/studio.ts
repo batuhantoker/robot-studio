@@ -194,6 +194,7 @@ export class Studio {
       newRun: () => this.overlays.trail.clear(),
       addRun: (path, score) => this.overlays.runs.add(path, score),
       clearRuns: () => this.overlays.runs.clear(),
+      setBody: (pose) => this.viewport.setBodyPose(pose),
     });
     this.motion.load(session, q);
     const fresh = refit || this.store.state.waypoints[0]?.length !== n;
@@ -317,10 +318,12 @@ export class Studio {
       return;
     }
     const library = this.store.state.library.map((e) => (e.id === entry.id ? specEntry(e.id, 'mine', spec, e.twin) : e));
+    // Only a new or removed link changes the robot's size enough to move the camera for.
+    const resized = spec.links.length !== this.session?.spec?.links.length;
     persist(library);
     this.store.set({ library, draft: spec, draftError: null });
     clearTimeout(this.rebuildTimer);
-    this.rebuildTimer = window.setTimeout(() => void this.activate(false), 120);
+    this.rebuildTimer = window.setTimeout(() => void this.activate(false, resized), 120);
   }
 
   private enterMode(s: StudioState): void {

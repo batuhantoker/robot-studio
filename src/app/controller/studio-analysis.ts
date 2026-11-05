@@ -38,7 +38,7 @@ export class StudioAnalysis implements AnalysisContext {
 
   physics() {
     const p = this.studio.physics;
-    return p ? { history: p.history, reason: p.reason, limits: p.lab?.limits ?? [], lab: p.lab, current: p.current, ownMotion: p.ownMotion } : null;
+    return p ? { history: p.history, reason: p.reason, limits: p.lab?.limits ?? [], lab: p.lab, current: p.current, ownMotion: p.ownMotion, onFloor: p.onFloor, floorBlock: p.floorBlock } : null;
   }
 
   refreshProfile(): void {
@@ -126,6 +126,14 @@ export class StudioAnalysis implements AnalysisContext {
     const st = this.studio.store.state;
     this.studio.physics?.reset(planOf(st));
     this.studio.overlays.trail.clear();
+  }
+
+  setFloor(on: boolean): Promise<string | null> {
+    return this.studio.physics?.setFloor(on, planOf(this.studio.store.state)) ?? Promise.resolve(null);
+  }
+
+  shove(): void {
+    this.studio.physics?.shove();
   }
 
   teach(method: Method): void {

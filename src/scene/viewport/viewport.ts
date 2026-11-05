@@ -10,6 +10,7 @@ import { createStudio } from '../stage/lights';
 import { type Post, createPost } from '../stage/post';
 import { QualityGovernor, TIERS, type Tier } from '../stage/quality';
 import { GroundContactOverlay } from '../overlays/contact/overlay';
+import { type Transform, matToQuat } from '../../core/math/linear/transform';
 import { type Grounding, groundRobot } from './floor-lift';
 import { renderFrame } from './render-frame';
 import { type Stage, createStage } from '../stage/renderer';
@@ -44,6 +45,9 @@ export class Viewport {
   private cutaway: Cutaway | null = null;
   readonly overlay = new THREE.Group();
   private readonly holder = new THREE.Group();
+  /** Inside the holder: the robot and its overlays, moved by a body pose. */
+  private readonly carrier = new THREE.Group();
+  private carried = false;
   /** The placement the holder carries. */
   activeKey = 'main';
   /** The other robots, each at its stage base; the group undoes the world shift as the setting does. */
@@ -83,8 +87,10 @@ export class Viewport {
     this.stage.camera.layers.enable(BACKDROP_LAYER);
     this.setSurroundings(DEFAULT_SURROUNDINGS);
     // Overlays ride with the robot so markers stay on it when a floating base settles.
-    this.holder.add(this.overlay);
-    this.overlay.add(this.contacts.group);
+    this.carrier.add(this.overlay);
+    // On the floor, not on the robot: a body pose must not take the contact patches with it.
+    this.holder.add(this.carrier, this.contacts.group);
+    this.aoHidden.push(this.contacts.group);
     this.stage.root.add(this.holder, this.bystanders);
     this.sectionLayer.add(this.sectionPlane.group);
     this.stage.scene.add(this.sectionLayer);
@@ -124,6 +130,19 @@ export class Viewport {
   setWorldShift(x: number, y: number, yaw: number): void {
     this.drive = { x, y, yaw };
     this.applyShift();
+  }
+
+  /** Hold the active robot's frame at `pose` on its placement, in place of settling it; null hands it back to its grounding. */
+  setBodyPose(pose: Transform | null): void {
+    this.carried = !!pose;
+    if (pose) {
+      const [w, x, y, z] = matToQuat(pose.R);
+      this.carrier.position.set(...pose.p);
+      this.carrier.quaternion.set(x, y, z, w);
+    } else {
+      this.carrier.position.set(0, 0, 0);
+      this.carrier.quaternion.identity();
+    }
   }
 
   /** The active robot's placement on the stage. */
@@ -258,12 +277,12 @@ export class Viewport {
     this.grounding = grounding;
     this.stance = stance;
     if (this.assembly) {
-      this.holder.remove(this.assembly.root);
+      this.carrier.remove(this.assembly.root);
       this.cutaway?.dispose();
     }
     this.assembly = assembly;
-    this.holder.add(assembly.root);
-    this.sectionPlane.measure(assembly.root, this.holder);
+    this.carrier.add(assembly.root);
+    this.sectionPlane.measure(assembly.root, this.carrier);
     this.cutaway = new Cutaway(assembly.root, assembly.kind);
     this.sectionLayer.add(this.cutaway.section);
     this.applyView(this.view, true);
@@ -306,7 +325,7 @@ export class Viewport {
     if (!this.assembly) return null;
     // A settled robot's assembly floor is its lowest point at home, so it rests there with the holder unmoved.
     this.floorZ = this.assembly.floorZ;
-    groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
+    groundRobot(this.holder, this.assembly.root, this.floorZ, this.standing(), this.view.explode > 0.001);
     this.holder.updateMatrixWorld(true);
     const sphere = solidBox(this.assembly.root).getBoundingSphere(new THREE.Sphere());
     this.scale = sphere.radius;
@@ -436,11 +455,15 @@ export class Viewport {
     return this.view.cut === 'glass' || !!this.view.isolate;
   }
 
+  private standing(): Grounding {
+    return this.carried && this.view.explode <= 0.001 ? 'carried' : this.grounding;
+  }
+
   private advance(dt: number): void {
     for (const fn of this.listeners) fn(dt);
     this.studio.update(dt);
     if (this.assembly) {
-      const solids = groundRobot(this.holder, this.assembly.root, this.floorZ, this.grounding, this.view.explode > 0.001);
+      const solids = groundRobot(this.holder, this.assembly.root, this.floorZ, this.standing(), this.view.explode > 0.001);
       // Solids were measured with the holder at rest, the frame the overlay lives in.
       this.contacts.update(solids, this.floorZ - this.holder.position.z, this.scale);
     }
@@ -448,7 +471,7 @@ export class Viewport {
     if (cutting) {
       // Grounding lifted the holder after its last matrix update; the section copies need this frame's.
       this.holder.updateMatrixWorld(true);
-      cutting.cutAt(this.sectionPlane.place(this.view.section, this.holder, this.stage.camera));
+      cutting.cutAt(this.sectionPlane.place(this.view.section, this.carrier, this.stage.camera));
     }
     this.post.setClipping(cutting ? [cutting.plane] : null);
     this.stage.controls.update();

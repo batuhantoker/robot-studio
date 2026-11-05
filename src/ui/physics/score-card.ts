@@ -5,10 +5,12 @@ import { h, replace } from '../dom/h';
 
 const MAX_BARS = 40;
 const pct = (v: number) => `${(v * 100).toFixed(v < 0.1 && v > 0 ? 1 : 0)}%`;
+const peakLabel = 'Peak', upLabel = 'Stayed up';
 
 function reading(label: string, title: string) {
   const value = h('b.mono', {}, '–');
-  return { value, el: h('span.lab-reading', { title }, h('small', {}, label), value) };
+  const name = h('small', {}, label);
+  return { value, label: name, el: h('span.lab-reading', { title }, name, value) };
 }
 
 export function scoreCard() {
@@ -31,19 +33,22 @@ export function scoreCard() {
       h('div.ai', {}, h('span.cap.mu', {}, 'AI best'), ai, aiTries)),
     bars);
 
-  const bar = (a: Attempt) => h('i', {
+  const bar = (lab: ControlLab, a: Attempt) => h('i', {
     class: a.who === 'ai' ? 'ai' : '',
     style: `height:${Math.max(a.stats.score, 3)}%`,
-    title: `${a.who === 'ai' ? 'AI' : 'You'}: ${a.stats.score.toFixed(0)}`,
+    title: `${a.who === 'ai' ? 'AI' : 'You'}: ${a.stats.score.toFixed(0)}. Click to run these gains again`,
+    onclick: () => lab.useAttempt(a),
   });
 
   return {
     el,
     /** The run under way. */
-    live(s: RunStats | null) {
+    live(s: RunStats | null, onFloor: boolean) {
       big.textContent = s ? s.score.toFixed(0) : '–';
       error.value.textContent = s ? `${s.rmsDeg.toFixed(2)}°` : '–';
-      peak.value.textContent = s ? `${s.peakDeg.toFixed(1)}°` : '–';
+      peak.label.textContent = onFloor ? upLabel : peakLabel;
+      peak.value.textContent = !s ? '–' : onFloor ? pct(s.upright) : `${s.peakDeg.toFixed(1)}°`;
+      peak.el.classList.toggle('hot', onFloor && !!s && s.upright < 1);
       buzz.value.textContent = s ? pct(s.jitter) : '–';
       limit.value.textContent = s ? pct(s.saturation) : '–';
       buzz.el.classList.toggle('hot', !!s && s.jitter > 0.02);
@@ -58,7 +63,7 @@ export function scoreCard() {
       ai.textContent = lab.best('ai')?.stats.score.toFixed(0) ?? '–';
       youTries.textContent = tries ? `${tries} ${tries === 1 ? 'try' : 'tries'}` : 'no tries yet';
       aiTries.textContent = lessons ? `${lessons} ${lessons === 1 ? 'lesson' : 'lessons'}` : 'not taught yet';
-      replace(bars, ...list.slice(-MAX_BARS).map(bar));
+      replace(bars, ...list.slice(-MAX_BARS).map((a) => bar(lab, a)));
       bars.hidden = !list.length;
     },
   };

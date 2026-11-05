@@ -72,6 +72,16 @@ describe('Plant', () => {
     }
   });
 
+  it('knows what holding the robot up takes, so it can say when a motor can’t', async () => {
+    const { h, plant } = await open();
+    try {
+      expect(Math.max(...plant.holding)).toBeGreaterThan(0);
+      expect(plant.holding.every(Number.isFinite)).toBe(true);
+    } finally {
+      h.dispose();
+    }
+  });
+
   it('leaves the shared model as it found it', async () => {
     const { h, m, plant } = await open();
     try {
@@ -132,7 +142,7 @@ describe('a headless run', () => {
         rollout.run(Infinity);
         return rollout.stats().score;
       };
-      const space = { joints, inertia: plant.inertia };
+      const space = { groups: joints.map((k) => [k]), inertia: plant.inertia };
       const search = crossEntropy({ start: encode(start, space), sigma: 1, population: 12, seed: 2 });
       const before = trial(start);
       let best = before;

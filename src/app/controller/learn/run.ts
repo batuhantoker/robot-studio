@@ -6,7 +6,20 @@ import type { RunStats } from '../../../core/control/score';
 import { Rollout, type Reference, type RolloutSetup, type RunFrame } from '../../../physics/control/rollout';
 import type { Gains } from '../../../physics/control/tracking';
 
-export type Method = 'policy' | 'evolution';
+export type Method = 'policy' | 'evolution' | 'balance';
+
+/** A lesson as the panel and the lab see it. */
+export interface Lesson {
+  readonly curve: LearnCurve;
+  readonly history: number[];
+  readonly total: number;
+  readonly practice: number;
+  runs: number;
+  done: boolean;
+  best: { stats: RunStats };
+  tick(deadline: number): void;
+  stop(): void;
+}
 
 const ROUNDS = 25;
 const POPULATION = 16;
@@ -27,7 +40,7 @@ export interface LearnHooks {
   onRun(frames: RunFrame[], stats: RunStats): void;
 }
 
-export class LearnRun {
+export class LearnRun implements Lesson {
   readonly curve: LearnCurve = { runs: [], best: [], mean: [] };
   /** Every run's score, in order. */
   readonly history: number[] = [];
@@ -56,7 +69,7 @@ export class LearnRun {
     this.rollout = new Rollout(setup, reference, hooks.toGains(start));
     // The starting gains run first, so the learner can only ever hand back something better.
     this.batch = [theta];
-    this.best = { gains: start, stats: { rmsDeg: 0, peakDeg: 0, saturation: 0, jitter: 0, score: -1 } };
+    this.best = { gains: start, stats: { rmsDeg: 0, peakDeg: 0, saturation: 0, jitter: 0, upright: 1, score: -1 } };
   }
 
   /** Seconds of robot time practised so far. */

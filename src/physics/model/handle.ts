@@ -23,6 +23,8 @@ export class ModelHandle {
       mj.FS.writeFile(full, bytes);
     }
     const model = mj.MjModel.from_xml_path(`${root}/${entry}`);
+    // The model holds what it needs; left here these copies would sit on the heap for good.
+    for (const path of files.keys()) mj.FS.unlink(`${root}/${path}`);
     return new ModelHandle(mj, model, new mj.MjData(model));
   }
 

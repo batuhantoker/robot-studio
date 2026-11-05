@@ -18,7 +18,7 @@ export interface AnalysisContext {
   stopTips(): Vec3[];
   /** Move a stop so the focused tool point reaches `point` (IK from the stop's own pose). */
   moveStop(i: number, point: Vec3, maxIter?: number): void;
-  physics(): { history: PhysicsHistory; reason: string | null; limits: number[]; lab: ControlLab | null; current: RunStats | null; ownMotion: boolean } | null;
+  physics(): { history: PhysicsHistory; reason: string | null; limits: number[]; lab: ControlLab | null; current: RunStats | null; ownMotion: boolean; onFloor: boolean; floorBlock: string | null | undefined } | null;
   runWorkspace(samples: number, metric?: WorkspaceMetric): WorkspaceStudy | null;
   recolorWorkspace(metric: WorkspaceMetric): void;
   workspace(): WorkspaceStudy | null;
@@ -26,4 +26,7 @@ export interface AnalysisContext {
   restartPhysics(): void;
   /** Hand the focused limb's gains to a learner. */
   teach(method: Method): void;
+  /** Put the robot on the floor or its stand; resolves with why not, if it can't. */
+  setFloor(on: boolean): Promise<string | null>;
+  shove(): void;
 }

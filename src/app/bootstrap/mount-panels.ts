@@ -44,7 +44,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
   const { store } = studio;
   const active = () => store.state.library.find((e) => e.id === store.state.activeId);
   const guide = mountGuide(store, () => document.querySelector('.top-right .help'));
-  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => m !== 'pilot' || studio.pilot.available(), guide.open, mountGraphs(layout.graphs, studio.bus));
+  mountTopbar(layout.topbar, store, () => [active()?.title ?? '', active()?.subtitle ?? ''], focusPicker(store, studio.bus), (m) => m !== 'pilot' || studio.pilot.available(), guide.open, mountGraphs(layout.graphs, studio.bus, () => !!studio.physics?.lab?.running));
   const left = mountLeftTabs(layout.left);
   const base = libraryActions(store, (m) => store.set({ draftError: m }), () => studio.session);
   const actions = { ...base, create: () => (base.create(), left.show('build')) };

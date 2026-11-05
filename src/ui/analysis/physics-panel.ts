@@ -1,8 +1,10 @@
 /** Physics mode's panel: the control lab, then how the motors and tracking are doing right now. */
+import type { Scope } from '../../app/controller/learn/lab';
 import type { LiveBus } from '../../app/live/bus';
 import type { RobotSession } from '../../app/robots/session';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
+import { STAND_SECONDS } from '../../physics/control/stand';
 import { h, replace } from '../dom/h';
 import { gainBoard } from '../physics/gain-board';
 import { scoreCard } from '../physics/score-card';
@@ -12,6 +14,7 @@ import { segmented } from '../widgets/segmented';
 import type { AnalysisContext } from './context';
 
 const DEG = 180 / Math.PI;
+const MAX_LINES = 12;
 
 export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: AnalysisContext, session: () => RobotSession | null) {
   const torque = new LineChart({ digits: 0 });
@@ -24,7 +27,21 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
     ctx.physics()?.lab?.setCompensate(v === 'model');
   });
   const note = h('div');
-  const lab = h('div', {}, score.el, controller.el, gains.el, teach.el,
+  let problem: string | null = null;
+  const floor = segmented<'stand' | 'floor'>([['stand', 'Test stand'], ['floor', 'On the floor']], 'stand', (v) => {
+    void ctx.setFloor(v === 'floor').then((why) => {
+      problem = why;
+      show();
+    });
+  });
+  const shove = h('button.tb', { onclick: () => ctx.shove(), title: 'Push the robot sideways, right now' }, 'Shove');
+  const floorRow = h('div.row.lab-row', {}, floor.el, shove);
+  const scope = segmented<Scope>([['limb', 'This limb'], ['robot', 'Whole robot']], 'limb', (v) => {
+    ctx.physics()?.lab?.setScope(v);
+    show();
+  });
+  const scopeRow = h('div.row.lab-row', {}, scope.el);
+  const lab = h('div', {}, floorRow, score.el, controller.el, scopeRow, gains.el, teach.el,
     h('div.cap.mu', { style: 'margin-top:14px' }, 'Torque, % of each joint’s limit'), torque.el,
     h('div.cap.mu', { style: 'margin-top:8px' }, 'Tracking error °'), error.el);
   const el = h('div.section', {}, h('header', {}, h('span.cap', {}, 'Control lab'), h('span.cap.mu', {}, 'MuJoCo WASM')), note, lab);
@@ -41,8 +58,18 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
     replace(note, p?.reason ? h('p.note', {}, p.reason) : null);
     if (!p?.lab || !s) return;
     const l = p.lab;
+    const block = p.floorBlock;
+    floorRow.hidden = block === undefined;
+    floor.set(p.onFloor ? 'floor' : 'stand');
+    shove.hidden = !p.onFloor;
+    for (const b of floor.el.querySelectorAll('button')) if (b.dataset.v === 'floor') b.disabled = !!block;
+    scopeRow.hidden = s.limbs.length < 2 || p.onFloor;
+    scope.set(l.scope);
     notes = () => replace(note,
-      l.onStand ? h('p.note.lab-hint', {}, 'On a test stand: the base is held still, so this tunes the joints, not balance. It can’t fall over yet.') : null,
+      problem ? h('p.note.lab-hint', {}, problem) : null,
+      l.overloaded.length ? h('p.note.lab-hint.accent', {}, `Too weak to hold itself up: ${l.overloaded[0].name} needs ${l.overloaded[0].needs.toFixed(1)} N·m and has ${l.overloaded[0].has.toFixed(1)}. No gains can fix that; raise its torque in Build.`) : null,
+      l.onStand ? h('p.note.lab-hint', {}, block ? `On a test stand: the base is held still. ${block}` : 'On a test stand: the base is held still, so this tunes the joints, not balance.') : null,
+      l.onFloor ? h('p.note.lab-hint', {}, 'On the floor: it holds its pose and takes a shove 1.5 s in. A fall ends the run.') : null,
       l.estimatedLimits ? h('p.note.lab-hint', {}, 'Torque limits are estimates: this model states none, so they come from its masses.') : null,
       ownMotion ? h('p.note.lab-hint', {}, 'The trajectory leaves these joints still, so the lab runs its own test motion. It may touch where the trajectory wouldn’t.') : null);
     unsubscribe = l.on(() => {
@@ -51,7 +78,7 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
       teach.update();
     });
     controller.set(l.compensate ? 'model' : 'pid');
-    gains.show(l, s);
+    gains.show(l);
     teach.show(l);
     score.board(l);
     notes();
@@ -67,13 +94,13 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
       ownMotion = p.ownMotion;
       notes();
     }
-    score.live(p.current);
+    score.live(p.current, p.onFloor);
     teach.update();
     if (l.running) gains.sync();
-    const joints = l.judged();
+    const joints = l.judged().slice(0, MAX_LINES);
     const { t, applied, error: err } = p.history;
     if (!t.length) return;
-    const span: [number, number] = [0, store.state.duration];
+    const span: [number, number] = [0, p.onFloor ? STAND_SECONDS : store.state.duration];
     torque.setData(t, joints.map((k, i) => jointSeries(i, `j${i + 1}`, applied.map((row) => (100 * row[k]) / l.limits[k]))), span);
     torque.draw(null, [-100, 100]);
     error.setData(t, joints.map((k, i) => jointSeries(i, `j${i + 1}`, err.map((row) => row[k] * DEG))), span);

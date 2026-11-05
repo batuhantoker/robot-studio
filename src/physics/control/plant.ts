@@ -26,6 +26,8 @@ export interface PlantRobot {
   home: number[];
   torqueLimits: number[];
   limbs: Pick<Limb, 'index'>[];
+  /** Stands on a floor: joints carry the whole robot, and contact has to stay on for the floor to hold it. */
+  onFloor?: boolean;
 }
 
 /** One joint a tendon crosses, and how much of the tendon's pull it takes. */
@@ -50,6 +52,8 @@ export class Plant {
   readonly limits: number[];
   /** Per robot joint: the model states no limit, so `limits` is our estimate. */
   readonly estimated: boolean[];
+  /** Torque each joint needs just to hold the home pose: above its limit, the robot can't hold itself up. */
+  readonly holding: number[];
   /** False where an equality constraint moves the joint, so a controller must leave it alone. */
   readonly driven: boolean[];
   /** Soft hands: the joint standing in for their one motor, and every joint that motor's tendon pulls on. */
@@ -97,7 +101,7 @@ export class Plant {
       const worstGravity = (v: number) => {
         const j = m.dof_jntid[v], b = m.jnt_bodyid[j];
         const arm = Math.hypot(...[0, 1, 2].map((i) => d.subtree_com[3 * b + i] - d.xanchor[3 * j + i]));
-        return m.body_subtreemass[b] * 9.81 * arm;
+        return (robot.onFloor ? m.body_subtreemass[1] : m.body_subtreemass[b]) * 9.81 * arm;
       };
       const limitOf = (v: number, mass: number) => Math.max(GRAVITY_MARGIN * worstGravity(v), MIN_ACCEL * mass);
       this.estimated = robot.torqueLimits.map((l) => !(l > 0));
@@ -116,7 +120,8 @@ export class Plant {
         const mass = massOf(v);
         this.held.push({ qpos: a, dof: v, ref, kp: mass * HOLD_WN ** 2, kd: 2 * mass * HOLD_WN, limit: limitOf(v, mass) });
       }
-      this.contact = !overlapsAtHome(probe);
+      this.holding = dofAdr.map((v) => Math.abs(d.qfrc_bias[v]));
+      this.contact = !!robot.onFloor || !overlapsAtHome(probe);
     } finally {
       probe.delete();
     }

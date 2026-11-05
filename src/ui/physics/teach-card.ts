@@ -10,6 +10,7 @@ import { segmented } from '../widgets/segmented';
 const WHAT: Record<Method, string> = {
   policy: 'Policy gradient: treats the gains as a policy, and nudges it toward whatever scored above average.',
   evolution: 'Cross-entropy evolution: keeps the best quarter of each batch and breeds the next batch from them.',
+  balance: 'Neural policy: a small network feels the body tip and moves the leg targets to catch it. Gains can’t do this; they only know joint angles.',
 };
 
 /** One bar per run, in order: the whole lesson at a glance. */
@@ -36,11 +37,13 @@ export function teachCard(onTeach: (m: Method) => void) {
   let method: Method = 'policy';
   let started = 0;
   let wall = 0;
-  const methods = segmented<Method>([['policy', 'Policy gradient (RL)'], ['evolution', 'Evolution (CEM)']], method, (m) => {
+  const pick = (m: Method) => {
     method = m;
     methods.set(m);
     what.textContent = WHAT[m];
-  });
+  };
+  const methods = segmented<Method>([['policy', 'Policy gradient (RL)'], ['evolution', 'Evolution (CEM)'], ['balance', 'Neural policy']], method, pick);
+  const neural = methods.el.querySelector<HTMLElement>('[data-v="balance"]')!;
   const what = h('p.note.lab-hint', {}, WHAT[method]);
   const go = h('button.tb.primary', { onclick: () => {
     if (lab?.running) return lab.stopLearning();
@@ -54,20 +57,25 @@ export function teachCard(onTeach: (m: Method) => void) {
   chart.el.hidden = true;
   const strip = h('canvas.lab-strip', { hidden: true, title: 'Every run in order: height and colour are its score' });
   const subject = h('p.note.lab-hint');
+  const verdict = h('p.note.lab-verdict', { hidden: true });
   const el = h('div.lab-section', {},
     h('div.cap', {}, 'Teach it'),
     subject,
     h('p.note.lab-hint', {}, 'It sees only the score. Every run happens on a private copy; the stage draws each path, and the robot races through the latest.'),
     methods.el, what,
-    h('div.row', {}, go, status), progress, strip, chart.el);
+    h('div.row', {}, go, status), progress, verdict, strip, chart.el);
 
   return {
     el,
     show(next: ControlLab) {
       lab = next;
       chart.el.hidden = strip.hidden = !lab.learner;
-      const n = lab.judged().length;
-      subject.textContent = `What it learns: ${n * GAIN_KEYS.length} numbers, Kp, Ki and Kd on ${n === 1 ? 'one joint' : `${n} joints`}. The motion stays the same; only how hard each joint pushes changes.`;
+      neural.hidden = !lab.balance;
+      if (!lab.balance && method === 'balance') pick('policy');
+      const groups = lab.groups();
+      const shared = groups.some((g) => g.joints.length > 1);
+      const what = groups.length === 1 ? 'one joint' : `${groups.length} ${shared ? 'kinds of joint, mirrored joints sharing' : 'joints'}`;
+      subject.textContent = `What it learns: ${groups.length * GAIN_KEYS.length} numbers, Kp, Ki and Kd on ${what}. ${lab.onFloor ? 'The goal: stay up through the shove.' : 'The motion stays the same; only how hard each joint pushes changes.'}`;
     },
     update() {
       const run = lab?.learner;
@@ -75,6 +83,9 @@ export function teachCard(onTeach: (m: Method) => void) {
       go.textContent = running ? 'Stop' : run ? 'Teach it again' : 'Teach it';
       go.classList.toggle('primary', !running);
       progress.hidden = !running;
+      const result = lab?.result;
+      verdict.hidden = !result;
+      if (result) verdict.textContent = `Tested on shoves it never trained on, over ${result.horizon.toFixed(0)} s: stays up ${result.after.toFixed(1)} s, up from ${result.before.toFixed(1)} s without it. ${result.after >= result.horizon ? 'It held.' : 'It falls later, not never: that isn’t balance yet.'}`;
       if (!run) {
         status.textContent = '';
         return;
