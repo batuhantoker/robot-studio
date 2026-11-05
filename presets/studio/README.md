@@ -21,7 +21,7 @@ The file name is the preset's id and stays stable; `name` is what the library sh
 | `youbot` | KUKA youBot: Modern Robotics capstone chassis and arm geometry on a drive base | planar, 5 revolute |
 | `cartesian_gantry` | A generic textbook PPP layout, not any maker's robot | 3 prismatic |
 | `cylindrical_robot` | A generic textbook RPP layout, not any maker's robot | 1 revolute, 2 prismatic |
-| `double_pendulum` | A teaching model, not any maker's rig: two 250 mm, 0.2 kg bars, frictionless pins | 2 revolute, unpowered and continuous |
+| `double_pendulum` | RealAIGym double pendulum, DFKI RIC Underactuated Lab: design C.1, model 1.1 (BSD-3-Clause) | 2 revolute, continuous |
 
 A preset can set `home`, the joint values it starts at, in DOF order.
 
@@ -52,9 +52,13 @@ the kinematics, so a robot with no design data still gets castings.
   and `arch` a pointed pocket. `bolts`, `wall`, `cell` and `spheres` tune the rest.
 - `section`: the lengthwise cut, for an arm whose links sit off its middle plane.
 
-`joints.<link>.pin` is a plain pin, drawn by the bodies' own shapes, with no drive. A robot of nothing but pins has no motors:
-Pick & place and Trajectory are off, Physics lets it go with no gains on it, and Motion offers Release and the fans. `bare` ends
-the chain with no flange or tool. A link can set `continuous`, which takes its stops away, so `limits` only sets its slider.
+`joints.<link>.pin` is a plain joint with no procedural drive: the bodies draw whatever is there themselves. A chain of nothing but
+pins is a pendulum, and Motion offers Release and Fan. `bare` ends the chain with no flange or tool. A link can set `continuous`,
+which takes its stops away, so `limits` only sets its slider, and `com` and `inertia` together, measured mass properties that
+replace the uniform capsule in MuJoCo and the chain alike: the centre of mass in the link's frame and the principal inertias about it.
+
+A body's `made` lists parts drawn as they are made rather than cast, with true edges at any size: `turned` off a lathe, `sheet` cut
+from plate, `extrusion` for 40-series T-slot, and `screws`. Each brings its own hull, and a body can be nothing else.
 
 `joints.<link>.slide` shapes a prismatic joint, and one with no design data gets a sensible default. A `quill` is a bar on
 the child running through a guide on the parent; a `rail` is a bar on the parent with a carriage on the child. The guide is
@@ -68,9 +72,22 @@ meshed surfaces and hull spheres, which are what make a preset slow to open. Bot
 or generator simply misses and meshes live, and a failed bake logs `bake: FAILED` and ships without one. There are none in
 `npm run dev`. Building a robot with no design data is never baked: it is one being edited, drawn as a quicker draft.
 
-`double_pendulum`'s Motion integrates Lagrange's equations with RK4 from the pose you set, using the capsule inertias MuJoCo
-compiles from the same file; `test/core/motion/double-pendulum.test.ts` holds the accelerations to MuJoCo's. Its fans start a
-millionth of a radian apart at size 1, and the robot plays the run that starts exactly at your pose. Physics runs MuJoCo itself.
+`double_pendulum` is the RealAIGym rig from [dfki-ric-underactuated-lab/double_pendulum](https://github.com/dfki-ric-underactuated-lab/double_pendulum)
+(BSD-3-Clause). Its numbers are design C.1's model 1.1, the frictionless identified model: `l1` 0.2 m, `l2` 0.3 m, `m1` 0.523 kg,
+`m2` 0.626 kg, `r1` 0.2 m, `r2` 0.256 m. The published `I1` and `I2` are about the joint axes, so `inertia` holds them moved to each
+centre of mass. Only the inertia about the hinge is identified; the other two axes are placeholders that planar motion never reads.
+`r1` equals `l1` because link 1's mass sits at the elbow motor. The 6 N·m limit is the AI Olympics competition's, not the
+10 N·m in the model file. Motors, links, weight, its POM fixation and the folded mount are measured from the repository's STEP
+files; link 2 is `lever_001` stretched to 300 mm. The floor stand is ours: the real rig bolts to a U-frame.
+
+In Physics it swings up and balances on the same model, through `src/core/control/pendulum/`: iLQR from hanging, seeded by pumping
+energy in; a plan may use 85% of the limit and must survive a rehearsal on models 3% wrong in mass before it runs; time-varying LQR
+tracks it and LQR holds the top. A fall brakes for up to 3 s, then plans again from wherever the rig is. `test/physics/pendulum-control.test.ts`
+runs all of it in MuJoCo.
+
+Its Motion integrates Lagrange's equations with RK4 from the pose you set, with no torque; `test/core/motion/double-pendulum.test.ts`
+holds the accelerations to MuJoCo's. A Fan starts its runs a millionth of a radian apart at size 1, and the robot plays the run that
+starts exactly at your pose.
 
 `iiwa14` is the first preset with design data. Its proportions are measured from MuJoCo
 Menagerie's `kuka_iiwa_14` meshes at the zero pose; those meshes are not used. Its paint

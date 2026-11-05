@@ -83,6 +83,26 @@ export class TrackingSim {
     this.h.mj.mj_forward(this.h.model, this.h.data);
   }
 
+  rates(): number[] {
+    return this.dofAdr.map((a) => this.d.qvel[a]);
+  }
+
+  /** Joint rates jump by `by`, as a knock would make them. */
+  knock(by: number[]): void {
+    by.forEach((v, k) => (this.d.qvel[this.dofAdr[k]] += v));
+  }
+
+  /** One interval under torque worked out elsewhere; every motor is still held to its limit. */
+  drive(torque: (q: number[], qd: number[]) => readonly number[], error: (q: number[]) => number[]): SimReadout {
+    const { d, gains, h } = this;
+    h.mj.mj_step1(h.model, h.data);
+    const q = this.q(), requested = [...torque(q, this.rates())];
+    const applied = requested.map((r, k) => clip(r, gains[k].limit));
+    applied.forEach((a, k) => (d.qfrc_applied[this.dofAdr[k]] = a));
+    h.mj.mj_step2(h.model, h.data);
+    return { requested, applied, error: error(q), saturated: requested.map((r, k) => Math.abs(r) > gains[k].limit) };
+  }
+
   /** One control interval toward the reference; returns what the motors were asked and gave. */
   step(targetQ: ArrayLike<number>, targetQd: ArrayLike<number>): SimReadout {
     const { d, gains, h } = this;

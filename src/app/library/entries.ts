@@ -1,5 +1,5 @@
 /** One list for presets, fetched CAD robots, prostheses, and the user's own designs, with filter facets. */
-import { isPassive } from '../../core/robot/config/passive';
+import { isPendulum } from '../../core/robot/config/pendulum';
 import { specDofs } from '../../core/robot/config/pose';
 import { JOINT_KINDS } from '../../core/robot/joints/kinds';
 import type { RobotSpec } from '../../core/robot/schema/types';
@@ -31,7 +31,7 @@ function specEntry(id: string, group: 'preset' | 'mine', spec: RobotSpec, twin?:
   return {
     id, title: spec.name, group, spec, twin,
     subtitle: `${twin ? 'CAD twin · ' : ''}${describe(spec)}`,
-    dof, chainDof: dof, category: isPassive(spec) ? 'other' : 'arm',
+    dof, chainDof: dof, category: isPendulum(spec) ? 'other' : 'arm',
     maker: group === 'preset' ? 'Preset' : twin ? `Twin of ${twin.title ?? twin.catalogId}` : 'You',
     tags: [...kindsOf(spec), ...(twin ? ['twin'] : []), group === 'mine' ? 'mine' : 'preset'],
     localOnly: false,

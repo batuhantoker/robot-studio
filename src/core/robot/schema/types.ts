@@ -35,6 +35,9 @@ export interface LinkSpec {
   dofs: DofSpec[];
   /** A revolute joint with no stops; `limits` are then only the range its slider shows. */
   continuous?: boolean;
+  /** Measured mass properties in place of a uniform capsule: the centre of mass in the link's frame, and principal inertias about it along x, y, z. */
+  com?: Vec3;
+  inertia?: Vec3;
 }
 
 export interface RobotSpec {
@@ -63,7 +66,7 @@ export class SpecError extends Error {
 export const LINK_FIELDS = [
   'name', 'axis', 'offset', 'mass', 'limits', 'radius', 'damping', 'armature', 'torque_limit', 'kp', 'kd',
 ] as const;
-export const STUDIO_LINK_FIELDS = ['joint', 'axis2', 'continuous'] as const;
+export const STUDIO_LINK_FIELDS = ['joint', 'axis2', 'continuous', 'com', 'inertia'] as const;
 
 export const LINK_DEFAULTS = {
   radius: 0.015,

@@ -7,6 +7,7 @@ import type { RobotSession } from '../robots/session';
 import { isVia } from '../../core/trajectory/plan';
 import type { Method } from './learn/run';
 import { type PathProfile, dragStop, planOf, profile, stopTips } from './modes/trajectory';
+import type { PendulumMotors, PendulumTask } from '../state/types';
 import { type WorkspaceStudy, runStudy, studyKey } from './workspace/study';
 import type { Studio } from './studio';
 
@@ -38,7 +39,7 @@ export class StudioAnalysis implements AnalysisContext {
 
   physics() {
     const p = this.studio.physics;
-    return p ? { history: p.history, reason: p.reason, passive: p.passive, limits: p.lab?.limits ?? [], lab: p.lab, current: p.current, ownMotion: p.ownMotion, onFloor: p.onFloor, floorBlock: p.floorBlock } : null;
+    return p ? { history: p.history, reason: p.reason, limits: p.lab?.limits ?? [], lab: p.lab, current: p.current, ownMotion: p.ownMotion, onFloor: p.onFloor, floorBlock: p.floorBlock } : null;
   }
 
   refreshProfile(): void {
@@ -120,6 +121,15 @@ export class StudioAnalysis implements AnalysisContext {
     this.paintedMetric = this.metric;
     if (st) this.studio.overlays.workspace.show(st.samples, st.shell, this.metric, this.studio.overlays.reach * 0.02);
     else this.studio.overlays.workspace.clear();
+  }
+
+  setPendulum(task: PendulumTask, motors: PendulumMotors): void {
+    this.studio.physics?.setPendulum(task, motors, planOf(this.studio.store.state));
+    this.studio.overlays.trail.clear();
+  }
+
+  knockPendulum(): void {
+    this.studio.physics?.knock();
   }
 
   restartPhysics(): void {

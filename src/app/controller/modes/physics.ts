@@ -7,7 +7,8 @@ import { movesJoints } from '../../../core/control/motion';
 import type { RunScore, RunStats } from '../../../core/control/score';
 import { type Transform, quatToMat } from '../../../core/math/linear/transform';
 import type { Vec3 } from '../../../core/math/linear/vec';
-import { isPassive } from '../../../core/robot/config/passive';
+import { isPendulum } from '../../../core/robot/config/pendulum';
+import { barsOf } from '../../../core/motion/generators/double-pendulum';
 import type { Plan } from '../../../core/trajectory/plan';
 import { defaultWaypoints } from '../../../core/trajectory/quintic/sample';
 import { type Rig, floorRig, hasCollision, standRig } from '../../../physics/control/rig';
@@ -19,6 +20,9 @@ import { catalog, fetchRobotFiles } from '../../robots/catalog';
 import { jointLimits } from '../../robots/focus';
 import { ControlLab } from '../learn/lab';
 import type { Method } from '../learn/run';
+import { arrays } from '../../../physics/runtime/arrays';
+import type { PendulumMotors, PendulumStatus, PendulumTask } from '../../state/types';
+import { PendulumRun } from './pendulum-task';
 import { player } from './trajectory';
 
 export interface PhysicsHistory {
@@ -35,6 +39,9 @@ export interface PhysicsStage {
   clearRuns(): void;
   /** Carry the robot on its simulated root; null hands it back to its grounding. */
   setBody(pose: Transform | null): void;
+  /** The pose set by hand, which a let-go run starts from. */
+  pose(): number[];
+  status(s: PendulumStatus | null): void;
 }
 
 interface Bench {
@@ -61,14 +68,11 @@ const LEARN_MAX = 40;
 const MAX_LAG = 0.05;
 /** A balance lesson runs past the scored test, or the network learns to last exactly that long. */
 const BALANCE_SECONDS = 8;
-/** A robot with no motors has nothing to track: it is simply let go, for this long. */
-const FREE_SECONDS = 60;
 
 const emptyHistory = (): PhysicsHistory => ({ t: [], error: [], applied: [], requested: [] });
 
 export class PhysicsMode {
   readonly reason: string | null = null;
-  readonly passive: boolean;
   history = emptyHistory();
   last: SimReadout | null = null;
   /** The run in progress, so far. */
@@ -97,9 +101,12 @@ export class PhysicsMode {
   private fell: number | null = null;
   private shoveLeft = 0;
   private target = new Float64Array(0);
+  /** A double pendulum's own tasks; null on anything else. */
+  private pendulum: PendulumRun | null = null;
+  private reported: PendulumStatus | null = null;
 
   constructor(readonly session: RobotSession, private readonly focus: () => number, private readonly stage: PhysicsStage) {
-    this.passive = isPassive(session.spec);
+    stage.status(null);
     if (!session.joints.length) {
       this.reason = 'This model has no joints to drive.';
       return;
@@ -110,6 +117,8 @@ export class PhysicsMode {
       return;
     }
     this.onStand = this.bench = this.benchFor(rig);
+    this.pendulum = this.pendulumFor(rig);
+    if (this.pendulum) stage.status(this.pendulum.status);
     // The lab's private MjData and the plant's restore both need the model still alive.
     const dispose = session.dispose;
     session.dispose = () => {
@@ -178,6 +187,61 @@ export class PhysicsMode {
     if (!this.bench || this.disposed) return;
     this.bench.rig.plant.enter();
     this.begin(this.referenceFor(plan));
+    const p = this.pendulum;
+    if (p && p.task !== 'lab') this.bench.sim.reset(p.start(this.stage.pose()));
+    this.report();
+  }
+
+  /** Change what a double pendulum is doing, and start over on it. */
+  setPendulum(task: PendulumTask, motors: PendulumMotors, plan: Plan): void {
+    if (!this.pendulum) return;
+    this.lab?.halt();
+    this.pendulum.task = task;
+    this.pendulum.motors = motors;
+    this.reset(plan);
+  }
+
+  /** Knock it, right now. */
+  knock(): void {
+    if (this.pendulum && this.pendulum.task !== 'lab') this.sim?.knock(this.pendulum.knock);
+  }
+
+  private report(): void {
+    const s = this.pendulum?.status;
+    if (!s || (s.task === this.reported?.task && s.motors === this.reported.motors && s.phase === this.reported.phase)) return;
+    this.reported = s;
+    this.stage.status(s);
+  }
+
+  private pendulumFor(rig: Rig): PendulumRun | null {
+    const spec = this.session.spec, bars = spec && isPendulum(spec) ? barsOf(spec) : null;
+    if (!bars) return null;
+    // Armature as the plant runs it: the controller has to know what it is pushing against.
+    rig.plant.enter();
+    const m = arrays(rig.handle.model), armature = rig.dofAdr.map((a) => m.dof_armature[a]) as [number, number];
+    rig.plant.leave();
+    return new PendulumRun({ ...bars, armature, limit: Math.min(...rig.plant.limits) });
+  }
+
+  /** The run under a controller of its own: no reference, no score. */
+  private drivePendulum(p: PendulumRun, dtWall: number): number[] {
+    const { sim } = this.bench!;
+    if (p.thinking) {
+      this.report();
+      return sim.q();
+    }
+    this.wall += Math.min(dtWall, MAX_LAG);
+    const deadline = performance.now() + STEP_BUDGET;
+    let n = 0;
+    while (sim.time < this.wall) {
+      this.last = sim.drive((q, qd) => p.torque(q, qd, sim.dt), (q) => p.error(q));
+      if ((++n & 15) === 0 && performance.now() > deadline) break;
+    }
+    this.wall = Math.min(this.wall, sim.time + MAX_LAG);
+    sim.sync();
+    if (this.last) this.record(sim.time);
+    this.report();
+    return sim.q();
   }
 
   /** Leaving the mode: the shared model goes back to what the other modes expect. */
@@ -206,6 +270,7 @@ export class PhysicsMode {
     // A robot loaded while already in this mode never got the mode's entry reset.
     if (!this.run) this.reset(plan);
     const { sim, lab, rig } = this.bench;
+    if (this.pendulum && this.pendulum.task !== 'lab') return this.drivePendulum(this.pendulum, dtWall);
     if (lab.running) return this.showPractice(dtWall);
     const ref = this.referenceFor(plan);
     if (this.restartPending || ref !== this.reference || this.limb !== this.focus()) this.begin(ref);
@@ -244,7 +309,9 @@ export class PhysicsMode {
 
   /** Give whatever is running headless its slice of this frame. */
   tick(dt: number): void {
-    this.lab?.tick(performance.now() + Math.min(LEARN_SHARE * dt * 1000, LEARN_MAX));
+    const deadline = performance.now() + Math.min(LEARN_SHARE * dt * 1000, LEARN_MAX);
+    this.pendulum?.think(deadline);
+    this.lab?.tick(deadline);
   }
 
   dispose(): void {
@@ -296,7 +363,7 @@ export class PhysicsMode {
     const limits = jointLimits(this.session);
     this.ownMotion = !movesJoints(plan.waypoints, this.lab!.judged());
     const played = this.ownMotion ? { waypoints: defaultWaypoints(limits, this.session.home), duration: plan.duration } : plan;
-    return sampleReference(player(limits, played), this.passive ? FREE_SECONDS : plan.duration, sim.dt);
+    return sampleReference(player(limits, played), plan.duration, sim.dt);
   }
 
   private begin(ref: Reference): void {

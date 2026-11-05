@@ -13,7 +13,7 @@ export interface ClipFan {
   count: number;
   /** Where the first bar hangs from, in the robot's frame; the runs swing in its x-z plane. */
   pivot: Vec3;
-  /** Each run's elbow and tip at time t: x, z, x, z. */
+  /** Each run's elbow and tip at time t: x, z, x, z, in the plane at the pivot's y. */
   at(t: number, out: Float32Array): void;
 }
 
@@ -25,6 +25,8 @@ export interface MotionClip {
   at(t: number): number[];
   /** The robot's own frame on the stage at time t, for a clip that carries the body; without it the robot settles on the floor. */
   body?(t: number): Transform;
+  /** Joint rates at time t, for a clip that knows them exactly. */
+  qd?(t: number): number[];
   fan?: ClipFan;
 }
 

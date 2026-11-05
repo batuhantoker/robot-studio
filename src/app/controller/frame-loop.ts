@@ -88,8 +88,9 @@ export function frameLoop(d: LoopDeps): (dt: number) => void {
       d.store.set({ playing: false, time: stop.time, contact: stop.contact });
       ({ q, time } = stop);
     }
-    d.overlays.fan.show(st.mode === 'motion' ? d.motion()?.fan ?? null : null, time);
-    const carried = st.mode === 'motion' ? d.motion()?.body?.(time) ?? null : null;
+    const clip = st.mode === 'motion' ? d.motion() : null;
+    d.overlays.fan.show(clip?.fan ?? null, time);
+    const carried = clip?.body?.(time) ?? null;
     if (carried || carrying) d.body(carried);
     carrying = !!carried;
     const posed = pose(s, q, st.explode, st.focus, !simulating);
@@ -102,16 +103,20 @@ export function frameLoop(d: LoopDeps): (dt: number) => void {
       return report;
     });
     const sim = st.mode === 'physics' ? d.physics()?.last ?? null : null;
+    const bias = mujocoBias(s);
     const snap = {
       session: s, q, focus: st.focus, posed, time, sim,
       gravity: gravityLoad(limb.chain, limbQ(limb, q)),
-      bias: mujocoBias(s),
+      bias,
+      // A clip that lets go has no motor acting on it, whatever the bias says would hold it.
+      torque: sim?.applied ?? (clip?.fan ? bias.map(() => 0) : bias),
+      qd: simulating ? d.physics()!.sim!.rates() : clip?.qd?.(time),
       dexterity: limbs[s.limbs.indexOf(limb)],
       limbs,
     };
     d.overlays.update(snap, st.overlays, d.focusJoint(), st.mode);
     if (st.mode === 'physics' && st.playing) d.overlays.trail.push(posed.frames.tip.p);
-    updateIndicators(s.assembly.indicators, sim?.applied ?? snap.bias, s.torqueLimits);
+    updateIndicators(s.assembly.indicators, snap.torque, s.torqueLimits);
     d.bus.publish(snap);
   };
 }

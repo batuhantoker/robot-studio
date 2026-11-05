@@ -155,10 +155,10 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - Each of those is modelled as real link castings with drives inside, in its real paint,
     and clears itself for real at home. Sources are listed in
     [`presets/studio`](presets/studio/README.md).
-  - A Double Pendulum, two bars on pins with no motors. Set a pose and let it go: the true
-    equations of motion, or a fan of 20 or 200 pendulums a millionth of a radian apart, which
-    move as one bar and then come apart. Physics lets MuJoCo do the same. It is a teaching
-    model, not any maker's rig.
+  - The RealAIGym double pendulum from DFKI: design C.1 with its identified model 1.1, drawn from
+    the published CAD, two AK80-6 motors, the folded mount and the 0.5 kg weight. Set a pose and
+    let it go, on the true equations of motion, or fan out 96 runs a millionth of a radian apart.
+    The stand is ours.
 - **Grippers on any arm.** Fit a tool under Build → End effector, on a CAD arm too: it
   sits on the true flange, the tool point moves with it, and it collides. An arm with
   nothing that grips offers no Pick & place.
@@ -216,6 +216,9 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - Quintic trajectories with joint, speed and torque profiles. Render one pass to a
     16:9 MP4 (720p to 4K, 30 or 60 fps), drawn offline frame by frame with AO and
     supersampling, or export the samples (t, q, qd, qdd, tool path) as CSV or JSON.
+  - The Double Pendulum swings up and balances in MuJoCo: iLQR plans it inside the 6 N·m limit,
+    time-varying LQR tracks the plan and LQR holds the top, on both motors, the shoulder alone
+    (a pendubot) or the elbow alone (an acrobot). Nudge it, or let it go from any pose.
   - A control lab on every robot: MuJoCo tracks the motion under PID torque control
     and scores each run. Tune every joint's gains by hand, then let policy gradient
     or cross-entropy learn them from the score alone, live in the browser.
@@ -251,6 +254,7 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
 
 | Robot | Maker | Joints | License |
 |---|---|--:|---|
+| [Double Pendulum](https://robotics-studio-one.vercel.app/?robot=preset:double_pendulum) | DFKI RIC | 2 | [BSD-3-Clause](https://github.com/dfki-ric-underactuated-lab/double_pendulum) |
 | [4-DOF Arm](https://robotics-studio-one.vercel.app/?robot=preset:original_4dof) | Studio | 4 | — |
 | [ABB IRB 120](https://robotics-studio-one.vercel.app/?robot=preset:irb120) | Studio | 6 | — |
 | [Adept Cobra 600](https://robotics-studio-one.vercel.app/?robot=preset:scara) | Studio | 4 | — |
@@ -258,7 +262,6 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
 | [Barrett WAM](https://robotics-studio-one.vercel.app/?robot=preset:wam) | Studio | 7 | — |
 | [Cartesian Gantry (PPP)](https://robotics-studio-one.vercel.app/?robot=preset:cartesian_gantry) | Studio | 3 | — |
 | [Cylindrical Robot (RPP)](https://robotics-studio-one.vercel.app/?robot=preset:cylindrical_robot) | Studio | 3 | — |
-| [Double Pendulum](https://robotics-studio-one.vercel.app/?robot=preset:double_pendulum) | Studio | 2 | — |
 | [Franka Emika Panda](https://robotics-studio-one.vercel.app/?robot=preset:panda) | Studio | 7 | — |
 | [KUKA LBR iiwa 14 R820](https://robotics-studio-one.vercel.app/?robot=preset:iiwa14) | Studio | 7 | — |
 | [KUKA youBot](https://robotics-studio-one.vercel.app/?robot=preset:youbot) | Studio | 8 | — |

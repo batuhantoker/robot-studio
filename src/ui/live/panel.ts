@@ -5,14 +5,20 @@ import type { RobotSession } from '../../app/robots/session';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
 import { h, replace } from '../dom/h';
+import { barsOf } from '../../core/motion/generators/double-pendulum';
+import { isPendulum } from '../../core/robot/config/pendulum';
 import { motorRows, randomMotors } from '../prosthetics/motors';
 import { effectorTable } from './effectors';
+import { energyReadout } from './energy';
 import { jointRows } from './joints';
 import { readouts } from './readouts';
 
 export function mountLive(el: HTMLElement, store: Store<StudioState>, bus: LiveBus) {
   let rows: ReturnType<typeof jointRows> | null = null;
   const reads = readouts();
+  let energy: ReturnType<typeof energyReadout> | null = null;
+  const readsCap = h('span.cap');
+  const readsHost = h('div');
   const effectors = effectorTable(store);
   const effectorSection = h('div.section', {}, h('header', {}, h('span.cap', {}, 'End effectors'), h('span.cap.mu', {}, 'click a limb to focus')), effectors.el);
   const jointsHost = h('div');
@@ -37,7 +43,7 @@ export function mountLive(el: HTMLElement, store: Store<StudioState>, bus: LiveB
   note();
   el.append(
     effectorSection,
-    h('div.section', {}, h('header', {}, h('span.cap', {}, 'Dexterity · focused limb')), reads.el),
+    h('div.section', {}, h('header', {}, readsCap), readsHost),
     h('div.section', {}, h('header', {}, jointsCap, jointsHint), contactNote, jointsHost),
     h('div.section', {}, h('div.row', {},
       h('button.tb', { onclick: () => bus.latest && store.set({ q: [...bus.latest.session.home], contact: null, playing: false, mode: 'pose' }) }, 'Home'),
@@ -53,10 +59,14 @@ export function mountLive(el: HTMLElement, store: Store<StudioState>, bus: LiveB
       jointsHint.textContent = motors ? 'each moves its linked joints' : 'bar = |τ| / motor limit';
       replace(jointsHost, rows.el);
       effectorSection.style.display = s.session.limbs.length > 1 ? '' : 'none';
+      const spec = s.session.spec, bars = spec && isPendulum(spec) ? barsOf(spec) : null;
+      energy = bars && energyReadout(bars);
+      readsCap.textContent = energy ? 'Energy' : 'Dexterity · focused limb';
+      replace(readsHost, (energy ?? reads).el);
       note();
     }
     rows?.update(s);
-    reads.update(s);
+    (energy ?? reads).update(s);
     if (s.session.limbs.length > 1) effectors.update(s);
   }, 20);
 }

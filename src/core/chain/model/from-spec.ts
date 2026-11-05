@@ -20,7 +20,7 @@ export function chainFromSpec(spec: RobotSpec): Chain {
       ...(link.continuous ? { continuous: true } : {}),
     }));
     // Uniform capsules span 0 → offset; zero-length links are spheres at the joint.
-    const com: Vec3 = link.offset.some((v) => v !== 0) ? scale(link.offset, 0.5) : [0, 0, 0];
+    const com: Vec3 = link.com ?? (link.offset.some((v) => v !== 0) ? scale(link.offset, 0.5) : [0, 0, 0]);
     masses.push({ name: link.name, mass: link.mass, com, joint: joints.length - 1 });
   });
   const last = spec.links[spec.links.length - 1];

@@ -16,6 +16,7 @@ function linkDict(l: LinkSpec, studio: boolean): Record<string, unknown> {
     if (JOINT_KINDS[l.joint].dofs.some((t) => t.axis !== 'axis')) out.axis2 = [...l.axis2];
   }
   if (studio && l.continuous) out.continuous = true;
+  if (studio && l.com && l.inertia) Object.assign(out, { com: [...l.com], inertia: [...l.inertia] });
   return out;
 }
 
@@ -33,8 +34,8 @@ const robotDict = (spec: RobotSpec, studio: boolean) => ({
 
 /** Why `serial-arm-analyze` would reject this robot, or null when it accepts it. */
 export function pythonIncompatibility(spec: RobotSpec): string | null {
-  const other = spec.links.filter((l) => l.joint !== 'revolute' || l.continuous).map((l) => `${l.name} (${l.continuous ? 'continuous' : l.joint})`);
-  return other.length ? `serial-arm-analyze supports limited revolute joints only; not: ${other.join(', ')}` : null;
+  const other = spec.links.filter((l) => l.joint !== 'revolute' || l.continuous || l.inertia).map((l) => `${l.name} (${l.inertia ? 'measured inertia' : l.continuous ? 'continuous' : l.joint})`);
+  return other.length ? `serial-arm-analyze supports revolute joints only; not: ${other.join(', ')}` : null;
 }
 
 /** The exact `SerialArm.to_dict()` shape and key order. */

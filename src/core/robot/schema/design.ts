@@ -178,6 +178,24 @@ export interface WheelDesign {
   opens?: number;
 }
 
+/** A corner of an outline; with `arc`, the radius of the arc that reaches it, its centre left of the way round when positive. */
+export type OutlinePoint = [x: number, y: number, arc?: number];
+
+/**
+ * A part drawn as it is made, not cast: true edges at any size, from a drawing's own numbers. Points are relative to the
+ * joint origin. `opens` is the way it comes off when exploded; `hull: false` leaves it to its neighbours.
+ */
+export type MadeDesign = { label: string; paint?: string; opens?: Vec3; layer?: 'structure' | 'drive' | 'fastener'; hull?: false } & (
+  /** Off a lathe: [radius, distance along `axis`] from `turned`, from the axis out and back. */
+  | { turned: Vec3; axis: Vec3; profile: [number, number][] }
+  /** Cut from plate: `outline` and round `holes` ([x, y, r]) in the plane at `sheet`, `x` its first axis, `thick` along `normal`. */
+  | { sheet: Vec3; normal: Vec3; x: Vec3; thick: number; outline: OutlinePoint[]; holes?: [number, number, number][]; bevel?: number }
+  /** 40-series T-slot from one point to the other, `width` by `height` across, `up` the way the height runs; `mitre` is each end's slope across the width. */
+  | { extrusion: [Vec3, Vec3]; width: number; height: number; up: Vec3; caps?: boolean; mitre?: [number, number] }
+  /** Socket-head screws on a circle about `axis`, heads standing that way. */
+  | { screws: Vec3; axis: Vec3; count: number; r: number; head: number; phase?: number }
+);
+
 /** Hardware in a casting's hollow, at points relative to its joint origin. `opens` is the way it comes out when exploded. */
 export type InsideDesign = { opens?: Vec3 } & (
   | { motor: Vec3; axis: Vec3; r: number; length: number; gear?: number; label?: string }
@@ -219,6 +237,8 @@ export interface BodyDesign {
   bolts?: BoltsDesign;
   wheels?: WheelDesign[];
   inside?: InsideDesign[];
+  /** Parts drawn as they are made; a body can be nothing else. */
+  made?: MadeDesign[];
   /** Thickness of the casting's wall. */
   wall?: number;
   /** Most hull spheres; a sharp-cornered body needs more to reach into its corners. */

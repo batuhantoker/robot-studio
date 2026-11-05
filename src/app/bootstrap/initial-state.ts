@@ -32,6 +32,7 @@ export function initialState(catalog: Catalog | null): StudioState {
     section: { axis: 'y', offset: 0 },
     overlays: { frames: false, com: false, ellipsoid: false, trail: true, workspace: false, labels: true },
     playing: false,
+    pendulum: null,
     time: 0,
     rendering: false,
     surroundings: loadSurroundings(),

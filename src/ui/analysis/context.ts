@@ -1,4 +1,5 @@
 /** What the analysis panels can ask of the app controller. */
+import type { PendulumMotors, PendulumTask } from '../../app/state/types';
 import type { WorkspaceStudy } from '../../app/controller/workspace/study';
 import type { WorkspaceMetric } from '../../scene/overlays/workspace';
 import type { ControlLab } from '../../app/controller/learn/lab';
@@ -18,12 +19,14 @@ export interface AnalysisContext {
   stopTips(): Vec3[];
   /** Move a stop so the focused tool point reaches `point` (IK from the stop's own pose). */
   moveStop(i: number, point: Vec3, maxIter?: number): void;
-  physics(): { history: PhysicsHistory; reason: string | null; passive: boolean; limits: number[]; lab: ControlLab | null; current: RunStats | null; ownMotion: boolean; onFloor: boolean; floorBlock: string | null | undefined } | null;
+  physics(): { history: PhysicsHistory; reason: string | null; limits: number[]; lab: ControlLab | null; current: RunStats | null; ownMotion: boolean; onFloor: boolean; floorBlock: string | null | undefined } | null;
   runWorkspace(samples: number, metric?: WorkspaceMetric): WorkspaceStudy | null;
   recolorWorkspace(metric: WorkspaceMetric): void;
   workspace(): WorkspaceStudy | null;
   onWorkspace(fn: (s: WorkspaceStudy | null) => void): void;
   restartPhysics(): void;
+  setPendulum(task: PendulumTask, motors: PendulumMotors): void;
+  knockPendulum(): void;
   /** Hand the focused limb's gains to a learner. */
   teach(method: Method): void;
   /** Put the robot on the floor or its stand; resolves with why not, if it can't. */

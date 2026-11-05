@@ -23,7 +23,8 @@ import { pinAll, withTarget } from './targets';
 import type { Store } from '../state/store';
 import type { LibraryEntry, RobotBase, SceneRobot, StudioState } from '../state/types';
 import { addToScene } from './scene';
-import { DRIVEN_MODES, isPassive } from '../../core/robot/config/passive';
+import { barsOf } from '../../core/motion/generators/double-pendulum';
+import { TOOL_MODES, isPendulum } from '../../core/robot/config/pendulum';
 import { frameLoop } from './frame-loop';
 import { addMine, persist } from './library-actions';
 import { IkMode } from './modes/ik';
@@ -125,6 +126,7 @@ export class Studio {
     store.on(['overlays', 'mode', 'focus'], () => queueMicrotask(() => store.state.overlays.workspace && this.analysis.ensureWorkspace()));
     store.on(['mode'], (s) => this.enterMode(s));
     store.on(['motion', 'mode'], (s) => {
+      if ((s.mode === 'motion' || s.mode === 'physics') && this.session) this.keepSwingInView();
       if (s.mode !== 'motion' || !this.session) return;
       const was = this.motion.clip, clip = this.motion.ensure(this.session, s.motion.preset, s.motion.size, s.q);
       if (clip?.body && clip !== was) this.keepClipInView(clip, clip.body);
@@ -171,6 +173,14 @@ export class Studio {
   private placeGizmo(): void {
     const t = this.store.state.targets[this.store.state.focus];
     if (t && !this.overlays.target.gizmo.dragging) this.overlays.target.place(t);
+  }
+
+  /** A pendulum sweeps a whole circle, most of it outside the framing of the pose it stands in. */
+  private keepSwingInView(): void {
+    const spec = this.session!.spec, bars = isPendulum(spec) ? barsOf(spec!) : null;
+    if (!bars) return;
+    const r = bars.l[0] + bars.l[1], [x, y, z] = spec!.base;
+    this.viewport.keepPlacedInView(Array.from({ length: 16 }, (_, i) => [x + r * Math.cos((i * Math.PI) / 8), y, z + r * Math.sin((i * Math.PI) / 8)]));
   }
 
   /** A raised hand can leave the framing of the robot at rest. */
@@ -225,6 +235,8 @@ export class Studio {
       addRun: (path, score) => this.overlays.runs.add(path, score),
       clearRuns: () => this.overlays.runs.clear(),
       setBody: (pose) => this.viewport.setBodyPose(pose),
+      pose: () => this.store.state.q,
+      status: (pendulum) => this.store.set({ pendulum }),
     });
     this.motion.load(session, q);
     const fresh = refit || this.store.state.waypoints[0]?.length !== n;
@@ -234,7 +246,7 @@ export class Studio {
       q, draft: entry.spec ?? null, draftError: entry.spec ? misplacedJoint(entry.spec) : null, time: 0, contact: null, sessionVersion: this.store.state.sessionVersion + 1,
       selectedStop: fresh ? null : this.store.state.selectedStop,
       ...(fresh ? defaultPlan(session, duration) : {}),
-      ...(isPassive(session.spec) && DRIVEN_MODES.includes(this.store.state.mode) ? { mode: 'pose' as const } : {}),
+      ...(isPendulum(session.spec) && TOOL_MODES.includes(this.store.state.mode) ? { mode: 'pose' as const } : {}),
       focus, targets: refit ? [] : this.store.state.targets.slice(0, session.limbs.length), isolate: refit || switched ? null : this.store.state.isolate,
       section: refit || switched ? { axis: this.viewport.sectionAxis(), offset: 0 } : this.store.state.section,
     });

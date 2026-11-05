@@ -60,7 +60,7 @@ export function jointRows(session: RobotSession, store: Store<StudioState>) {
         const q = s.q[r.k];
         if (document.activeElement !== r.slider) r.slider.value = String(q);
         r.val.textContent = `${num(q * r.scale, 1)} ${r.unit}`;
-        const tau = s.sim?.applied[r.k] ?? s.bias[r.k];
+        const tau = s.torque[r.k];
         const limit = session.torqueLimits[r.k];
         r.torque.textContent = `τ ${num(tau, 2)}${limit ? ` / ${num(limit, 1)}` : ''} ${session.joints[r.k].type === 'slide' ? 'N' : 'N·m'}`;
         const u = limit ? Math.min(Math.abs(tau) / limit, 1) : 0;

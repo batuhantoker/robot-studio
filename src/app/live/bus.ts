@@ -20,6 +20,10 @@ export interface Snapshot {
   gravity: GravityLoad;
   /** MuJoCo's whole-robot bias force per joint (gravity only when not simulating). */
   bias: number[];
+  /** What the motors are applying: what they simulate, nothing on a free swing, otherwise what holds the pose. */
+  torque: number[];
+  /** Joint rates, where the source of the motion knows them. */
+  qd?: number[];
   /** Dexterity of the focused limb, and of every limb. */
   dexterity: DexterityReport;
   limbs: DexterityReport[];

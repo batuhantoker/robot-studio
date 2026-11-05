@@ -1,6 +1,5 @@
 /** The control lab behind Physics mode: the gains on the robot, every attempt at them, and the learner. */
 import { type GainKey, type Pid, clampGain, firstGuess, gainRange, inertiaRule, jointRole } from '../../../core/control/gains';
-import { isPassive } from '../../../core/robot/config/passive';
 import type { RunStats } from '../../../core/control/score';
 import type { Rig } from '../../../physics/control/rig';
 import { Rollout, type Reference, type RolloutSetup, type RunFrame } from '../../../physics/control/rollout';
@@ -58,8 +57,7 @@ export class ControlLab {
     private readonly hooks: LabHooks,
   ) {
     const spec = rig.stand ? null : session.spec;
-    // Nothing drives a passive robot, so it starts as it really is: let go.
-    this.start = spec ? spec.links.flatMap((l) => l.dofs.map(() => (isPassive(spec) ? { kp: 0, ki: 0, kd: 0 } : { kp: l.kp, ki: 0, kd: l.kd }))) : firstGuess(rig.plant.inertia);
+    this.start = spec ? spec.links.flatMap((l) => l.dofs.map(() => ({ kp: l.kp, ki: 0, kd: l.kd }))) : firstGuess(rig.plant.inertia);
     this.gains = this.start.map((g) => ({ ...g }));
     this.scope = rig.stand ? 'robot' : 'limb';
     const dt = (rig.handle.model.opt as unknown as { timestep: number }).timestep;

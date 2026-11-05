@@ -4,7 +4,7 @@ import { preloadBake } from '../../cad/parts/castings/bake';
 import { chainFromSpec } from '../../core/chain/model/from-spec';
 import { singleLimb } from './single-limb';
 import { toMjcf } from '../../core/mjcf/writer/serial-arm';
-import { isPassive } from '../../core/robot/config/passive';
+import { isPendulum } from '../../core/robot/config/pendulum';
 import { homePose, reachEstimate, specDofs } from '../../core/robot/config/pose';
 import type { RobotSpec } from '../../core/robot/schema/types';
 import { hullChecker } from '../../physics/collision/from-hull';
@@ -29,7 +29,7 @@ export async function sessionFromSpec(id: string, title: string, spec: RobotSpec
     id,
     title,
     source: 'spec',
-    category: isPassive(spec) ? 'other' : 'arm',
+    category: isPendulum(spec) ? 'other' : 'arm',
     base: 'fixed',
     spec,
     ...singleLimb(chain),

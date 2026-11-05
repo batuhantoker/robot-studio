@@ -59,6 +59,16 @@ export interface Overlays {
   labels: boolean;
 }
 
+export type PendulumTask = 'swing' | 'free' | 'lab';
+export type PendulumMotors = 'both' | 'shoulder' | 'elbow';
+
+export interface PendulumStatus {
+  task: PendulumTask;
+  motors: PendulumMotors;
+  /** How a swing-up is going. */
+  phase: 'planning' | 'swinging' | 'balancing' | 'settling' | 'failed' | null;
+}
+
 export interface StudioState {
   library: LibraryEntry[];
   activeId: string;
@@ -91,6 +101,8 @@ export interface StudioState {
   duration: number;
   playing: boolean;
   motion: MotionState;
+  /** Physics on a double pendulum; null on anything else. */
+  pendulum: PendulumStatus | null;
   time: number;
   /** A video take of the trajectory is recording: playback runs once and stops at the end. */
   rendering: boolean;

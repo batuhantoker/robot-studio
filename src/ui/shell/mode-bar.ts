@@ -1,10 +1,14 @@
 /** Dock bars for the modes whose tools live in the Analysis panel: the main action, and a way to the panel. */
 import type { Store } from '../../app/state/store';
-import type { StudioState } from '../../app/state/types';
+import type { PendulumMotors, PendulumStatus, PendulumTask, StudioState } from '../../app/state/types';
 import type { AnalysisContext } from '../analysis/context';
 import { h, replace } from '../dom/h';
 import { ICON, icon } from './icons';
 import { reveal } from './reveal';
+
+const PHASE: Record<NonNullable<PendulumStatus['phase']>, string> = {
+  planning: 'Planning the swing-up…', swinging: 'Swinging up', balancing: 'Balancing', settling: 'Knocked off: braking', failed: 'No swing-up found for this rig',
+};
 
 export function mountModeBar(stack: HTMLElement, store: Store<StudioState>, ctx: AnalysisContext): void {
   const bar = h('div.toolbar.mode-bar');
@@ -15,9 +19,22 @@ export function mountModeBar(stack: HTMLElement, store: Store<StudioState>, ctx:
     ctx.runWorkspace(samples);
     store.set({ overlays: { ...store.state.overlays, workspace: true } });
   };
+  const pick = <T extends string>(options: [T, string, string][], on: T, set: (v: T) => void) =>
+    h('div.seg', {}, ...options.map(([v, label, title]) => h('button.tb', { class: v === on ? 'on' : '', title, onclick: () => set(v) }, label)));
+  const pendulumRow = (p: PendulumStatus) => {
+    const play = { playing: true, mode: 'physics' as const };
+    const set = (task: PendulumTask, motors: PendulumMotors) => (ctx.setPendulum(task, motors), store.set(play));
+    return [
+      pick<PendulumTask>([['swing', 'Swing up', 'Plan a swing-up, then catch it and hold it upright'], ['free', 'Let go', 'No torque: release it from the pose you set'], ['lab', 'Track', 'PID on the trajectory, in the control lab']], p.task, (t) => set(t, p.motors)),
+      p.task === 'swing' ? pick<PendulumMotors>([['both', 'Both', 'Both motors: fully actuated'], ['shoulder', 'Shoulder', 'Shoulder motor only, a pendubot: the elbow swings free'], ['elbow', 'Elbow', 'Elbow motor only, an acrobot: the shoulder swings free']], p.motors, (m) => set(p.task, m)) : null,
+      p.task === 'lab' ? null : h('button.tb', { onclick: () => ctx.knockPendulum(), title: 'Knock the bars' }, 'Nudge'),
+      p.task === 'swing' && p.phase ? note(PHASE[p.phase]) : null,
+    ];
+  };
   let shown = '';
   const render = (s: StudioState) => {
-    const key = s.mode === 'physics' ? `physics:${s.playing}` : s.mode === 'ik' ? `ik:${s.targets.some(Boolean)}` : s.mode;
+    const p = s.pendulum;
+    const key = s.mode === 'physics' ? `physics:${s.playing}:${p?.task}:${p?.motors}:${p?.phase}` : s.mode === 'ik' ? `ik:${s.targets.some(Boolean)}` : s.mode;
     if (key === shown) return;
     shown = key;
     bar.style.display = s.mode === 'ik' || s.mode === 'physics' || s.mode === 'workspace' ? '' : 'none';
@@ -30,8 +47,8 @@ export function mountModeBar(stack: HTMLElement, store: Store<StudioState>, ctx:
       replace(bar, h('span.cap', {}, 'Physics'),
         h('button.tb.primary', { onclick: () => store.set({ playing: !store.state.playing, mode: 'physics' }) }, s.playing ? '❚❚ Pause' : '▶ Simulate'),
         h('button.tb', { onclick: () => ctx.restartPhysics() }, 'Restart'),
-        note(ctx.physics()?.passive ? 'Let go, under gravity alone' : 'Tune it by hand, or teach it'),
-        panel('Control lab'));
+        ...(p ? pendulumRow(p) : [note('Tune it by hand, or teach it')]),
+        !p || p.task === 'lab' ? panel('Control lab') : null);
     } else if (s.mode === 'workspace') {
       replace(bar, h('span.cap', {}, 'Workspace'),
         h('button.tb.primary', { onclick: () => analyze(2500) }, 'Analyze'),
@@ -39,7 +56,7 @@ export function mountModeBar(stack: HTMLElement, store: Store<StudioState>, ctx:
         panel('Results'));
     }
   };
-  store.on(['mode', 'playing', 'targets'], render);
+  store.on(['mode', 'playing', 'targets', 'pendulum'], render);
   render(store.state);
   // Entering Workspace turns its cloud on; leaving takes it away again, or it haunts every other mode.
   let last = store.state.mode;

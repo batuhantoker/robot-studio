@@ -12,7 +12,8 @@ const COLORS = ['0.20 0.48 0.70 1', '0.90 0.55 0.20 1', '0.25 0.65 0.48 1'];
 export function toMjcf(spec: RobotSpec, timestep = 0.002): string {
   if (!(timestep > 0) || !Number.isFinite(timestep)) throw new Error('timestep must be positive');
   const root = node('mujoco', { model: spec.name });
-  child(root, 'compiler', { angle: 'radian', autolimits: 'true', inertiafromgeom: 'true' });
+  // `true` would ignore a link's own <inertial>; `auto` still takes the rest from their geoms.
+  child(root, 'compiler', { angle: 'radian', autolimits: 'true', inertiafromgeom: spec.links.some((l) => l.inertia) ? 'auto' : 'true' });
   child(root, 'option', { timestep: pythonFloat(timestep), gravity: '0 0 -9.81', integrator: 'implicitfast' });
   child(child(root, 'default'), 'geom', { contype: '0', conaffinity: '0' });
   let body = child(root, 'worldbody');
@@ -32,6 +33,7 @@ export function toMjcf(spec: RobotSpec, timestep = 0.002): string {
         armature: pythonFloat(link.armature),
       });
     }
+    if (link.com && link.inertia) child(body, 'inertial', { pos: g17List(link.com), mass: pythonFloat(link.mass), diaginertia: g17List(link.inertia) });
     const geom: Record<string, string> = {
       name: `geom_${index}`,
       size: pythonFloat(link.radius),

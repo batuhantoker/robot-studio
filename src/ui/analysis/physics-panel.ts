@@ -16,6 +16,11 @@ import type { AnalysisContext } from './context';
 const DEG = 180 / Math.PI;
 const MAX_LINES = 12;
 
+const OWN_TASK = {
+  swing: 'iLQR plans the swing-up inside the motors’ limits, its feedback tracks the plan, and LQR catches the rig and holds it upright. Choose Track to tune gains by hand or teach them.',
+  free: 'No torque at all: MuJoCo lets it go from the pose you set, and only gravity moves it. Choose Track to tune gains by hand or teach them.',
+};
+
 export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: AnalysisContext, session: () => RobotSession | null) {
   const torque = new LineChart({ digits: 0 });
   const error = new LineChart({ minSpan: 1, digits: 2 });
@@ -54,9 +59,11 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
     const s = session();
     unsubscribe?.();
     unsubscribe = null;
-    lab.hidden = !p?.lab || p.passive;
-    replace(note, p?.reason ? h('p.note', {}, p.reason) : p?.passive ? h('p.note', {}, 'No motors, so nothing to tune: MuJoCo lets it go from its home pose and only gravity moves it. Restart lets go again.') : null);
-    if (!p?.lab || !s || p.passive) return;
+    const own = store.state.pendulum?.task;
+    const owned = own === 'swing' || own === 'free';
+    lab.hidden = !p?.lab || owned;
+    replace(note, p?.reason ? h('p.note', {}, p.reason) : owned ? h('p.note', {}, OWN_TASK[own]) : null);
+    if (!p?.lab || !s || owned) return;
     const l = p.lab;
     const block = p.floorBlock;
     floorRow.hidden = block === undefined;
@@ -83,7 +90,7 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
     score.board(l);
     notes();
   };
-  store.on(['sessionVersion', 'focus'], show);
+  store.on(['sessionVersion', 'focus', 'pendulum'], show);
   show();
 
   bus.on(() => {

@@ -22,6 +22,7 @@ import { JOINT_MODULES } from '../../registry/joint-modules';
 import type { JointModule } from '../../parts/types';
 import { type Gap, poseSlots, type Slot } from './slots';
 import { type SpecBody, toolSize } from './body';
+import { madeParts } from '../../parts/made';
 
 const tagModule = (g: THREE.Object3D, id: string) => ((g.userData.module = id), g);
 
@@ -130,7 +131,11 @@ export function castingBody(spec: RobotSpec, mats: MaterialSet, root: THREE.Grou
     const design = bodyDesign(k);
     const ends = bodyEnds(plan, k);
     const cast = castBody(ends, j.origin, design, plan.gap);
-    if (!cast) return;
+    if (design?.made) built[k].stages.at(-1)!.add(tagModule(madeParts(mats, design.made, named), `link:${link.name}`));
+    if (!cast) {
+      if (design?.made) modules.push({ id: `link:${link.name}`, label: design.label ?? `${link.name} link`, kind: 'Link', joints: [] });
+      return;
+    }
     const g = buildCasting(mats, keepClear(cast), finish(cast, k), openingsOf(k, wallOf(design, cast.size)), ends.map((e) => e.n), j.origin, design, design?.label ?? `${link.name} casting`, paintOf(design), bakeSlot(spec, k));
     earlier.push({ cast, slid: slidesTo(k) });
     if (!g) return;
@@ -174,7 +179,7 @@ export function castingBody(spec: RobotSpec, mats: MaterialSet, root: THREE.Grou
       const floorZ = Math.min(0, lowestSolidZ(root), end ? end.at[2] - R * 0.5 : 0);
       const foot: Field[] = [];
       const bounds: { at: Vec3; r: number }[] = [];
-      if (end && !design?.shapes) {
+      if (end && !design?.shapes && !design?.made) {
         const ground: Vec3 = [end.at[0], end.at[1], floorZ];
         foot.push(drum(ground, add(ground, [0, 0, R * 0.22]), R * 1.9, R * 0.05), cone(ground, end.at, R * 1.08, R));
         bounds.push({ at: ground, r: R * 1.9 }, { at: end.at, r: R * 1.08 });
@@ -193,6 +198,11 @@ export function castingBody(spec: RobotSpec, mats: MaterialSet, root: THREE.Grou
             if (p) for (let i = 0; i < p.count; i++) if (p.getZ(i) < floorZ) p.setZ(i, floorZ);
           });
         }
+      }
+      if (design?.made) {
+        const made = madeParts(mats, design.made, named);
+        made.position.set(...spec.base);
+        baseSlot.add(made);
       }
       root.add(tagModule(baseSlot, 'base'));
       slots.push({ group: baseSlot, frame: () => identityTransform(), body: -1, before: 0 });

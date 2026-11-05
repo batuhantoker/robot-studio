@@ -1,7 +1,7 @@
 /** Holds the playing motion clip: presets for the loaded robot, rebuilt from the pose you are in. */
 import { enforceLimits } from '../../../core/chain/limbs/limits';
 import { pendulumMotions } from '../../../core/motion/generators/double-pendulum';
-import { isPassive } from '../../../core/robot/config/passive';
+import { isPendulum } from '../../../core/robot/config/pendulum';
 import { presetsFor } from '../../../core/motion/presets';
 import type { MotionClip, MotionPreset } from '../../../core/motion/types';
 import type { RobotSession } from '../../robots/session';
@@ -67,7 +67,7 @@ export class MotionPlayer {
   /** This runs while a robot opens: a motion that cannot be worked out costs that motion, never the page. */
   private offered(s: RobotSession, q: number[]): MotionPreset[] {
     try {
-      if (isPassive(s.spec)) return pendulumMotions(s.spec!);
+      if (isPendulum(s.spec)) return pendulumMotions(s.spec!);
       return s.prosthesis ? [] : presetsFor(s, q, s.category, { footing: () => footingOf(s), rungs: (gaits as Record<string, Record<string, number | null>>)[s.id] });
     } catch (e) {
       console.error(`motion presets for ${s.id}`, e);

@@ -41,7 +41,7 @@ export class LiveHistory {
     this.samples.push({
       t: this.clock,
       q: [...s.q],
-      tau: [...(s.sim?.applied ?? s.bias)],
+      tau: [...s.torque],
       tips: s.posed.limbs.map((l) => [...l.tip.p] as Vec3),
       manipulability: s.limbs.map((l) => l.svd.manipulability),
       error: s.sim ? [...s.sim.error] : null,

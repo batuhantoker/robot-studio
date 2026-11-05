@@ -41,7 +41,18 @@ function parseLink(raw: unknown, index: number): LinkSpec {
     kd: number(pick('kd'), 'kd', { minimum: 0 }),
     dofs: expandDofs(name, joint, axis, axis2, parseLimits(raw.limits, joint, name)),
     ...(raw.continuous === true && joint === 'revolute' ? { continuous: true } : {}),
+    ...massProperties(raw, name),
   };
+}
+
+/** A link's `com` and `inertia` come as a pair, and MuJoCo refuses principal inertias no body could have. */
+function massProperties(raw: Record<string, unknown>, name: string): Pick<LinkSpec, 'com' | 'inertia'> {
+  if (raw.com === undefined && raw.inertia === undefined) return {};
+  if (raw.com === undefined || raw.inertia === undefined) throw new SpecError(`${name}: com and inertia go together`);
+  const com = triple(raw.com, `${name}.com`), inertia = triple(raw.inertia, `${name}.inertia`);
+  const [a, b, c] = inertia;
+  if (Math.min(a, b, c) <= 0 || a + b < c || b + c < a || a + c < b) throw new SpecError(`${name}.inertia: not the principal inertias of a body`);
+  return { com, inertia };
 }
 
 /** Robot-only configuration; scenario keys are rejected. */

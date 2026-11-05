@@ -3,8 +3,8 @@ import type { Snapshot } from '@/app/live/bus';
 import { HISTORY_SECONDS, LiveHistory, rates } from '@/app/live/history';
 import { niceTicks } from '@/ui/widgets/chart';
 
-const snap = (session: object, q = [0.1, 0.2], sim: object | null = null) => ({
-  session, q, bias: [1, 2], sim, posed: { limbs: [{ tip: { p: [1, 2, 3] } }] }, limbs: [{ svd: { manipulability: 0.5 } }],
+const snap = (session: object, q = [0.1, 0.2], sim: { applied: number[] } | null = null, torque = sim?.applied ?? [1, 2]) => ({
+  session, q, bias: [1, 2], torque, sim, posed: { limbs: [{ tip: { p: [1, 2, 3] } }] }, limbs: [{ svd: { manipulability: 0.5 } }],
 }) as unknown as Snapshot;
 
 function recorder() {
@@ -18,10 +18,16 @@ describe('live history', () => {
     const robot = {};
     history.record(snap(robot));
     clock.now = 0.05;
-    history.record(snap(robot, [0.3, 0.4], { applied: [7, 8], error: [0.01, 0.02] }));
+    history.record(snap(robot, [0.3, 0.4], { applied: [7, 8], error: [0.01, 0.02] } as { applied: number[] }));
     expect(history.samples.map((s) => s.tau)).toEqual([[1, 2], [7, 8]]);
     expect(history.samples.map((s) => s.error)).toEqual([null, [0.01, 0.02]]);
     expect(history.samples[1].t).toBeCloseTo(0.05);
+  });
+
+  it('records no torque on a free swing, whatever would hold the pose', () => {
+    const { history } = recorder();
+    history.record(snap({}, [0.1, 0.2], null, [0, 0]));
+    expect(history.samples[0].tau).toEqual([0, 0]);
   });
 
   it('copies the joint vector, which the caller reuses', () => {
