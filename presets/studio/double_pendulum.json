@@ -1,0 +1,78 @@
+{
+  "name": "Double Pendulum",
+  "units": "SI",
+  "base": [0, 0, 0.62],
+  "tool": [0, 0, 0],
+  "payload_mass": 0,
+  "effector": "flange",
+  "home": [2.2, 0.5],
+  "links": [
+    { "name": "bar_1", "axis": [0, 1, 0], "offset": [0, 0, -0.25], "mass": 0.2, "limits": [-3.141592653589793, 3.141592653589793], "continuous": true, "radius": 0.014, "damping": 0, "armature": 0, "torque_limit": 1, "kp": 1, "kd": 0 },
+    { "name": "bar_2", "axis": [0, 1, 0], "offset": [0, 0, -0.25], "mass": 0.2, "limits": [-3.141592653589793, 3.141592653589793], "continuous": true, "radius": 0.014, "damping": 0, "armature": 0, "torque_limit": 1, "kp": 1, "kd": 0 }
+  ],
+  "design": {
+    "source": "A teaching model, not any maker's rig: clean numbers, frictionless pins. Two 250 mm, 0.2 kg bars.",
+    "bare": true,
+    "paint": {
+      "shell": { "color": "#2f6fd0", "finish": "anodized", "roughness": 0.4 },
+      "second": { "color": "#e0782e", "finish": "anodized", "roughness": 0.4 },
+      "stand": { "color": "#34383e", "finish": "anodized", "roughness": 0.5 },
+      "plate": { "color": "#c7cbd0", "finish": "aluminium", "roughness": 0.48 }
+    },
+    "section": { "at": 0.0 },
+    "joints": {
+      "bar_1": { "pin": true, "parent": { "radius": 0.02 }, "child": { "radius": 0.02 } },
+      "bar_2": { "pin": true, "parent": { "radius": 0.016 }, "child": { "radius": 0.016 } }
+    },
+    "base": {
+      "label": "Stand",
+      "paint": "stand",
+      "size": 0.03,
+      "neck": false,
+      "blend": 0.003,
+      "cell": 0.003,
+      "spheres": 120,
+      "shapes": [
+        { "box": [0, 0.03, -0.608], "size": [0.15, 0.13, 0.012], "round": 0.004 },
+        { "box": [0, 0.042, -0.29], "size": [0.022, 0.012, 0.335], "round": 0.004 },
+        { "drum": [[0, 0.032, 0], [0, 0.008, 0]], "r": 0.022 },
+        { "cut": true, "feature": "bolt hole 0", "drum": [[0.125, 0.135, -0.63], [0.125, 0.135, -0.58]], "r": 0.006 },
+        { "cut": true, "feature": "bolt hole 1", "drum": [[0.125, -0.075, -0.63], [0.125, -0.075, -0.58]], "r": 0.006 },
+        { "cut": true, "feature": "bolt hole 2", "drum": [[-0.125, 0.135, -0.63], [-0.125, 0.135, -0.58]], "r": 0.006 },
+        { "cut": true, "feature": "bolt hole 3", "drum": [[-0.125, -0.075, -0.63], [-0.125, -0.075, -0.58]], "r": 0.006 }
+      ]
+    },
+    "links": {
+      "bar_1": {
+        "label": "Upper bar",
+        "size": 0.014,
+        "neck": false,
+        "blend": 0.001,
+        "cell": 0.0012,
+        "spheres": 60,
+        "shapes": [
+          { "box": [0, 0, -0.125], "size": [0.014, 0.005, 0.125] },
+          { "drum": [[0, 0.005, 0], [0, -0.005, 0]], "r": 0.014 },
+          { "drum": [[0, 0.005, -0.25], [0, -0.005, -0.25]], "r": 0.014 },
+          { "drum": [[0, -0.005, 0], [0, -0.0085, 0]], "r": 0.009 },
+          { "drum": [[0, -0.005, -0.25], [0, -0.0085, -0.25]], "r": 0.011 }
+        ]
+      },
+      "bar_2": {
+        "label": "Lower bar",
+        "paint": "second",
+        "size": 0.014,
+        "neck": false,
+        "blend": 0.001,
+        "cell": 0.0012,
+        "spheres": 60,
+        "shapes": [
+          { "box": [0, -0.018, -0.125], "size": [0.014, 0.005, 0.125] },
+          { "drum": [[0, -0.013, 0], [0, -0.023, 0]], "r": 0.014 },
+          { "drum": [[0, -0.013, -0.25], [0, -0.023, -0.25]], "r": 0.014 },
+          { "drum": [[0, -0.023, 0], [0, -0.027, 0]], "r": 0.009 }
+        ]
+      }
+    }
+  }
+}
