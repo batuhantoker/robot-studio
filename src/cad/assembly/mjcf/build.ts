@@ -54,7 +54,8 @@ export function buildMjcfAssembly(h: ModelHandle, bodies: BodyInfo[], limbs: Mod
     groups[geom.body].add(mesh);
   }
   for (const b of bodies) {
-    const box = b.id > 0 && groups[b.id].children.length ? inertiaBox(b) : null;
+    if (b.id === 0 || !groups[b.id].children.length) continue;
+    const box = inertiaBox(b, new THREE.Box3().setFromObject(groups[b.id]).getSize(new THREE.Vector3()).length());
     if (box) groups[b.id].add(box);
   }
   const cables = tendonCables(h, mats);

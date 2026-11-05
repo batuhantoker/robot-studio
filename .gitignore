@@ -7,3 +7,4 @@ dist/
 public/robots/
 .DS_Store
 *.log
+.playwright-mcp/

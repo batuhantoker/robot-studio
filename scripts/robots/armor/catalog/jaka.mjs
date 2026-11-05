@@ -1,7 +1,11 @@
 // ARMOR gallery robots (jaka), resolved to their upstream repositories.
+// Joints 2 and 4 centre on 90°: at zero the arm lies flat with its wrist below the base.
+const JAKA_READY = { joint_2: Math.PI / 2, joint_3: Math.PI / 2, joint_4: Math.PI / 2, joint_5: Math.PI };
+
 export default [
   {
     slug: 'jaka-a', title: 'JAKA A5', vendor: 'JAKA Robotics', category: 'arm', base: 'fixed',
+    home: JAKA_READY,
     tags: ['cobot', '6-axis'],
     description: 'Six-axis collaborative arm from JAKA with a 5 kg payload.',
     repo: 'JAKARobotics/jaka_ros2', urdf: 'src/jaka_description/urdf/jaka_a5.urdf',
@@ -9,6 +13,7 @@ export default [
   },
   {
     slug: 'jaka-c', title: 'JAKA C5', vendor: 'JAKA Robotics', category: 'arm', base: 'fixed',
+    home: JAKA_READY,
     tags: ['cobot', '6-axis'],
     description: 'Six-axis collaborative arm from the JAKA C series with a 5 kg payload.',
     repo: 'JAKARobotics/jaka_ros2', urdf: 'src/jaka_description/urdf/jaka_c5.urdf',
@@ -37,6 +42,7 @@ export default [
   },
   {
     slug: 'jaka-pro', title: 'JAKA Pro7', vendor: 'JAKA Robotics', category: 'arm', base: 'fixed',
+    home: JAKA_READY,
     tags: ['cobot', '6-axis'],
     description: 'Six-axis JAKA Pro series cobot with a 7 kg payload and a higher protection rating.',
     repo: 'JAKARobotics/jaka_ros2', urdf: 'src/jaka_description/urdf/jaka_pro7.urdf',
@@ -44,6 +50,7 @@ export default [
   },
   {
     slug: 'jaka-s', title: 'JAKA S5', vendor: 'JAKA Robotics', category: 'arm', base: 'fixed',
+    home: JAKA_READY,
     tags: ['cobot', '6-axis'],
     description: 'Six-axis safety-oriented collaborative arm from the JAKA S series with a 5 kg payload.',
     repo: 'JAKARobotics/jaka_ros2', urdf: 'src/jaka_description/urdf/jaka_s5.urdf',
@@ -51,6 +58,7 @@ export default [
   },
   {
     slug: 'jaka-zu', title: 'JAKA Zu5', vendor: 'JAKA Robotics', category: 'arm', base: 'fixed',
+    home: JAKA_READY,
     tags: ['cobot', '6-axis'],
     description: 'Six-axis collaborative arm from the JAKA Zu series with a 5 kg payload.',
     repo: 'JAKARobotics/jaka_ros2', urdf: 'src/jaka_description/urdf/jaka_zu5.urdf',

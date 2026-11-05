@@ -13,9 +13,9 @@ const DEFAULT: TrajectoryPreset = { id: 'default', label: 'Default', hint: 'Ever
 
 const home = (s: RobotSession) => enforceLimits(s.joints, s.home);
 
-/** The studio's starting trajectory: analyze()'s default, fitted clear of contact. */
+/** The studio's starting trajectory: analyze()'s default around the robot's home, fitted clear of contact. */
 export const defaultPlan = (s: RobotSession, duration = DEFAULT_DURATION): Pick<StudioState, 'waypoints' | 'stopOpts' | 'pace' | 'duration'> =>
-  ({ waypoints: clearWaypoints(s, defaultWaypoints(jointLimits(s)), duration), stopOpts: [], pace: 'even', duration });
+  ({ waypoints: clearWaypoints(s, defaultWaypoints(jointLimits(s), home(s)), duration), stopOpts: [], pace: 'even', duration });
 
 export const presetsFor = (s: RobotSession, focus: number): TrajectoryPreset[] => [DEFAULT, ...trajectoryPresetsFor(s, focus, home(s))];
 

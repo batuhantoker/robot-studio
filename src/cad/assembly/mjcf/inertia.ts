@@ -12,9 +12,12 @@ export function inertiaBoxSize(b: BodyInfo): THREE.Vector3 | null {
   return edges.every((e) => e > 0) ? new THREE.Vector3(...edges) : null;
 }
 
-export function inertiaBox(b: BodyInfo): THREE.Object3D | null {
+/** Upstream placeholders (I = 1 on a light link) make boxes hundreds of metres wide, and camera framing fits them. */
+const LARGEST_OVER_PART = 1.25;
+
+export function inertiaBox(b: BodyInfo, partDiagonal: number): THREE.Object3D | null {
   const size = inertiaBoxSize(b);
-  if (!size) return null;
+  if (!size || Math.max(size.x, size.y, size.z) > LARGEST_OVER_PART * partDiagonal) return null;
   const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
   const fill = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#d6182b', transparent: true, opacity: 0.04, depthWrite: false }));
   const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: '#d6182b', transparent: true, opacity: 0.45 }));

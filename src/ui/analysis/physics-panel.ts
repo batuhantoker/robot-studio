@@ -3,7 +3,7 @@ import type { LiveBus } from '../../app/live/bus';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
 import { h, replace } from '../dom/h';
-import { LineChart, seriesColor } from '../widgets/chart';
+import { LineChart, jointSeries } from '../widgets/chart';
 import type { AnalysisContext } from './context';
 
 export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: AnalysisContext) {
@@ -31,9 +31,9 @@ export function physicsPanel(store: Store<StudioState>, bus: LiveBus, ctx: Analy
       ? h('span.accent', {}, `saturating: ${sat.map((s, k) => (s ? `j${k + 1}` : '')).filter(Boolean).join(', ')}`)
       : 'all motors within limits'));
     const lim = Math.max(...limits);
-    torque.setData(hist.t, cols(hist.applied).map((values, k) => ({ label: `τ${k + 1}`, color: seriesColor(k), values })));
+    torque.setData(hist.t, cols(hist.applied).map((values, k) => jointSeries(k, `τ${k + 1}`, values)));
     torque.draw(null, [-lim, lim]);
-    error.setData(hist.t, cols(hist.error).map((values, k) => ({ label: `e${k + 1}`, color: seriesColor(k), values })));
+    error.setData(hist.t, cols(hist.error).map((values, k) => jointSeries(k, `e${k + 1}`, values)));
   }, 8);
   return el;
 }

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ARMOR_IDS, ARMOR_ROBOTS, armorId, pinOf } from '../armor/catalog/index.mjs';
-import { CATALOG_IDS, MONTAJ } from '../catalog/robots.mjs';
+import { CATALOG_IDS } from '../catalog/robots.mjs';
 import { MENAGERIE_COMMIT } from '../menagerie/checkout.mjs';
 import { MANIFEST, ROBOTS_DIR, STUDIO } from '../paths.mjs';
 import { PROSTHESES, PROSTHESIS_IDS, PROSTHETICS_REPOS } from '../prosthetics/catalog.mjs';
@@ -45,8 +45,7 @@ export function keptEntries(rebuilding) {
       else console.warn(`warning: dropping ${entry.id} (built at another upstream commit; re-run fetch for it)`);
       continue;
     }
-    const fromMenagerie = entry.id !== MONTAJ.id;
-    if (fromMenagerie && old.menagerie_commit !== MENAGERIE_COMMIT) {
+    if (old.menagerie_commit !== MENAGERIE_COMMIT) {
       throw new Error(
         `${entry.id} in the existing manifest was fetched at menagerie ${old.menagerie_commit}, ` +
           `but the pin is now ${MENAGERIE_COMMIT}; re-run without --only to refresh every robot`,

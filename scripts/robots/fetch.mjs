@@ -1,29 +1,28 @@
 #!/usr/bin/env node
-// Builds public/robots/: pinned MuJoCo Menagerie arms, the repository's Montaj1 CAD arm, and every robot of the
+// Builds public/robots/: pinned MuJoCo Menagerie arms and every robot of the
 // ARMOR gallery fetched from its own upstream repository, prosthetic hands from their makers' repositories; then
 // writes public/robots/index.json.
 //
-//   node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|montaj1|prosthetics] [--skip-montaj]
+//   node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|prosthetics]
 //                                 [--force] [--jobs N]
 import fs from 'node:fs';
 import { ARMOR_IDS, ARMOR_ROBOTS, armorId } from './armor/catalog/index.mjs';
 import { SKIPPED } from './armor/catalog/skipped.mjs';
 import { fetchArmor } from './armor/run/fetch-armor.mjs';
-import { CATALOG_IDS, MENAGERIE_ROBOTS, MONTAJ } from './catalog/robots.mjs';
+import { CATALOG_IDS, MENAGERIE_ROBOTS } from './catalog/robots.mjs';
 import { parseArgs, selects } from './cli/args.mjs';
 import { keptEntries } from './manifest/read.mjs';
 import { updateManifest } from './manifest/update.mjs';
 import { printSummary, writeManifest } from './manifest/write.mjs';
 import { ensureMenagerie, MENAGERIE_COMMIT } from './menagerie/checkout.mjs';
 import { menagerieEntry } from './menagerie/copy.mjs';
-import { montajEntry } from './montaj/export.mjs';
 import { ROBOTS_DIR } from './paths.mjs';
 import { ensureProstheticRepos, prosthesisEntry } from './prosthetics/build.mjs';
 import { PROSTHESES, PROSTHESIS_IDS } from './prosthetics/catalog.mjs';
 
 const ALL_IDS = [...CATALOG_IDS, ...ARMOR_IDS, ...PROSTHESIS_IDS];
 const USAGE = [
-  'Usage: node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|montaj1|prosthetics] [--skip-montaj]',
+  'Usage: node scripts/robots/fetch.mjs [--only id,...] [--collection armor|menagerie|prosthetics]',
   '                                     [--force] [--jobs N]',
   '',
   '  --force   rebuild armor robots even when a build with the same inputs is on disk',
@@ -34,18 +33,17 @@ const USAGE = [
 ].join('\n');
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2), { flags: ['--skip-montaj', '--force', '--jobs'], usage: USAGE });
+  const opts = parseArgs(process.argv.slice(2), { flags: ['--force', '--jobs'], usage: USAGE });
   const unknown = (opts.only ?? []).filter((id) => !ALL_IDS.includes(id));
   if (unknown.length) throw new Error(`unknown robot id(s): ${unknown.join(', ')}\n\n${USAGE}`);
   const menagerie = MENAGERIE_ROBOTS.filter((r) => selects(opts, r.id));
-  const montaj = !opts.flags.has('--skip-montaj') && selects(opts, MONTAJ.id);
   const armor = ARMOR_ROBOTS.filter((r) => selects(opts, armorId(r.slug)));
   const prostheses = PROSTHESES.filter((p) => selects(opts, p.id));
-  if (!menagerie.length && !montaj && !armor.length && !prostheses.length) throw new Error('nothing to do');
+  if (!menagerie.length && !armor.length && !prostheses.length) throw new Error('nothing to do');
   fs.mkdirSync(ROBOTS_DIR, { recursive: true });
 
   const rebuilding = new Set([
-    ...menagerie.map((r) => r.id), ...(montaj ? [MONTAJ.id] : []), ...armor.map((r) => armorId(r.slug)), ...prostheses.map((p) => p.id),
+    ...menagerie.map((r) => r.id), ...armor.map((r) => armorId(r.slug)), ...prostheses.map((p) => p.id),
   ]);
   const kept = keptEntries(rebuilding);
   const built = new Map();
@@ -56,14 +54,6 @@ async function main() {
   if (prostheses.length) {
     await ensureProstheticRepos(prostheses);
     for (const hand of prostheses) built.set(hand.id, await prosthesisEntry(hand));
-  }
-  if (montaj) {
-    try {
-      built.set(MONTAJ.id, await montajEntry());
-    } catch (err) {
-      console.error(`montaj1 failed (keeping any previous build): ${err.message}`);
-      process.exitCode = 1;
-    }
   }
   updateManifest({ put: [...built.values()] }, ALL_IDS);
   const onEntry = (id, entry) => updateManifest(entry ? { put: [entry] } : { drop: [id] }, ALL_IDS);

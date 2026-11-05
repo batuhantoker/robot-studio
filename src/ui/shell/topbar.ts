@@ -9,7 +9,7 @@ import { reveal } from './reveal';
 
 /** `enabled` greys out modes the loaded robot cannot use (Pilot needs legs or wheels). */
 export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf: () => [string, string], extra: HTMLElement,
-  enabled: (m: Mode) => boolean = () => true, onHelp: () => void = () => undefined): void {
+  enabled: (m: Mode) => boolean = () => true, onHelp: () => void = () => undefined, graphs: HTMLElement | null = null): void {
   const name = h('b');
   const detail = h('small');
   const title = h('button.robot-title', { title: 'Choose a robot', onclick: () => reveal('robots') }, name, detail, icon(ICON.chevron, 'ico chev'));
@@ -22,7 +22,7 @@ export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf:
   el.append(
     h('div.top-left', {}, h('div.brand', {}, h('img', { src: markUrl, alt: '' }), h('span', {}, 'Robot Studio')), title, extra),
     modes.el,
-    h('div.top-right', {}, menu.button, tour, help),
+    h('div.top-right', {}, menu.button, graphs, tour, help),
     menu.el);
   const render = () => {
     const [n, d] = titleOf();

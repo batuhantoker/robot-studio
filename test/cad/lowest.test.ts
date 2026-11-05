@@ -64,4 +64,12 @@ describe('ground contact patches', () => {
     lifted.position.z = 0.01;
     expect(patchesOf(lifted)).toHaveLength(0);
   });
+
+  it('ignores instanced meshes, whose unit template sits at the origin', () => {
+    const root = new THREE.Group();
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2));
+    foot.position.z = 0.1;
+    root.add(foot, new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial(), 4));
+    expect(lowestSolidZ(root)).toBeCloseTo(0);
+  });
 });

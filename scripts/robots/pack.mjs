@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Builds the public robot pack for GitHub Pages from public/robots/: only robots whose license allows republishing
-// (plus Montaj1, the author's own CAD), every file gzipped, licenses kept readable, and an attribution page.
+// Builds the public robot pack for GitHub Pages from public/robots/: only robots whose license allows republishing,
+// every file gzipped, licenses kept readable, and an attribution page.
 //
 //   node scripts/robots/pack.mjs [--out DIR] [--min N]
 import fs from 'node:fs';

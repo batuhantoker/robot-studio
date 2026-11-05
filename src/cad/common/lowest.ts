@@ -11,12 +11,12 @@ export interface Solid {
 const box = new THREE.Box3();
 const corner = new THREE.Vector3();
 
-/** Visible solid meshes, lowest bound first; inertia boxes and other kinematic helpers are not solid. */
+/** Visible solid meshes, lowest bound first; kinematic helpers are not solid, nor instanced meshes, whose template sits at the origin. */
 export function solids(root: THREE.Object3D): Solid[] {
   const out: Solid[] = [];
   root.traverseVisible((o) => {
     const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || partOf(mesh)?.layer === 'kinematic') return;
+    if (!mesh.isMesh || (mesh as THREE.InstancedMesh).isInstancedMesh || partOf(mesh)?.layer === 'kinematic') return;
     if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
     box.copy(mesh.geometry.boundingBox!);
     let bound = Infinity;

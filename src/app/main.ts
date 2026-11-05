@@ -9,6 +9,7 @@ import '@/ui/styles/controls.css';
 import '@/ui/styles/library.css';
 import '@/ui/styles/stage.css';
 import '@/ui/styles/fold.css';
+import '@/ui/styles/graphs.css';
 import '@/ui/styles/mobile/shell.css';
 import '@/ui/styles/mobile/stage.css';
 import '@/ui/styles/guide.css';

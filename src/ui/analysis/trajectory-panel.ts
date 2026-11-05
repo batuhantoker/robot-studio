@@ -6,7 +6,7 @@ import type { StudioState } from '../../app/state/types';
 import { type Pace, compile, isVia } from '../../core/trajectory/plan';
 import { planOf } from '../../app/controller/modes/trajectory';
 import { h, replace } from '../dom/h';
-import { LineChart, seriesColor } from '../widgets/chart';
+import { LineChart, jointSeries } from '../widgets/chart';
 import { numberInput } from '../widgets/fields';
 import { segmented } from '../widgets/segmented';
 import { reorderable } from '../trajectory/reorder';
@@ -66,9 +66,9 @@ export function trajectoryPanel(store: Store<StudioState>, bus: LiveBus, ctx: An
     const p = ctx.profile();
     if (!p) return;
     const cols = (m: number[][]) => (m[0] ?? []).map((_, k) => m.map((r) => r[k]));
-    qChart.setData(p.t, cols(p.q).map((values, k) => ({ label: `q${k + 1}`, color: seriesColor(k), values })));
+    qChart.setData(p.t, cols(p.q).map((values, k) => jointSeries(k, `q${k + 1}`, values)));
     speedChart.setData(p.t, [{ label: 'speed', color: '#d6182b', values: p.speed }]);
-    tauChart.setData(p.t, cols(p.torque).map((values, k) => ({ label: `τ${k + 1}`, color: seriesColor(k), values })));
+    tauChart.setData(p.t, cols(p.torque).map((values, k) => jointSeries(k, `τ${k + 1}`, values)));
   };
 
   window.addEventListener('keydown', (e) => {

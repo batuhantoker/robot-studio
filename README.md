@@ -226,9 +226,6 @@ sources:
 - [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie) arms, at a
   pinned commit.
 - The ARMOR gallery's upstream repositories.
-- Montaj1, the SolidWorks assembly from the
-  [4-DOF study](https://github.com/batuhantoker/4dof-robotic-arm). It is fetched by
-  sparse checkout and converted with that repo's `python/scripts/preview_cad.py`.
 
 `npm run robots:verify` compiles every model from exactly its listed files.
 
@@ -238,14 +235,14 @@ sources:
 
 ### The published robot pack
 
-The live site loads its 116 CAD robots from a pack on GitHub Pages, not from the
+The live site loads its 130 CAD robots from a pack on GitHub Pages, not from the
 Vercel build. The pack's [attribution page](https://batuhantoker.github.io/robot-studio/)
 lists every robot with its license and upstream source.
 
 - [`robots-pages.yml`](.github/workflows/robots-pages.yml) runs `robots:fetch`,
   `robots:verify` and `npm run robots:pack` on GitHub Actions.
-- The pack holds only robots whose upstream states a license, plus Montaj1, the
-  author's own CAD. Each ships with its LICENSE.
+- The pack holds only robots whose upstream states a license. Each ships with its
+  LICENSE.
 - The 17 robots whose upstream states no license stay local-only.
 - Every file is gzipped: about 520 MB instead of 1.4 GB, under Pages' 1 GB limit. The
   studio inflates the files in the browser.

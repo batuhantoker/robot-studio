@@ -39,7 +39,7 @@ function defaultChain(cands, jointBody, category) {
 }
 
 // Default chain plus up to MAX_CHAINS distinct chains (default first), greedily covering new joints.
-export function pickChains({ candidates, jointBody }, category) {
+export function pickChains({ candidates, jointBody }, category, limit = MAX_CHAINS) {
   const byKey = new Map();
   for (const c of candidates) if (!byKey.has(key(c)) || better(c, byKey.get(key(c)))) byKey.set(key(c), c);
   const cands = [...byKey.values()];
@@ -52,13 +52,13 @@ export function pickChains({ candidates, jointBody }, category) {
     .filter((c) => key(c) !== key(first))
     .sort((a, b) => EE.test(b.body) - EE.test(a.body) || b.joints.length - a.joints.length);
   for (const c of rest) {
-    if (chosen.length >= MAX_CHAINS) break;
+    if (chosen.length >= limit) break;
     if (c.joints.some((j) => !covered.has(j))) {
       chosen.push(c);
       c.joints.forEach((j) => covered.add(j));
     }
   }
-  for (const c of rest) if (chosen.length < MAX_CHAINS && !chosen.includes(c) && EE.test(c.body)) chosen.push(c);
+  for (const c of rest) if (chosen.length < limit && !chosen.includes(c) && EE.test(c.body)) chosen.push(c);
   const chains = chosen.map((c) => named({ ...c, name: c.body }));
   return { chain: { joints: first.joints, tip: chains[0].tip }, chains };
 }

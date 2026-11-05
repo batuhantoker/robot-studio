@@ -16,6 +16,7 @@ export default [
   },
   {
     slug: 'bittle', title: 'Petoi Bittle', vendor: 'Petoi', category: 'legged', base: 'floating',
+    home: { shlfs_joint: -0.6, shrfs_joint: -0.6, shrrs_joint: 0.6, shlrs_joint: 0.6, shlft_joint: 1.2, shrft_joint: 1.2, shrrt_joint: 1.2, shlrt_joint: 1.2 },
     tags: ['quadruped', 'desktop', 'education'],
     description: 'Palm-sized servo-driven robot dog from Petoi aimed at education and hobby coding.',
     repo: 'PetoiCamp/ros_opencat',
@@ -31,6 +32,7 @@ export default [
   },
   {
     slug: 'ggldnl-hexapod', title: 'ggldnl Hexapod', vendor: 'ggldnl', category: 'legged', base: 'floating',
+    home: Object.fromEntries([1, 2, 3, 4, 5, 6].flatMap((i) => [[`leg_${i}_femur`, -1.4], [`leg_${i}_tibia`, -1.58]])),
     tags: ['hexapod', '3d-printed', 'open-source'],
     description: 'Open-hardware 3D-printed six-legged walker with three servo joints per leg.',
     repo: 'ggldnl/Hexapod-Hardware', urdf: 'hexapod.urdf',
@@ -53,6 +55,7 @@ export default [
   },
   {
     slug: 'jumper', title: 'KingKong Jumper', vendor: 'KingKong Robotics', category: 'legged', base: 'floating',
+    home: { LM_J0_joint: 0.75, LM_J1_joint: -0.45, LM_J2_joint: -1.5, RM_J0_joint: -0.75, RM_J1_joint: 0.45, RM_J2_joint: 1.5, LR_J0_joint: 1, LR_J1_joint: -0.4, LR_J2_joint: -1.5, RR_J0_joint: -1, RR_J1_joint: 0.4, RR_J2_joint: 1.5 },
     tags: ['quadruped', 'manipulator', 'gripper'],
     description: 'Companion quadruped from KingKong Robotics with a small arm and gripper mounted on its back.',
     repo: 'KingKongRobotics/jumper', urdf: 'assets/jumper/urdf/jumper/urdf/jumper.urdf',

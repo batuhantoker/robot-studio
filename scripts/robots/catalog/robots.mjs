@@ -178,19 +178,4 @@ export const MENAGERIE_ROBOTS = [
   },
 ];
 
-export const MONTAJ = {
-  id: 'montaj1',
-  dir: 'montaj1',
-  xml: 'cad_preview.xml',
-  title: 'Montaj1 (4-DOF study arm)',
-  maker: 'batuhantoker/4dof-robotic-arm',
-  description:
-    "The SolidWorks 4-DOF arm from the 4dof-robotic-arm study, tessellated from STEP into a visual-only kinematic model.",
-  chain: {
-    joints: ['cad_joint1', 'cad_joint2', 'cad_joint3', 'cad_joint4'],
-    tip: { site: 'tool_tip' },
-  },
-  license: { spdx: null, file: null, source: 'https://github.com/batuhantoker/4dof-robotic-arm/tree/a2043a14164371bd95f44dd9865d8383d2701d26/matlab' },
-};
-
-export const CATALOG_IDS = [...MENAGERIE_ROBOTS.map((r) => r.id), MONTAJ.id];
+export const CATALOG_IDS = MENAGERIE_ROBOTS.map((r) => r.id);

@@ -33,8 +33,12 @@ export interface WheelRig {
   curvature: number;
 }
 
+export type Drive = LegRig['kind'] | WheelRig['kind'];
+
 export interface PilotRig {
   drive: LegRig | WheelRig;
+  /** The parts it drives on: legs that end in wheels stay legs on the body plan either way. */
+  parts: BodyPart[];
   forward: Vec3;
   /** Pose the drive starts from and settles back to. */
   ready: number[];
@@ -83,12 +87,12 @@ function legRig(s: RobotSession, body: Body, legs: BodyPart[]): PilotRig {
       limb: p.limb, home: tipOf(s, p.limb, ready), leg: legs.findIndex((l) => l.side !== p.side),
     })).filter((a) => a.leg >= 0)
     : [];
-  return { drive: { kind: 'legs', gait, legs: legs.map((p) => p.limb), arms, level }, forward: body.forward, ready, topSpeed: gaitTopSpeed(gait), topTurn: gaitTopTurn(gait) };
+  return { drive: { kind: 'legs', gait, legs: legs.map((p) => p.limb), arms, level }, parts: legs, forward: body.forward, ready, topSpeed: gaitTopSpeed(gait), topTurn: gaitTopTurn(gait) };
 }
 
-function wheelRig(s: RobotSession, body: Body, parts: BodyPart[], ground: number): PilotRig {
+function wheelRig(s: RobotSession, body: Body, parts: BodyPart[], ground: number, limbs = parts.map((p) => p.limb)): PilotRig {
   const left = cross(UP, body.forward);
-  const chains = parts.map((p) => s.limbs[p.limb]);
+  const chains = limbs.map((l) => s.limbs[l]);
   const uses = new Map<number, number>();
   for (const l of chains) for (const i of l.index) uses.set(i, (uses.get(i) ?? 0) + 1);
   const wheels: Wheel[] = [];
@@ -118,14 +122,34 @@ function wheelRig(s: RobotSession, body: Body, parts: BodyPart[], ground: number
   const cy = wheels.reduce((a, w) => a + dot(w.at, left), 0) / Math.max(wheels.length, 1);
   const track = Math.max(...wheels.map((w) => Math.abs(dot(w.at, left) - cy)), 0.05);
   const topTurn = curvature > 0 ? topSpeed * curvature : Math.min(Math.max(topSpeed / track, 0.6), 2.5);
-  return { drive: { kind: 'wheels', wheels, curvature }, forward: body.forward, ready: [...s.home], topSpeed, topTurn };
+  return { drive: { kind: 'wheels', wheels, curvature }, parts, forward: body.forward, ready: [...s.home], topSpeed, topTurn };
+}
+
+/** The limb of each leg that ends in a driven wheel (Go2-W, M20, Beni): its last joint turns freely about a level axis. */
+function wheelLimbs(s: RobotSession, legs: BodyPart[]): number[] {
+  const rolls = (i: number) => {
+    const l = s.limbs[i], last = l.chain.joints.at(-1);
+    return last?.type === 'hinge' && !!last.continuous && Math.abs(chainFrames(l.chain, limbQ(l, s.home)).axes.at(-1)![2]) < 0.5;
+  };
+  // A part's lead limb can be a motor branch ending at the same point, so look through all it merged.
+  const found = legs.map((p) => p.limbs.find(rolls));
+  return legs.length >= 2 && found.every((l) => l !== undefined) ? found as number[] : [];
+}
+
+/** Ways this robot can get around; stepping needs two joints above the wheel, so R1-D's bare wheels only roll. */
+export function drivesOf(s: RobotSession, body: Body): Drive[] {
+  const limbs = wheelLimbs(s, body.parts.filter((p) => p.kind === 'leg'));
+  if (!limbs.length) return [];
+  return limbs.every((l) => s.limbs[l].index.length >= 3) ? ['wheels', 'legs'] : ['wheels'];
 }
 
 /** Null for robots with nothing to walk or roll on (arms, hands, a hexapod whose legs read as arms still walks). */
-export function pilotRig(s: RobotSession, body: Body, ground: number): PilotRig | null {
+export function pilotRig(s: RobotSession, body: Body, ground: number, prefer: Drive = 'wheels'): PilotRig | null {
   if (s.category === 'aerial') return null;
   const legs = body.parts.filter((p) => p.kind === 'leg');
   const wheels = body.parts.filter((p) => p.kind === 'wheel');
+  const drives = drivesOf(s, body);
+  if (drives.includes('wheels') && (prefer === 'wheels' || !drives.includes('legs'))) return wheelRig(s, body, legs, ground, wheelLimbs(s, legs));
   if (legs.length >= 2 && (legs.length >= wheels.length || s.category !== 'mobile')) return legRig(s, body, legs);
   if (wheels.length >= 2) return wheelRig(s, body, wheels, ground);
   return null;

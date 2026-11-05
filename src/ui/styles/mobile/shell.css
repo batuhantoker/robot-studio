@@ -3,8 +3,8 @@
 
 @media (max-width: 760px), (max-height: 500px) {
   :root { --dock-h: calc(58px + env(safe-area-inset-bottom, 0px)); --topbar-h: 52px; }
-  .studio { grid-template: var(--topbar-h) minmax(0, 1fr) var(--dock-h) / minmax(0, 1fr); }
-  .stagewrap { min-width: 0; }
+  .studio { grid-template: var(--topbar-h) minmax(0, 1fr) auto var(--dock-h) / minmax(0, 1fr); }
+  .stagewrap { grid-column: 1; min-width: 0; }
   button { touch-action: manipulation; }
 
   /* Top bar: logo, the robot (opens Robots), the mode button, help. */
@@ -54,7 +54,7 @@
   .sheet-title b { font: 700 16px var(--sans); letter-spacing: -0.2px; }
 
   .dock {
-    display: flex; grid-column: 1 / -1; z-index: 21;
+    display: flex; grid-column: 1 / -1; grid-row: 4; z-index: 21;
     padding: 0 4px env(safe-area-inset-bottom, 0px);
     background: var(--panel); border-top: 1px solid var(--line);
   }

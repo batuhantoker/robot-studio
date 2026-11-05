@@ -6,7 +6,9 @@ import { pinOf } from '../catalog/index.mjs';
 // Bump when prepare/compile output changes so cached robots are rebuilt.
 export const PIPELINE = 5;
 const BUILD_KEYS = ['repo', 'urdf', 'xacro', 'zip', 'url', 'inner', 'args', 'dirs', 'extra', 'category', 'colladaUpAxis', 'rootQuat'];
-const buildKey = (robot) => JSON.stringify(BUILD_KEYS.map((k) => robot[k] ?? null));
+// Only where set: joining BUILD_KEYS would make every stamp stale and rebuild the whole catalog.
+const OPTIONAL_KEYS = ['home', 'maxChains', 'extraGeoms'];
+const buildKey = (robot) => JSON.stringify([...BUILD_KEYS.map((k) => robot[k] ?? null), ...OPTIONAL_KEYS.filter((k) => robot[k] !== undefined).map((k) => [k, robot[k]])]);
 const stampFile = (robot) => path.join(ARMOR_OUT, robot.slug, 'entry.json');
 
 // A previous build of this robot whose inputs are unchanged and whose files are all on disk.

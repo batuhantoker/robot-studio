@@ -11,6 +11,8 @@ export interface Layout {
   /** Top-right buttons over the stage (robots, view, surroundings); their popovers open beneath. */
   tools: HTMLElement;
   right: HTMLElement;
+  /** The graphs drawer, along the bottom of the stage. */
+  graphs: HTMLElement;
   setLoading(text: string | null): void;
 }
 
@@ -18,15 +20,16 @@ export function createLayout(root: HTMLElement): Layout {
   const topbar = h('header.topbar');
   const left = h('aside.side.left');
   const right = h('aside.side.right');
+  const graphs = h('section.graphs', { hidden: true, 'aria-label': 'Graphs' });
   const hudTop = h('div.hud.top');
   const hudBottom = h('div.hud.bottom');
   const tools = h('div.stage-tools');
   const label = h('span');
   const loading = h('div.loading', { style: 'display:none' }, h('div.loading-card', {}, h('i.spinner'), label));
   const stage = h('main.stagewrap', {}, hudTop, hudBottom, tools, loading);
-  root.append(h('div.studio', {}, topbar, left, stage, right));
+  root.append(h('div.studio', {}, topbar, left, stage, graphs, right));
   return {
-    topbar, left, stage, hudTop, hudBottom, tools, right,
+    topbar, left, stage, hudTop, hudBottom, tools, right, graphs,
     setLoading(text) {
       loading.style.display = text ? 'grid' : 'none';
       label.textContent = text ?? '';

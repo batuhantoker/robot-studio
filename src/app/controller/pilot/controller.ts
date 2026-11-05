@@ -15,7 +15,7 @@ import type { Studio } from '../studio';
 import { type HandAction, blendOf, handActions } from './actions';
 import { Hands, type Side } from './hands';
 import { PilotInput } from './input';
-import { type PilotRig, pilotRig } from './rig';
+import { type Drive, type PilotRig, drivesOf, pilotRig } from './rig';
 
 export type PilotCamera = 'chase' | 'pov';
 
@@ -44,6 +44,7 @@ export class PilotController {
   private footprint = 0.3;
   private height = 1;
   private rig: PilotRig | null = null;
+  private prefer: Drive = 'wheels';
   private rigFor: RobotSession | null = null;
   private stepper: Stepper | null = null;
   private q: number[] = [];
@@ -64,6 +65,7 @@ export class PilotController {
     store.on(['mode'], (s) => (s.mode === 'pilot' ? this.enter() : this.exit()));
     store.on(['sessionVersion'], (s) => {
       this.exit();
+      this.prefer = 'wheels';
       if (s.mode !== 'pilot') return;
       if (this.available()) this.enter();
       else store.set({ mode: 'pose' });
@@ -85,8 +87,24 @@ export class PilotController {
     return parts.filter((p) => p.kind === 'leg').length >= 2 || parts.filter((p) => p.kind === 'wheel').length >= 2;
   }
 
-  kind(): 'legs' | 'wheels' | null {
+  kind(): Drive | null {
     return this.rig?.drive.kind ?? null;
+  }
+
+  /** The drives on offer; more than one only for legs that end in wheels. */
+  drives(): Drive[] {
+    const s = this.studio.session;
+    return s && this.available() ? drivesOf(s, bodyFor(s)) : [];
+  }
+
+  setDrive(drive: Drive): void {
+    if (drive === this.kind()) return;
+    const { pose } = this;
+    this.prefer = drive;
+    this.exit();
+    this.rigFor = null;
+    this.enter();
+    this.pose = pose;
   }
 
   speed(): number {
@@ -212,7 +230,7 @@ export class PilotController {
     if (this.rigFor !== s) {
       // The world floor sits at the assembly's resting floor, not at z = 0.
       const ground = this.studio.viewport.overlay.worldToLocal(new THREE.Vector3(0, 0, s.assembly.floorZ)).z;
-      this.rig = pilotRig(s, bodyFor(s), ground);
+      this.rig = pilotRig(s, bodyFor(s), ground, this.prefer);
       this.rigFor = s;
     }
     const rig = this.rig;
@@ -229,7 +247,7 @@ export class PilotController {
     this.handCtl = this.hands ? new Hands(s, rig.ready, this.hands.frame, bodyFor(s)) : null;
     this.act = null;
     this.blockedAt = -Infinity;
-    this.footprint = this.measureFootprint(s, rig);
+    this.footprint = this.measureFootprint(rig);
     const { camera, controls } = this.studio.viewport.stage;
     this.saved ??= { position: camera.position.clone(), target: controls.target.clone(), near: camera.near, fov: camera.fov };
     this.measureEye(s);
@@ -379,9 +397,8 @@ export class PilotController {
   }
 
   /** How far from its centre the robot meets the ground: feet or wheels, plus a toe or a tyre. */
-  private measureFootprint(s: RobotSession, rig: PilotRig): number {
-    const parts = bodyFor(s).parts.filter((p) => p.kind === (rig.drive.kind === 'legs' ? 'leg' : 'wheel'));
-    const far = Math.max(...parts.map((p) => Math.hypot(p.role.tip[0], p.role.tip[1])), 0.05);
+  private measureFootprint(rig: PilotRig): number {
+    const far = Math.max(...rig.parts.map((p) => Math.hypot(p.role.tip[0], p.role.tip[1])), 0.05);
     return far + 0.08 * this.height;
   }
 

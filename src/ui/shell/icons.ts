@@ -21,6 +21,7 @@ export const ICON = {
   live: svg('<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>'),
   math: svg('<path d="M5 5h6M8 2v6M14 5h5M5 16l5 5M10 16l-5 5M14 16h5M14 20h5"/>'),
   analysis: svg('<path d="M4 20V4M4 20h16"/><path d="M7 16l4-5 3 3 5-7"/>'),
+  graphs: svg('<path d="M3 16l5-6 4 3 5-8 4 5"/><path d="M3 20.5h18" opacity=".45"/>'),
   view: svg('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>'),
   help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 0 1 5 1c0 1.8-2.5 2.2-2.5 3.8"/><circle cx="12" cy="17.3" r=".6" fill="currentColor"/>'),
   close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),

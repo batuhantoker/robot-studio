@@ -2,7 +2,7 @@
 // Compiles every robot in public/robots/index.json in MuJoCo WASM from only its listed files, the way
 // the browser does, and checks its kinematic chains. Exits 1 on any failure.
 //
-//   node scripts/robots/verify.mjs [--only id,id,...] [--collection armor|menagerie|montaj1|prosthetics]
+//   node scripts/robots/verify.mjs [--only id,id,...] [--collection armor|menagerie|prosthetics]
 import path from 'node:path';
 import { parseArgs, selects } from './cli/args.mjs';
 import { exactCaseProblem } from './files/exact-case.mjs';
@@ -14,7 +14,7 @@ import { printReport } from './verify/report.mjs';
 import { verifyRobot } from './verify/robot.mjs';
 
 async function main() {
-  const usage = 'usage: node scripts/robots/verify.mjs [--only id,id,...] [--collection armor|menagerie|montaj1|prosthetics]';
+  const usage = 'usage: node scripts/robots/verify.mjs [--only id,id,...] [--collection armor|menagerie|prosthetics]';
   const opts = parseArgs(process.argv.slice(2), { usage });
   const manifest = readManifest();
   if (!manifest) throw new Error(`${path.relative(STUDIO, MANIFEST)} not found; run scripts/robots/fetch.mjs`);

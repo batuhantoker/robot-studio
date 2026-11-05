@@ -22,7 +22,7 @@ export interface CatalogRobot {
   chain: CatalogChain | null;
   /** Alternative chains (each leg/arm) for branched robots. */
   chains?: CatalogChain[];
-  collection?: 'menagerie' | 'montaj1' | 'armor' | 'prosthetics';
+  collection?: 'menagerie' | 'armor' | 'prosthetics';
   category?: 'arm' | 'legged' | 'humanoid' | 'mobile' | 'aerial' | 'hand' | 'other';
   format?: 'urdf' | 'mjcf';
   vendor?: string;

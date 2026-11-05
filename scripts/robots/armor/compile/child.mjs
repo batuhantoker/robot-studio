@@ -8,12 +8,14 @@ import { parseXml } from '../../mjcf/parse-xml.mjs';
 import { ROBOTS_DIR } from '../../paths.mjs';
 import { createLoader, readErrors } from '../../verify/compile.mjs';
 import { discoverChains } from '../chains/discover.mjs';
+import { withHome } from '../../menagerie/studio.mjs';
 import { pickChains } from '../chains/pick.mjs';
 import { writeXml } from '../prepare/xml-write.mjs';
 import { contactPairs, lowestPoint } from './measure.mjs';
 import { excludeContacts, hideCollisionGeoms, liftRoots, meshFiles, rotateRoots } from './mjcf-post.mjs';
 
-const [rel, category, rootQuat] = process.argv.slice(2);
+const [rel, category, rootQuat, options] = process.argv.slice(2);
+const { home, maxChains, extraGeoms } = JSON.parse(options ?? '{}');
 const loader = await createLoader();
 const { mj } = loader;
 const abs = (p) => path.join(ROBOTS_DIR, ...p.split('/'));
@@ -66,6 +68,8 @@ function main() {
   excludeContacts(root, pairs);
   out.excluded = pairs.length;
   save();
+  const finished = withHome(fs.readFileSync(abs(`${rel}/robot.xml`), 'utf8'), home, rel);
+  fs.writeFileSync(abs(`${rel}/robot.xml`), extraGeoms ? finished.replace(/<worldbody>\s*<body\b[^>]*>/, `$&${extraGeoms}`) : finished);
 
   for (const f of meshNames()) {
     if (!meshFiles(root).includes(f)) fs.rmSync(abs(`${rel}/meshes/${f}`));
@@ -84,7 +88,7 @@ function main() {
     Object.assign(out, { nbody: m.nbody, nmesh: m.nmesh, neq: m.neq, files });
     Object.assign(out, { visual_geoms: groups.filter((g) => g <= 2).length, collision_geoms: groups.filter((g) => g === 3).length });
     out.verts = Array.from(m.mesh_vertnum).reduce((a, b) => a + b, 0);
-    Object.assign(out, pickChains(discoverChains(mj, m), category));
+    Object.assign(out, pickChains(discoverChains(mj, m), category, maxChains));
   } finally {
     m.delete();
   }

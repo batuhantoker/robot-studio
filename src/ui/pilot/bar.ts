@@ -7,6 +7,9 @@ import { h, replace } from '../dom/h';
 export interface PilotView {
   available(): boolean;
   kind(): 'legs' | 'wheels' | null;
+  /** Legs that end in wheels can do either. */
+  drives?(): ('legs' | 'wheels')[];
+  setDrive?(drive: 'legs' | 'wheels'): void;
   camera: 'chase' | 'pov';
   toggleCamera(): void;
   speed(): number;
@@ -44,6 +47,7 @@ export function mountPilotBar(el: HTMLElement, store: Store<StudioState>, view: 
   el.prepend(bar);
   const keys = h('div.row', { style: 'gap:10px' });
   const cams = h('div.seg');
+  const drives = h('div.seg', { title: 'Roll on the wheels, or lock them and walk' });
   const moves = h('div.seg.pilot-moves');
   // Its own card in the dock: inside the bar it would trail off the end of a phone's sideways scroll.
   const handsRow = h('div.toolbar.pilot-hands', { style: 'display:none' });
@@ -51,7 +55,7 @@ export function mountPilotBar(el: HTMLElement, store: Store<StudioState>, view: 
   const readout = h('span.mono', { style: 'font-size:11px;min-width:118px' });
   const note = h('span.mu.pilot-note', { style: 'font-size:11px' });
   // On phones the bar wraps here: moves on the first line, camera and readout on the second.
-  bar.append(h('span.cap', {}, 'Pilot'), keys, moves, h('span.pilot-break'), cams, readout, note);
+  bar.append(h('span.cap', {}, 'Pilot'), drives, keys, moves, h('span.pilot-break'), cams, readout, note);
   bar.before(handsRow);
   let hint = '';
   const render = () => {
@@ -64,12 +68,16 @@ export function mountPilotBar(el: HTMLElement, store: Store<StudioState>, view: 
     const kind = view.kind();
     if (!view.available() || !kind) {
       replace(keys);
+      replace(drives);
       replace(cams);
       replace(moves);
       replace(handsRow);
       note.textContent = 'Pilot needs a robot with legs or wheels.';
       return;
     }
+    const choices = view.drives?.() ?? [];
+    drives.style.display = choices.length > 1 ? '' : 'none';
+    replace(drives, ...choices.map((d) => h('button.tb', { class: kind === d ? 'on' : '', onclick: () => view.setDrive?.(d) }, d === 'wheels' ? 'Wheels' : 'Legs')));
     replace(keys, key('W S', 'drive'), key('A D', kind === 'wheels' ? 'steer' : 'turn'), kind === 'legs' ? key('Q E', 'side step') : null, key('⇧', 'faster'), key('C', 'camera'));
     replace(cams, ...(['chase', 'pov'] as const).map((c) => h('button.tb', {
       class: view.camera === c ? 'on' : '',

@@ -42,7 +42,7 @@ export function entryErrors(entry, onDisk) {
     if (entry.dof !== entry.chain?.joints?.length) errors.push(`dof ${entry.dof} != ${entry.chain?.joints?.length} chain joints`);
   }
   if (chains !== undefined) {
-    if (!Array.isArray(chains) || chains.length > 8) errors.push('chains must be an array of at most 8');
+    if (!Array.isArray(chains) || chains.length > 24) errors.push('chains must be an array of at most 24');
     else chains.forEach((c, i) => errors.push(...chainErrors(c, `chains[${i}]`, true)));
   }
   const lic = entry.license;

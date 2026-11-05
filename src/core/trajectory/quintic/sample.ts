@@ -38,9 +38,9 @@ export function sampleQuintic(
   return out;
 }
 
-/** The default scenario: home → home+0.35 → home−0.35 → home, each clipped to limits. */
-export function defaultWaypoints(limits: [number, number][]): number[][] {
+/** The default scenario: home → home+0.35 → home−0.35 → home, each clipped to limits; home is zero unless given. */
+export function defaultWaypoints(limits: [number, number][], from?: number[]): number[][] {
   const clip = (v: number, k: number) => Math.min(Math.max(v, limits[k][0]), limits[k][1]);
-  const home = limits.map((_, k) => clip(0, k));
+  const home = limits.map((_, k) => clip(from?.[k] ?? 0, k));
   return [home, home.map((v, k) => clip(v + 0.35, k)), home.map((v, k) => clip(v - 0.35, k)), home];
 }

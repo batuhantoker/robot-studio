@@ -2,6 +2,7 @@
 import type { Vec3 } from '../math/linear/vec';
 import { bodyOf } from './body';
 import { drive, jointWave, ripple } from './generators/analytic';
+import { pendulumPresets, pendulumRow } from './generators/pendulum';
 import { slalom, wheelsOf } from './generators/steer';
 import { taskClip } from './generators/task';
 import * as arm from './paths/arm';
@@ -100,6 +101,8 @@ const gait = (kind: 'trot' | 'walk' | 'tripod' | 'march', withArms = false): Lim
 export function presetsFor(robot: MotionRobot, q0: number[], category: string): MotionPreset[] {
   // A hand's fingers are not arms: tool paths and pick and place make no sense on a fingertip.
   if (category === 'hand') return [{ id: 'wave-joints', label: 'Joint wave', hint: 'A ripple through every finger', build: (r, q, s) => jointWave(r, q, s) }];
+  const row = category === 'other' ? pendulumRow(robot, q0) : null;
+  if (row) return pendulumPresets(row);
   const roles = limbRoles(robot, q0);
   const body = bodyOf(robot, q0, category);
   // One limb per real end effector: a hand's fingertip chains would fight over the same arm joints.

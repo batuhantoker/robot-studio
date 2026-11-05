@@ -46,7 +46,6 @@ input[type='range'] { accent-color: var(--accent); cursor: pointer; }
 .tourchip .dot { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .tourchip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .tourchip.on .dot { animation: blink 1.2s steps(2) infinite; }
-canvas.chart { width: 100%; height: 120px; display: block; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-sm); }
 .tour-caption { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 3; display: none; padding: 7px 14px; border-radius: 999px; background: rgba(21, 23, 26, 0.86); color: #fff; box-shadow: var(--shadow-float); }
 .legend { min-width: 200px; }
 .legend-row { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; padding: 2px 0; }

@@ -46,7 +46,7 @@ function cadEntry(r: CatalogRobot): LibraryEntry {
     dof: r.joints_total ?? chainDof, chainDof,
     category: r.category ?? 'arm', maker,
     tags: [...(r.tags ?? []), r.collection ?? 'cad', r.base ?? ''].filter(Boolean),
-    localOnly: !r.license.spdx && r.collection !== 'montaj1',
+    localOnly: !r.license.spdx,
   };
 }
 

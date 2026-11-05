@@ -28,7 +28,8 @@ const STEPS: Step[] = [
   { target: '.stage-tools > .stage-settings:not(.view-panel):not(.scene-panel)', click: '.stage-tools > .stage-gear:not(.stage-robots):not(.stage-view)', title: 'Surroundings', text: 'Backdrop, floor and a setting: desk, lab, work cell… with loose parts to pick up.' },
   { target: '.side.left:not(.closed) nav.tabs, .side.left .rail', phone: '.dock button[data-tab="robots"], .dock button[data-tab="build"]', title: 'Robots and Build', text: 'Browse the library, or build your own arm joint by joint.' },
   { target: '.side.right:not(.closed) nav.tabs, .side.right .rail', phone: '.dock', title: 'Live, Math, Analysis', text: 'Live numbers, the math behind them, and the current mode’s charts.' },
-  { target: '.top-right .help', title: 'That’s it', text: 'Replay this any time with ?. Shortcuts: / search, [ ] panels.' },
+  { target: '.graphs-chip', title: 'Graphs', text: 'How joints, torque and the tool change over time, in every mode. Hover to read any moment.' },
+  { target: '.top-right .help', title: 'That’s it', text: 'Replay this any time with ?. Shortcuts: / search, [ ] panels, G graphs.' },
 ];
 
 const SEEN = 'robot-studio.walkthrough.v1';

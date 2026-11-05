@@ -76,7 +76,7 @@
   /* Sheet content at ~390px: stop rows are tap targets, wide maths and tables scroll in place. */
   .stops .stop { min-height: 40px; }
   .stops .stop .tb { min-width: 32px; }
-  canvas.chart { height: 110px; }
+  .chart canvas { height: 110px; }
   .math-block, .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
   table.grid { display: block; max-width: 100%; overflow-x: auto; }
   .ik-row .vec input.num { min-width: 0; }

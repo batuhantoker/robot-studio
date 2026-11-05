@@ -24,9 +24,16 @@ export function withoutFreeJoint(xml, label) {
   return drop('qvel', 6)(drop('qpos', 7)(xml.replace(FREE, '')));
 }
 
-// The studio's home pose is the key named "home": rename one the model has, or add one from joint values.
+// The studio's home pose is the key named "home": rename one the model has, or add one from joint values, given in
+// qpos order or by name with the rest at zero.
 export function withHome(xml, home, label) {
   if (home === undefined) return xml;
+  if (typeof home === 'object' && !Array.isArray(home)) {
+    const names = [...xml.matchAll(/<joint\b[^>]*\bname="([^"]+)"/g)].map((m) => m[1]);
+    const unknown = Object.keys(home).filter((n) => !names.includes(n));
+    if (unknown.length) throw new Error(`${label}: no joint ${unknown.join(', ')}`);
+    return withHome(xml, names.map((n) => home[n] ?? 0), label);
+  }
   if (typeof home === 'string') {
     const key = new RegExp(`(<key\\b[^>]*\\bname=")${home}(")`);
     if (!key.test(xml)) throw new Error(`${label}: no keyframe ${home}`);
