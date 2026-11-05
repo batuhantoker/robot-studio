@@ -2,6 +2,7 @@
 export default [
   {
     slug: 'bb25', title: 'BB25', vendor: 'Eliott Radcliffe (DC-Engineer)', category: 'mobile', base: 'mobile',
+    rev: 1,
     // The URDF's base link is a 1 x 1 m placeholder slab under the real chassis.
     dropGeoms: 'size="0\\.5 0\\.5 0\\.05"',
     tags: ['wheeled', 'differential-drive', 'education'],
@@ -11,6 +12,7 @@ export default [
   },
   {
     slug: 'hello-robot-stretch-3', title: 'Hello Robot Stretch 3', vendor: 'Hello Robot', category: 'mobile',
+    rev: 1,
     base: 'mobile', tags: ['mobile-manipulator', 'telescoping-arm', 'gripper'],
     description: 'Lightweight mobile manipulator with a vertical lift, telescoping arm and dexterous wrist on a two-wheel base.',
     repo: 'hello-robot/stretch_urdf',
@@ -19,6 +21,7 @@ export default [
   },
   {
     slug: 'husky', title: 'Clearpath Husky', vendor: 'Clearpath Robotics', category: 'mobile', base: 'mobile',
+    rev: 1,
     tags: ['wheeled', 'ugv', 'outdoor'],
     description: 'Rugged four-wheel skid-steer outdoor research vehicle from Clearpath Robotics.',
     repo: 'husky/husky', xacro: 'husky_description/urdf/husky.urdf.xacro',
@@ -36,6 +39,7 @@ export default [
   },
   {
     slug: 'kobuki', title: 'Yujin Kobuki', vendor: 'Yujin Robot', category: 'mobile', base: 'mobile',
+    rev: 1,
     tags: ['wheeled', 'differential-drive', 'education'],
     description: 'Round differential-drive base from Yujin Robot best known as the TurtleBot 2 platform.',
     repo: 'yujinrobot/kobuki', xacro: 'kobuki_description/urdf/kobuki_standalone.urdf.xacro',
@@ -43,6 +47,7 @@ export default [
   },
   {
     slug: 'nori-a3', title: 'Nori Robotics A3', vendor: 'Nori Robotics', category: 'mobile', base: 'mobile',
+    rev: 1,
     tags: ['mobile-manipulator', 'bimanual', 'wheeled'],
     description: 'Wheeled bimanual mobile manipulator from Nori Robotics with two arms on a lifting torso.',
     repo: 'Nori-Robotics/nori_description', xacro: 'urdf/nori.urdf.xacro',
@@ -51,6 +56,7 @@ export default [
   },
   {
     slug: 'turtlebot3-burger', title: 'ROBOTIS TurtleBot3 Burger', vendor: 'ROBOTIS', category: 'mobile',
+    rev: 1,
     base: 'mobile', tags: ['wheeled', 'differential-drive', 'education'],
     description: 'Small stacked-deck differential-drive ROS education robot from ROBOTIS with a 2D lidar on top.',
     repo: 'ROBOTIS-GIT/turtlebot3', xacro: 'turtlebot3_description/urdf/turtlebot3_burger.urdf',
@@ -58,6 +64,7 @@ export default [
   },
   {
     slug: 'yuhesen-fr-mini', title: 'YUHESEN FR-mini', vendor: 'YUHESEN', category: 'mobile', base: 'mobile',
+    rev: 1,
     tags: ['wheeled', 'chassis', 'front-steering'],
     description: 'Small wheeled chassis from YUHESEN with front-wheel Ackermann-style steering.',
     repo: 'YUHESEN-Robot/YHS-ROBOT-Description',

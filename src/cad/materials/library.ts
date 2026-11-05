@@ -35,10 +35,15 @@ export class MaterialSet {
   /** Material for an imported CAD part: class inferred from colour and name, shared per class+colour. */
   cad(rgba: ArrayLike<number>, name: string): { material: THREE.MeshPhysicalMaterial; cls: MaterialClass } {
     const cls = inferMaterial(rgba, name);
+    return { material: this.finish(cls, rgba), cls };
+  }
+
+  /** Material for a part whose finish is known rather than inferred. */
+  finish(cls: MaterialClass, rgba: ArrayLike<number>): THREE.MeshPhysicalMaterial {
     const key = `${cls}:${Array.from(rgba).map((v) => v.toFixed(3)).join(',')}`;
     let material = this.cadCache.get(key);
     if (!material) this.cadCache.set(key, (material = physicalMaterial(cls, srgb(rgba))));
-    return { material, cls };
+    return material;
   }
 
   dispose(): void {

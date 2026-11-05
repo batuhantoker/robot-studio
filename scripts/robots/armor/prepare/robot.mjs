@@ -9,7 +9,7 @@ import { resolveMesh } from '../resolve/mesh-path.mjs';
 import { resolveSource } from '../resolve/source.mjs';
 import { convertMeshes, meshKey } from './convert-meshes.mjs';
 import { fitFaceBudget } from './face-budget.mjs';
-import { finishUrdf, loadUrdf } from './urdf-rewrite.mjs';
+import { finishUrdf, loadUrdf, setLimits } from './urdf-rewrite.mjs';
 
 // Fetches, converts and compiles one catalog robot into public/robots/armor/<slug>/; returns raw facts.
 export async function prepareRobot(robot, repoDirs = robot.dirs) {
@@ -20,6 +20,7 @@ export async function prepareRobot(robot, repoDirs = robot.dirs) {
   const src = await resolveSource(robot, work, repoDirs);
   const model = loadUrdf(fs.readFileSync(src.urdf, 'utf8'), path.basename(src.urdf));
   const notes = [...model.notes];
+  setLimits(model, robot.limits);
 
   const refs = [...new Set(model.meshRefs.map((r) => r.ref))];
   const resolved = new Map(refs.map((ref) => [ref, resolveMesh(ref, src.ctx)]));
@@ -47,7 +48,7 @@ export async function prepareRobot(robot, repoDirs = robot.dirs) {
   const fileFor = (r) => meshes.get(meshKey(resolved.get(r.ref), r.hull))?.file ?? null;
   fs.writeFileSync(path.join(out, 'robot.urdf'), finishUrdf(model, fileFor));
 
-  const facts = await compileInChild(`armor/${robot.slug}`, robot.category, robot.rootQuat, { home: robot.home, maxChains: robot.maxChains, extraGeoms: robot.extraGeoms, dropGeoms: robot.dropGeoms });
+  const facts = await compileInChild(`armor/${robot.slug}`, robot.category, robot.rootQuat, { base: robot.base, home: robot.home, maxChains: robot.maxChains, extraGeoms: robot.extraGeoms, dropGeoms: robot.dropGeoms });
   if (facts.error) throw new Error(`MuJoCo: ${facts.error}`);
   if (facts.errors?.length) throw new Error(facts.errors.join('; '));
 

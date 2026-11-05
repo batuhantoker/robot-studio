@@ -7,7 +7,7 @@ import { pinOf } from '../catalog/index.mjs';
 export const PIPELINE = 5;
 const BUILD_KEYS = ['repo', 'urdf', 'xacro', 'zip', 'url', 'inner', 'args', 'dirs', 'extra', 'category', 'colladaUpAxis', 'rootQuat'];
 // Only where set: joining BUILD_KEYS would make every stamp stale and rebuild the whole catalog.
-const OPTIONAL_KEYS = ['home', 'maxChains', 'extraGeoms', 'dropGeoms', 'rev'];
+const OPTIONAL_KEYS = ['home', 'limits', 'maxChains', 'extraGeoms', 'dropGeoms', 'rev'];
 const buildKey = (robot) => JSON.stringify([...BUILD_KEYS.map((k) => robot[k] ?? null), ...OPTIONAL_KEYS.filter((k) => robot[k] !== undefined).map((k) => [k, robot[k]])]);
 const stampFile = (robot) => path.join(ARMOR_OUT, robot.slug, 'entry.json');
 

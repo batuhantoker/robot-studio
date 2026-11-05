@@ -52,7 +52,8 @@ export function createStudio(): Studio {
     const ground = floorZ - environment.drop;
     const r = Math.max(radius, 0.05) * 2.4;
     floor.fit(radius, ground, environment.extent);
-    key.position.set(r * 0.7, -r * 0.9, r * 1.6 + floorZ);
+    // Off to one side of the default camera: a key from behind the lens flattens pale robots.
+    key.position.set(-r * 0.14, -r * 1.13, r * 1.6 + floorZ);
     key.target.position.set(0, 0, ground);
     rim.position.set(-r, r * 0.8, r * 0.9);
     // The work cell's conveyor runs past the robot's own shadow disc.

@@ -15,13 +15,19 @@ uniform float viewHeight;
 vec3 srgbToLinear(vec3 c) {
   return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
 }
-// Inverse of three's NeutralToneMapping at exposure 1; exact for greys, close for tinted colours.
+// Inverse of three's NeutralToneMapping at exposure 1. The curve scales every channel by the peak's
+// compression, so a per-channel inverse tints near-whites blue.
 vec3 untone(vec3 t) {
   t = min(t, vec3(0.995));
-  vec3 c = mix(t, 0.0576 / (1.0 - t) - 0.24 + 0.76, step(vec3(0.76), t));
-  float m = min(c.r, min(c.g, c.b));
+  float p = max(t.r, max(t.g, t.b));
+  if (p >= 0.76) {
+    float peak = 0.0576 / (1.0 - p) + 0.52;
+    float g = 1.0 - 1.0 / (0.15 * (peak - p) + 1.0);
+    t = max((t - g * p) / (1.0 - g), 0.0) * (peak / p);
+  }
+  float m = min(t.r, min(t.g, t.b));
   // Capped so antialiased edges against a white backdrop do not bloom.
-  return min(c + (m >= 0.04 ? 0.04 : 0.4 * sqrt(m) - m), vec3(4.0));
+  return min(t + (m >= 0.04 ? 0.04 : 0.4 * sqrt(m) - m), vec3(4.0));
 }
 // The CSS gradient: mixed in sRGB, top to bottom of the frame, dithered below one 8-bit step
 // so long dark ramps do not band once quantised and encoded.

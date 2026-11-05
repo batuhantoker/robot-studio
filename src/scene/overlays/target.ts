@@ -21,6 +21,8 @@ export class TargetOverlay {
     this.gizmo.addEventListener('dragging-changed', (e) => (orbit.enabled = !(e as unknown as { value: boolean }).value));
     this.gizmo.addEventListener('objectChange', () => onMove([this.marker.position.x, this.marker.position.y, this.marker.position.z]));
     this.group.add(this.marker, this.gizmo.getHelper());
+    // Unit-sized until the first robot scales it: shown then, the dot fills the frame.
+    this.group.visible = this.gizmo.enabled = false;
   }
 
   setScale(reach: number): void {

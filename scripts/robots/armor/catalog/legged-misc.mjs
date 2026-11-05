@@ -2,6 +2,7 @@
 export default [
   {
     slug: 'anymal', title: 'ANYbotics ANYmal D', vendor: 'ANYbotics', category: 'legged', base: 'floating',
+    rev: 1,
     tags: ['quadruped', 'inspection'],
     description: 'Industrial inspection quadruped from ANYbotics with three actuated joints per leg.',
     repo: 'ANYbotics/anymal_d_simple_description', urdf: 'urdf/anymal.urdf',
@@ -9,6 +10,7 @@ export default [
   },
   {
     slug: 'beni', title: 'Mondo Robotics BENI', vendor: 'Mondo Robotics', category: 'legged', base: 'floating',
+    rev: 1,
     tags: ['wheel-legged', 'biped', 'open-source'],
     description: 'Open-source wheel-legged biped that balances on driven wheels at the ends of two articulated legs.',
     repo: 'Mondo-Robotics/open-beni', urdf: 'assets/beni_base/urdf/beni.urdf',
@@ -16,6 +18,7 @@ export default [
   },
   {
     slug: 'bittle', title: 'Petoi Bittle', vendor: 'Petoi', category: 'legged', base: 'floating',
+    rev: 1,
     home: { shlfs_joint: -0.6, shrfs_joint: -0.6, shrrs_joint: 0.6, shlrs_joint: 0.6, shlft_joint: 1.2, shrft_joint: 1.2, shrrt_joint: 1.2, shlrt_joint: 1.2 },
     tags: ['quadruped', 'desktop', 'education'],
     description: 'Palm-sized servo-driven robot dog from Petoi aimed at education and hobby coding.',
@@ -35,6 +38,7 @@ export default [
   },
   {
     slug: 'ggldnl-hexapod', title: 'ggldnl Hexapod', vendor: 'ggldnl', category: 'legged', base: 'floating',
+    rev: 1,
     home: Object.fromEntries([1, 2, 3, 4, 5, 6].flatMap((i) => [[`leg_${i}_femur`, -1.4], [`leg_${i}_tibia`, -1.58]])),
     tags: ['hexapod', '3d-printed', 'open-source'],
     description: 'Open-hardware 3D-printed six-legged walker with three servo joints per leg.',
@@ -58,9 +62,17 @@ export default [
   },
   {
     slug: 'jumper', title: 'KingKong Jumper', vendor: 'KingKong Robotics', category: 'legged', base: 'floating',
-    home: { LM_J0_joint: 0.75, LM_J1_joint: -0.45, LM_J2_joint: -1.5, RM_J0_joint: -0.75, RM_J1_joint: 0.45, RM_J2_joint: 1.5, LR_J0_joint: 1, LR_J1_joint: -0.4, LR_J2_joint: -1.5, RR_J0_joint: -1, RR_J1_joint: 0.4, RR_J2_joint: 1.5 },
-    tags: ['quadruped', 'manipulator', 'gripper'],
-    description: 'Companion quadruped from KingKong Robotics with a small arm and gripper mounted on its back.',
+    rev: 2,
+    // The upstream standing pose, all six limbs down (tasks/jumper/common/constants.py).
+    home: {
+      LF_J0_joint: -0.5507, LF_J1_joint: -1.0658, LF_J2_joint: -0.4408, LF_J3_joint: -1.374, RF_J0_joint: 0.5524, RF_J1_joint: -1.066, RF_J2_joint: 0.4414, RF_J3_joint: 1.4173,
+      LM_J0_joint: 0.0012, LM_J1_joint: 0.5356, LM_J2_joint: -1.8271, RM_J0_joint: -0.0012, RM_J1_joint: -0.5376, RM_J2_joint: 1.8313,
+      LR_J0_joint: 0.6313, LR_J1_joint: 0.5534, LR_J2_joint: -1.8648, RR_J0_joint: -0.6326, RR_J1_joint: -0.5548, RR_J2_joint: 1.8678,
+    },
+    // The URDF drops the sign on these; the project's own MJCF has them right.
+    limits: { LM_J0_joint: [-0.75, 1], RF_J2_joint: [-1.65, 2.2], RF_J4_joint: [-0.1, 1.6] },
+    tags: ['hexapod', 'manipulator', 'gripper'],
+    description: 'Crab-like hexapod from KingKong Robotics: four legs and two gripper arms that also walk, on a tripod gait.',
     repo: 'KingKongRobotics/jumper', urdf: 'assets/jumper/urdf/jumper/urdf/jumper.urdf',
     dirs: ['assets/jumper/urdf/jumper/meshes/visual', 'assets/jumper/urdf/jumper/urdf'],
   },
@@ -73,6 +85,7 @@ export default [
   },
   {
     slug: 'resibots-hexapod', title: 'ResiBots Pexod Hexapod', vendor: 'ResiBots Project', category: 'legged',
+    rev: 1,
     base: 'floating', tags: ['hexapod', 'research', 'open-source'],
     description: 'Six-legged research robot from the ResiBots project used for damage-recovery learning.',
     repo: 'resibots/hexapod_ros', xacro: 'hexapod_description/urdf/pexod.xacro',

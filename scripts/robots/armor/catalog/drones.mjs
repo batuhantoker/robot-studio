@@ -10,6 +10,7 @@ export default [
   },
   {
     slug: 'hummingbird', title: 'AscTec Hummingbird', vendor: 'Ascending Technologies', category: 'aerial',
+    rev: 1,
     base: 'floating', tags: ['drone', 'quadrotor', 'research'],
     description: 'Research quadrotor from Ascending Technologies as modelled in the ETH RotorS simulator.',
     repo: 'ethz-asl/rotors_simulator', xacro: 'rotors_description/urdf/hummingbird.xacro',
@@ -18,6 +19,7 @@ export default [
   },
   {
     slug: 'techpod', title: 'Applied Aeronautics Techpod', vendor: 'Applied Aeronautics', category: 'aerial',
+    rev: 1,
     base: 'floating', tags: ['fixed-wing', 'research'],
     description: 'Fixed-wing UAV airframe as modelled in the ETH RotorS simulator.',
     repo: 'ethz-asl/rotors_simulator', xacro: 'rotors_description/urdf/techpod.xacro',

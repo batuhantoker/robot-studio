@@ -5,6 +5,8 @@ export const STUDIO_URL = 'https://robotics-studio-one.vercel.app';
 const START = '<!-- robot-library:start -->';
 const END = '<!-- robot-library:end -->';
 const GROUPS = [['preset', 'Studio presets'], ['arm', 'Arms'], ['humanoid', 'Humanoids'], ['legged', 'Legged'], ['mobile', 'Mobile'], ['hand', 'Hands'], ['aerial', 'Aerial'], ['other', 'Other']];
+// Files that must stay byte-identical keep their id as a name, so the title lives here.
+const DISPLAY = { original_4dof: '4-DOF Arm' };
 const JOINT_DOFS = { revolute: 1, prismatic: 1, cylindrical: 2, universal: 2, planar: 3, spherical: 3 };
 
 const cell = (text) => String(text).replace(/\|/g, '\\|');
@@ -16,7 +18,7 @@ export const presetDof = (preset) => preset.links.reduce((n, l) => n + JOINT_DOF
 export function libraryEntries(manifest, presets) {
   const live = new Set(publishable(manifest).kept.map((r) => r.id));
   return [
-    ...presets.map(({ id, spec }) => ({ group: 'preset', id: `preset:${id}`, title: spec.name, maker: 'Studio', joints: presetDof(spec), license: null, live: true })),
+    ...presets.map(({ id, spec }) => ({ group: 'preset', id: `preset:${id}`, title: DISPLAY[id] ?? spec.name, maker: 'Studio', joints: presetDof(spec), license: null, live: true })),
     ...manifest.map((r) => ({
       group: r.category ?? 'arm',
       id: `${r.prosthesis ? 'prosthesis' : 'cad'}:${r.id}`,

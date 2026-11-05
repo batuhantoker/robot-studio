@@ -37,12 +37,12 @@ export interface Backdrop {
 
 export const BACKDROPS: Record<BackdropId, Backdrop> = {
   studio: {
-    label: 'Studio', top: '#f3f4f6', bottom: '#e3e6ea', floor: '#e4e6ea', grid: '#c4c8cd', shadow: 0.24,
-    sky: '#ffffff', ground: '#c9ccd2', hemi: 1.1, key: '#ffffff', keyIntensity: 2.2, rim: '#dfe7ff', rimIntensity: 0.6, env: 0.6, dark: false,
+    label: 'Studio', top: '#d2d5da', bottom: '#b4b9c1', floor: '#bcc0c7', grid: '#999fa8', shadow: 0.3,
+    sky: '#ffffff', ground: '#b6b9c0', hemi: 0.45, key: '#ffffff', keyIntensity: 3.4, rim: '#dfe7ff', rimIntensity: 0.6, env: 0.3, dark: false,
   },
   white: {
-    label: 'Cyclorama', top: '#ffffff', bottom: '#f1f2f4', floor: '#f6f7f8', grid: '#dfe2e6', shadow: 0.2,
-    sky: '#ffffff', ground: '#e6e8eb', hemi: 1.25, key: '#ffffff', keyIntensity: 2.0, rim: '#ffffff', rimIntensity: 0.5, env: 0.7, dark: false,
+    label: 'Cyclorama', top: '#ffffff', bottom: '#ebedf0', floor: '#eff0f3', grid: '#d6d9de', shadow: 0.42,
+    sky: '#ffffff', ground: '#d9dbe0', hemi: 0.45, key: '#ffffff', keyIntensity: 2.2, rim: '#ffffff', rimIntensity: 0.5, env: 0.3, dark: false,
   },
   dusk: {
     label: 'Dusk', top: '#aebfd4', bottom: '#f0d9c4', floor: '#e8d5c3', grid: '#cfb7a1', shadow: 0.3,

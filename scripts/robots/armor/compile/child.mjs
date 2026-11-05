@@ -11,11 +11,11 @@ import { discoverChains } from '../chains/discover.mjs';
 import { withHome } from '../../menagerie/studio.mjs';
 import { pickChains } from '../chains/pick.mjs';
 import { writeXml } from '../prepare/xml-write.mjs';
-import { contactPairs, lowestPoint } from './measure.mjs';
+import { contactPairs, freeRootPairs, lowestPoint } from './measure.mjs';
 import { excludeContacts, hideCollisionGeoms, liftRoots, meshFiles, rotateRoots } from './mjcf-post.mjs';
 
 const [rel, category, rootQuat, options] = process.argv.slice(2);
-const { home, maxChains, extraGeoms, dropGeoms } = JSON.parse(options ?? '{}');
+const { home, maxChains, extraGeoms, dropGeoms, base } = JSON.parse(options ?? '{}');
 const loader = await createLoader();
 const { mj } = loader;
 const abs = (p) => path.join(ROBOTS_DIR, ...p.split('/'));
@@ -59,14 +59,18 @@ function main() {
   // Lifting moves the whole tree rigidly, so contacts measured before the lift still hold after it.
   const pass = compileFiles(listed(), `${rel}/robot.xml`);
   const [minz, pairs] = withData(pass.model, (d) => [lowestPoint(mj, pass.model, d), contactPairs(pass.model, d)]);
+  // A floating or mobile robot lost the free root its real model has; a bolted one never had one.
+  const atHome = new Set(pairs.map((p) => p.join('\n')));
+  const fromRoot = base && base !== 'fixed' ? freeRootPairs(pass.model).filter((p) => !atHome.has(p.join('\n'))) : [];
   pass.model.delete();
   pass.done();
   if (Number.isFinite(minz) && minz < -1e-4) {
     liftRoots(root, -minz);
     out.lift = +(-minz).toFixed(4);
   }
-  excludeContacts(root, pairs);
-  out.excluded = pairs.length;
+  excludeContacts(root, [...pairs, ...fromRoot]);
+  out.excluded = pairs.length + fromRoot.length;
+  out.excluded_pairs = { at_home: pairs, free_root: fromRoot };
   save();
   let finished = withHome(fs.readFileSync(abs(`${rel}/robot.xml`), 'utf8'), home, rel);
   if (dropGeoms) finished = finished.replace(new RegExp(`\\s*<geom\\b[^>]*${dropGeoms}[^>]*/>`, 'g'), '');

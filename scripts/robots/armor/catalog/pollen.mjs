@@ -9,6 +9,7 @@ export default [
   },
   {
     slug: 'reachy2', title: 'Pollen Robotics Reachy 2', vendor: 'Pollen Robotics', category: 'humanoid',
+    rev: 1,
     base: 'mobile', tags: ['humanoid', 'dual-arm', 'mobile-base', 'open-source'],
     description: 'Open-source humanoid upper body with two seven-axis arms and an expressive head on a mobile base.',
     repo: 'pollen-robotics/reachy2_mujoco', urdf: 'reachy2_mujoco/description/modified_urdf/reachy2.urdf',

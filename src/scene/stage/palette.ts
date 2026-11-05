@@ -1,8 +1,8 @@
 /** Teardown's light studio: pale ground, ink lines, one accent for the part doing the work. */
 export const PALETTE = {
-  backdrop: '#eceef1',
-  floor: '#e4e6ea',
-  grid: '#c9ccd0',
+  backdrop: '#c3c7cd',
+  floor: '#bcc0c7',
+  grid: '#999fa8',
   ink: '#16181b',
   mute: '#8b8f95',
   line: '#e1e3e6',

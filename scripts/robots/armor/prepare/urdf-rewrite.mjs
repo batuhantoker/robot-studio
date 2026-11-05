@@ -77,6 +77,14 @@ function fixJoint(joint, notes) {
   }
 }
 
+// Corrects joint limits the source has wrong, by joint name.
+export function setLimits(model, limits = {}) {
+  for (const joint of model.robot.children.filter((c) => c.name === 'joint' && limits[c.attrs.name])) {
+    const limit = firstChild(joint, 'limit');
+    [limit.attrs.lower, limit.attrs.upper] = limits[joint.attrs.name].map(String);
+  }
+}
+
 // Points mesh references at the flattened files (dropping parts whose mesh failed) and adds MuJoCo flags.
 export function finishUrdf(model, fileFor) {
   for (const meshRef of model.meshRefs) {

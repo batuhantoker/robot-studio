@@ -2,6 +2,7 @@
 export default [
   {
     slug: 'axioma-robot', title: 'Axioma', vendor: 'Mario David Alvarez Vallejo', category: 'mobile',
+    rev: 1,
     base: 'mobile', tags: ['wheeled', '4wd', 'open-source'],
     description: 'Open-source four-wheel ROS 2 research rover designed for SLAM and autonomous navigation.',
     repo: 'MrDavidAlv/Axioma_robot', xacro: 'src/axioma_description/urdf/axioma.urdf.xacro',
@@ -9,6 +10,7 @@ export default [
   },
   {
     slug: 'tadeo-ecar', title: 'Tadeo eCar', vendor: 'Mario David Alvarez Vallejo', category: 'mobile',
+    rev: 1,
     base: 'mobile', tags: ['wheeled', 'four-wheel-steering', 'open-source'],
     description: 'Open-source autonomous research car with four-wheel drive and four-wheel steering.',
     repo: 'MrDavidAlv/tadeo-eCar-ws', xacro: 'src/tadeocar_description/urdf/tadeocar.urdf.xacro',

@@ -2,6 +2,7 @@
 export default [
   {
     slug: 'deeprobotics-dr02', title: 'Deep Robotics DR02 Pro', vendor: 'Deep Robotics', category: 'humanoid',
+    rev: 1,
     base: 'floating', tags: ['humanoid', 'biped'],
     description: 'Full-size industrial humanoid from Deep Robotics with articulated arms, legs and waist.',
     repo: 'DeepRoboticsLab/deep_robotics_model', urdf: 'DR02/urdf/pro/DR02-pro.urdf',

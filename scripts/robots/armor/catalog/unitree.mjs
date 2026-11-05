@@ -2,6 +2,7 @@
 export default [
   {
     slug: 'unitree-a1', title: 'Unitree A1', vendor: 'Unitree Robotics', category: 'legged', base: 'floating',
+    rev: 1,
     tags: ['quadruped'],
     description: 'Agile mid-size quadruped from Unitree with three actuated joints per leg.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/a1_description/urdf/a1.urdf',
@@ -9,6 +10,7 @@ export default [
   },
   {
     slug: 'unitree-aliengo', title: 'Unitree AlienGo', vendor: 'Unitree Robotics', category: 'legged',
+    rev: 1,
     base: 'floating', tags: ['quadruped'],
     description: 'Unitree research quadruped larger than the A1, with three actuated joints per leg.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/aliengo_description/urdf/aliengo.urdf',
@@ -16,6 +18,7 @@ export default [
   },
   {
     slug: 'unitree-b1', title: 'Unitree B1', vendor: 'Unitree Robotics', category: 'legged', base: 'floating',
+    rev: 1,
     tags: ['quadruped', 'industrial'],
     description: 'Heavy-duty industrial quadruped from Unitree with three actuated joints per leg.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/b1_description/xacro/b1.urdf',
@@ -23,6 +26,7 @@ export default [
   },
   {
     slug: 'unitree-b2', title: 'Unitree B2', vendor: 'Unitree Robotics', category: 'legged', base: 'floating',
+    rev: 1,
     tags: ['quadruped', 'industrial'],
     description: 'Large industrial quadruped from Unitree built for payload and rough terrain.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/b2_description/urdf/b2_description.urdf',
@@ -30,6 +34,7 @@ export default [
   },
   {
     slug: 'unitree-g1', title: 'Unitree G1', vendor: 'Unitree Robotics', category: 'humanoid', base: 'floating',
+    rev: 1,
     tags: ['humanoid', 'biped'],
     description: 'Compact humanoid from Unitree, here the 23-joint configuration without dexterous hands.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/g1_description/g1_23dof_rev_1_0.urdf',
@@ -37,6 +42,7 @@ export default [
   },
   {
     slug: 'unitree-go1', title: 'Unitree Go1', vendor: 'Unitree Robotics', category: 'legged', base: 'floating',
+    rev: 1,
     tags: ['quadruped'],
     description: 'Consumer and research quadruped from Unitree that preceded the Go2.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/go1_description/urdf/go1.urdf',
@@ -44,6 +50,7 @@ export default [
   },
   {
     slug: 'unitree-go2', title: 'Unitree Go2', vendor: 'Unitree Robotics', category: 'legged', base: 'floating',
+    rev: 1,
     tags: ['quadruped'],
     description: 'Compact quadruped from Unitree with three actuated joints per leg and a head-mounted lidar.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/go2_description/urdf/go2_description.urdf',
@@ -51,6 +58,7 @@ export default [
   },
   {
     slug: 'unitree-go2w', title: 'Unitree Go2-W', vendor: 'Unitree Robotics', category: 'legged',
+    rev: 1,
     base: 'floating', tags: ['quadruped', 'wheel-legged'],
     description: 'Wheel-legged version of the Unitree Go2 with a driven wheel in place of each foot.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/go2w_description/urdf/go2w_description.urdf',
@@ -65,6 +73,7 @@ export default [
   },
   {
     slug: 'unitree-h1', title: 'Unitree H1', vendor: 'Unitree Robotics', category: 'humanoid', base: 'floating',
+    rev: 1,
     tags: ['humanoid', 'biped'],
     description: 'Full-size electric humanoid from Unitree with legs, torso and arms ending in fixed hands.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/h1_description/urdf/h1.urdf',
@@ -88,6 +97,7 @@ export default [
   },
   {
     slug: 'unitree-r1', title: 'Unitree R1', vendor: 'Unitree Robotics', category: 'humanoid', base: 'floating',
+    rev: 1,
     tags: ['humanoid', 'biped'],
     description: 'Lightweight low-cost humanoid from Unitree with arms, legs and a waist.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/r1_description/R1.urdf',
@@ -95,6 +105,7 @@ export default [
   },
   {
     slug: 'unitree-r1d', title: 'Unitree R1D', vendor: 'Unitree Robotics', category: 'humanoid', base: 'mobile',
+    rev: 1,
     tags: ['humanoid', 'wheeled', 'mobile-manipulator'],
     description: 'Wheeled-base version of the Unitree R1 humanoid upper body.',
     repo: 'unitreerobotics/unitree_ros', urdf: 'robots/r1d_description/r1d.urdf',

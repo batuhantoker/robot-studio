@@ -64,6 +64,7 @@ export function armorEntry(robot, prep) {
     mimic_joints: facts.neq,
     base_lift_m: facts.lift ?? 0,
     excluded_contact_pairs: facts.excluded,
+    excluded_contacts: facts.excluded_pairs,
     import_notes: notes,
   };
 }

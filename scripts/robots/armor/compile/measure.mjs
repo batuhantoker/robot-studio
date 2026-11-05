@@ -36,3 +36,21 @@ export function contactPairs(m, d) {
   contacts.delete?.();
   return [...pairs.values()];
 }
+
+// What MuJoCo's parent filter drops when the root is free: the root and jointless bodies welded to it, against the bodies
+// jointed straight onto them. Compiled without a free joint the root welds to the world, and the filter's world exception
+// lets these pairs through. Nothing past those direct children counts.
+export function freeRootPairs(m) {
+  const collides = new Set();
+  for (let g = 0; g < m.ngeom; g++) if (m.geom_contype[g] || m.geom_conaffinity[g]) collides.add(m.geom_bodyid[g]);
+  const bodies = Array.from({ length: m.nbody }, (_, b) => b).slice(1);
+  const welded = new Set(bodies.filter((b) => m.body_weldid[b] === 0));
+  const jointed = bodies.filter((b) => m.body_weldid[b] === b && welded.has(m.body_parentid[b]));
+  const pairs = [];
+  for (const a of welded) {
+    for (const b of jointed) {
+      if (collides.has(a) && collides.has(b)) pairs.push([m.body(a).name, m.body(b).name].sort());
+    }
+  }
+  return pairs;
+}

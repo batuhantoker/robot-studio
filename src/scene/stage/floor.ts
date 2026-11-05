@@ -146,7 +146,8 @@ export function createFloor(): Floor {
 
   return {
     group,
-    aoHidden: [mirror],
+    // AO runs at one sample per pixel: on the floor it stippled and fringed every contact edge.
+    aoHidden: [group],
     fit(radius, floorZ, extent = 0) {
       const reach = Math.max(radius, 0.05) * 2.4;
       // Wide enough that its rim is always beyond the shadows and well into the backdrop.
