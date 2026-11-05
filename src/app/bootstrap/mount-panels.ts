@@ -64,7 +64,7 @@ export function mountPanels(layout: Layout, studio: Studio): void {
       onProgress: (fn) => studio.recorder.onProgress(fn),
       exportData: (format, rate) => exportTrajectory(studio.session, store.state, format, rate),
     }) },
-    { modes: ['physics'], el: physicsPanel(store, studio.bus, studio.analysis) },
+    { modes: ['physics'], el: physicsPanel(store, studio.bus, studio.analysis, () => studio.session) },
     { modes: ['workspace'], el: workspacePanel(store, studio.analysis) },
   ]);
   const stack = h('div.toolbar-stack.dock-stack');

@@ -17,9 +17,13 @@ export interface ChartOptions {
   minSpan?: number;
   /** The signal can't go below this (a speed), so the axis doesn't either. */
   floor?: number;
+  /** Nor above this (a score out of 100). */
+  ceiling?: number;
   digits?: number;
   /** Time counts back from the newest sample at the right edge. */
   rolling?: boolean;
+  /** Unit of the x axis, when it isn't seconds. */
+  xUnit?: string;
 }
 
 // Checked for colour-blind separation and contrast against --paper in this order.
@@ -180,6 +184,7 @@ export class LineChart {
     if (hi - lo < min) [lo, hi] = [(lo + hi - min) / 2, (lo + hi + min) / 2];
     const { floor } = this.opts;
     if (floor !== undefined && lo < floor + min) [lo, hi] = [floor, Math.max(hi, floor + min)];
+    if (this.opts.ceiling !== undefined) hi = Math.min(hi, this.opts.ceiling);
     return niceTicks(lo, hi);
   }
 
@@ -191,7 +196,7 @@ export class LineChart {
     for (const v of ticks) {
       const px = x(rolling ? t1 + v : v);
       g.textAlign = px > x(t1) - 12 ? 'right' : px < x(t0) + 12 ? 'left' : 'center';
-      g.fillText(rolling ? (v === 0 ? 'now' : `${tick(v)} s`) : `${tick(v)} s`, px, bottom + 13);
+      g.fillText(rolling ? (v === 0 ? 'now' : `${tick(v)} s`) : `${tick(v)} ${this.opts.xUnit ?? 's'}`, px, bottom + 13);
     }
   }
 
@@ -234,7 +239,7 @@ export class LineChart {
   private readout(i: number, px: number, r: DOMRect): void {
     const digits = this.opts.digits ?? 2;
     const end = this.span?.[1] ?? 0;
-    const when = this.opts.rolling ? `${(this.t[i] - end).toFixed(1)} s` : `${this.t[i].toFixed(2)} s`;
+    const when = this.opts.rolling ? `${(this.t[i] - end).toFixed(1)} s` : this.opts.xUnit ? `${this.t[i]} ${this.opts.xUnit}` : `${this.t[i].toFixed(2)} s`;
     replace(this.tip, h('div.cap.mu', {}, when), ...this.series.filter((s) => !this.off.has(s.label)).map((s) => {
       const v = s.values[i];
       return h('div.chart-tip-row', {}, h('i', { style: `border-top:2px ${s.dashed ? 'dashed' : 'solid'} ${s.color}` }),

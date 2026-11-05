@@ -205,8 +205,10 @@ npm run robots:fetch     # optional: real robot CAD, kept on this machine (see R
   - Quintic trajectories with joint, speed and torque profiles. Render one pass to a
     16:9 MP4 (720p to 4K, 30 or 60 fps), drawn offline frame by frame with AO and
     supersampling, or export the samples (t, q, qd, qdd, tool path) as CSV or JSON.
-  - Live MuJoCo tracking with requested and applied torque, tracking error and
-    saturation.
+  - A control lab on every robot: MuJoCo tracks the motion under PID torque control
+    and scores each run. Tune every joint's gains by hand, then let policy gradient
+    or cross-entropy learn them from the score alone, live in the browser. Robots on
+    legs or wheels sit on a test stand for now, so this tunes joints, not balance.
   - Workspace and limits, as described above.
 - **Real robot CAD.** Imported robots render from MuJoCo's compiled meshes, and their
   serial chain is extracted for the same math. In glass view each body shows MuJoCo's

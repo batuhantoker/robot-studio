@@ -5,6 +5,7 @@ import type { AnalysisContext } from '../../ui/analysis/context';
 import { focusLimb, jointLimits } from '../robots/focus';
 import type { RobotSession } from '../robots/session';
 import { isVia } from '../../core/trajectory/plan';
+import type { Method } from './learn/run';
 import { type PathProfile, dragStop, planOf, profile, stopTips } from './modes/trajectory';
 import { type WorkspaceStudy, runStudy, studyKey } from './workspace/study';
 import type { Studio } from './studio';
@@ -37,7 +38,7 @@ export class StudioAnalysis implements AnalysisContext {
 
   physics() {
     const p = this.studio.physics;
-    return p ? { history: p.history, reason: p.reason, limits: this.studio.session?.torqueLimits ?? [] } : null;
+    return p ? { history: p.history, reason: p.reason, limits: p.lab?.limits ?? [], lab: p.lab, current: p.current, ownMotion: p.ownMotion } : null;
   }
 
   refreshProfile(): void {
@@ -46,6 +47,7 @@ export class StudioAnalysis implements AnalysisContext {
     if (!s || !s.joints.length || st.waypoints[0]?.length !== s.joints.length) return;
     this.path = profile(jointLimits(s), focusLimb(s, st.focus), planOf(st));
     if (st.mode === 'trajectory') this.studio.overlays.trail.setPath(this.path.tool);
+    if (st.mode === 'physics') this.studio.overlays.goal.setPath(this.path.tool);
   }
 
   /** Move stop i so the focused tool point goes to `point` (overlay frame); drags pass a small budget. */
@@ -124,5 +126,10 @@ export class StudioAnalysis implements AnalysisContext {
     const st = this.studio.store.state;
     this.studio.physics?.reset(planOf(st));
     this.studio.overlays.trail.clear();
+  }
+
+  teach(method: Method): void {
+    this.studio.physics?.learn(method, planOf(this.studio.store.state));
+    this.studio.store.set({ playing: true });
   }
 }
