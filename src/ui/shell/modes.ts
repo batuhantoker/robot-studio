@@ -14,7 +14,7 @@ export interface ModeInfo {
 export const MODES: ModeInfo[] = [
   { id: 'pose', label: 'Pose', hint: 'Drag joints and read the live numbers', group: 'play' },
   { id: 'motion', label: 'Motion', hint: 'One-click demo motions', group: 'play' },
-  { id: 'pilot', label: 'Pilot', hint: 'Drive a legged or wheeled robot', group: 'play' },
+  { id: 'pilot', label: 'Pilot', hint: 'Drive a robot on its legs or wheels, or steer an arm by its tool', group: 'play' },
   { id: 'task', label: 'Pick & place', hint: 'Set a pick and a place spot, then run it', group: 'play' },
   { id: 'ik', label: 'IK', hint: 'Drag a target, the joints follow', group: 'plan' },
   { id: 'trajectory', label: 'Trajectory', hint: 'Stops, timing, video and data export', group: 'plan' },
@@ -49,7 +49,7 @@ export function modeSwitch(store: Store<StudioState>): ModeSwitch {
         b.classList.toggle('on', id === store.state.mode);
         b.setAttribute('aria-pressed', String(id === store.state.mode));
         b.disabled = !enabled(id);
-        b.title = !b.disabled ? modeInfo(id).hint : id === 'pilot' ? 'Pilot needs a robot with legs or wheels' : 'Nothing on this robot is driven';
+        b.title = !b.disabled ? modeInfo(id).hint : id === 'pilot' ? 'Pilot needs an arm to steer, or legs or wheels to drive on' : 'Nothing on this robot is driven';
       }
     },
   };

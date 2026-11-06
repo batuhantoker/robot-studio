@@ -1,6 +1,7 @@
 /**
  * Pilot: drive the active robot with WASD and the mouse at speeds its legs or wheels allow. The robot
  * stays at the origin and the world moves under it; the camera rides behind it or looks out from it.
+ * A fixed arm has neither, so Pilot steers its tool instead (arm.ts).
  */
 import * as THREE from 'three';
 import { type Vec3, add, norm, scale } from '../../../core/math/linear/vec';
@@ -14,6 +15,7 @@ import { bodyFor } from '../../robots/body';
 import type { RobotSession } from '../../robots/session';
 import type { Studio } from '../studio';
 import { type HandAction, blendOf, handActions } from './actions';
+import { ArmPilot, type ArmState, drivesArm } from './arm';
 import { Hands, type Side } from './hands';
 import { PilotInput } from './input';
 import { type Drive, type PilotRig, drivesOf, pilotRig } from './rig';
@@ -58,13 +60,21 @@ export class PilotController {
   private saved: { position: THREE.Vector3; target: THREE.Vector3; near: number; fov: number } | null = null;
   private readonly input: PilotInput;
   private readonly listeners: (() => void)[] = [];
+  private readonly arm: ArmPilot;
 
   constructor(private readonly studio: Studio) {
     const { store, viewport } = studio;
-    this.input = new PilotInput(viewport.canvas, () => store.state.mode === 'pilot' && !!this.rig, () => this.toggleCamera(), () => this.camera === 'pov',
+    this.input = new PilotInput(viewport.canvas, () => store.state.mode === 'pilot' && (!!this.rig || this.arm.active), () => this.toggleCamera(), () => this.camera === 'pov',
       (n) => { const a = this.actions()[n - 1]; if (a) this.play(a.id); }, (code) => this.press(code));
-    store.on(['mode'], (s) => (s.mode === 'pilot' ? this.enter() : this.exit()));
+    this.arm = new ArmPilot(studio, this.input, () => this.listeners.forEach((fn) => fn()));
+    store.on(['mode'], (s) => {
+      if (s.mode === 'pilot') return this.enter();
+      // The arm stays where it was driven to.
+      if (this.arm.active) store.set({ q: this.arm.exit() });
+      this.exit();
+    });
     store.on(['sessionVersion'], (s) => {
+      if (this.arm.active) this.arm.exit();
       this.exit();
       this.prefer = 'wheels';
       if (s.mode !== 'pilot') return;
@@ -81,21 +91,46 @@ export class PilotController {
   }
 
   /** Legs or wheels to move on; flying robots and fixed arms have neither. */
-  available(): boolean {
-    const s = this.studio.session;
-    if (!s || s.category === 'aerial') return false;
+  private onGround(s: RobotSession): boolean {
+    if (s.category === 'aerial') return false;
     const parts = bodyFor(s).parts;
     return parts.filter((p) => p.kind === 'leg').length >= 2 || parts.filter((p) => p.kind === 'wheel').length >= 2;
   }
 
-  kind(): Drive | null {
-    return this.rig?.drive.kind ?? null;
+  available(): boolean {
+    const s = this.studio.session;
+    return !!s && (this.onGround(s) || drivesArm(s));
+  }
+
+  kind(): Drive | 'arm' | null {
+    return this.arm.active ? 'arm' : this.rig?.drive.kind ?? null;
+  }
+
+  /** The arm being steered; null when driving on legs or wheels. */
+  armState(): ArmState | null {
+    return this.arm.active ? this.arm.state() : null;
+  }
+
+  armGrip(): void {
+    this.arm.toggleGrip();
+  }
+
+  armHome(): void {
+    this.arm.goHome();
+  }
+
+  armDown(): void {
+    this.arm.pointDown();
+  }
+
+  armNext(): void {
+    this.arm.nextArm();
   }
 
   /** The drives on offer; more than one only for legs that end in wheels. */
   drives(): Drive[] {
     const s = this.studio.session;
-    return s && this.available() ? drivesOf(s, bodyFor(s)) : [];
+    return s && this.onGround(s) ? drivesOf(s, bodyFor(s)) : [];
   }
 
   setDrive(drive: Drive): void {
@@ -109,7 +144,7 @@ export class PilotController {
   }
 
   speed(): number {
-    return Math.hypot(this.cmd.forward, this.cmd.lateral);
+    return this.arm.active ? this.arm.speed : Math.hypot(this.cmd.forward, this.cmd.lateral);
   }
 
   /** Hand moves on offer while piloting (humanoids). */
@@ -204,6 +239,13 @@ export class PilotController {
   }
 
   private press(code: string): void {
+    if (this.arm.active) {
+      if (code === 'Space') this.arm.toggleGrip();
+      if (code === 'KeyR') this.arm.goHome();
+      if (code === 'KeyT') this.arm.pointDown();
+      if (code === 'Tab') this.arm.nextArm();
+      return;
+    }
     if (code === 'Tab' && this.handCtl) this.setHand(this.handCtl.side === 0 ? 1 : 0);
     if (code === 'Space') this.toggleGrip();
     if (code === 'KeyR') this.restHands();
@@ -228,6 +270,13 @@ export class PilotController {
   private enter(): void {
     const s = this.studio.session;
     if (!s || !this.available()) return;
+    if (!this.onGround(s)) {
+      this.rig = this.rigFor = null;
+      const { camera, controls } = this.studio.viewport.stage;
+      this.saved ??= { position: camera.position.clone(), target: controls.target.clone(), near: camera.near, fov: camera.fov };
+      this.arm.enter(s);
+      return;
+    }
     if (this.rigFor !== s) {
       // The world floor sits at the assembly's resting floor, not at z = 0.
       const ground = this.studio.viewport.overlay.worldToLocal(new THREE.Vector3(0, 0, s.assembly.floorZ)).z;
@@ -280,6 +329,7 @@ export class PilotController {
 
   /** The joint pose for this frame; also moves the world and, looking out, the camera. */
   step(s: RobotSession, dt: number): number[] | null {
+    if (this.arm.active) return this.arm.step(s, dt);
     const rig = this.rig;
     if (!rig || this.rigFor !== s || this.q.length !== s.joints.length) return null;
     const t0 = performance.now();

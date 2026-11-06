@@ -1,9 +1,10 @@
 /**
  * Keys and mouse for Pilot: WASD (and Q/E) held, Shift for pace, C for the camera, 1–9 for hand moves,
  * I J K L with U O to move a hand, Tab for the other hand, Space to grip, R to rest the hands; pointer-locked look.
+ * On a fixed arm the same keys jog the tool: W S A D Q E, Space grips, R goes home, T points the tool down.
  */
 const KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight', 'KeyI', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyO']);
-const PRESSES = new Set(['Tab', 'Space', 'KeyR']);
+const PRESSES = new Set(['Tab', 'Space', 'KeyR', 'KeyT']);
 
 const typing = (t: EventTarget | null) => !!(t as HTMLElement | null)?.closest?.('input, select, textarea, [contenteditable]');
 

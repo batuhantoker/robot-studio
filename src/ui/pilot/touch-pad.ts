@@ -8,7 +8,7 @@ import { h, replace } from '../dom/h';
 
 export interface PilotPadView {
   available(): boolean;
-  kind(): 'legs' | 'wheels' | null;
+  kind(): 'legs' | 'wheels' | 'arm' | null;
   steer(x: number, y: number): void;
   sideStep(v: number): void;
   running: boolean;
@@ -84,7 +84,8 @@ export function mountPilotPad(stage: HTMLElement, store: Store<StudioState>, vie
     }
     replace(side,
       h('button.tb', { class: view.running ? 'on' : '', title: 'Run: full speed', onclick: () => (view.running = !view.running) }, 'Run'),
-      ...(view.kind() === 'legs' ? [hold('◀', 'Side step left', 1), hold('▶', 'Side step right', -1)] : []));
+      ...(view.kind() === 'legs' ? [hold('◀', 'Side step left', 1), hold('▶', 'Side step right', -1)] : []),
+      ...(view.kind() === 'arm' ? [hold('▲', 'Raise the tool', -1), hold('▼', 'Lower the tool', 1)] : []));
   };
   store.on(['mode', 'sessionVersion'], render);
   view.onChange(render);

@@ -7,7 +7,7 @@ import { ICON, icon } from './icons';
 import { modeMenu, modeSwitch } from './modes';
 import { reveal } from './reveal';
 
-/** `enabled` greys out modes the loaded robot cannot use (Pilot needs legs or wheels). */
+/** `enabled` greys out modes the loaded robot cannot use (Pilot needs an arm, legs or wheels). */
 export function mountTopbar(el: HTMLElement, store: Store<StudioState>, titleOf: () => [string, string], extra: HTMLElement,
   enabled: (m: Mode) => boolean = () => true, onHelp: () => void = () => undefined, graphs: HTMLElement | null = null): void {
   const name = h('b');

@@ -1,4 +1,4 @@
-/** Pilot controls: the keys, the camera, how fast the robot is going, and (humanoids) the hands. */
+/** Pilot controls: the keys, the camera, how fast the robot is going, (humanoids) the hands, and (fixed arms) the tool. */
 import type { LiveBus } from '../../app/live/bus';
 import type { Store } from '../../app/state/store';
 import type { StudioState } from '../../app/state/types';
@@ -6,7 +6,7 @@ import { h, replace } from '../dom/h';
 
 export interface PilotView {
   available(): boolean;
-  kind(): 'legs' | 'wheels' | null;
+  kind(): 'legs' | 'wheels' | 'arm' | null;
   /** Legs that end in wheels can do either. */
   drives?(): ('legs' | 'wheels')[];
   setDrive?(drive: 'legs' | 'wheels'): void;
@@ -26,6 +26,12 @@ export interface PilotView {
   toggleGrip?(): void;
   restHands?(): void;
   nudge?(dir: [number, number, number] | null): void;
+  /** Steering a fixed arm's tool. */
+  armState?(): { grips: boolean; closed: boolean; holding: string | null; loose: boolean; holds: boolean; arms: number; stop: string | null; dragging: boolean } | null;
+  armGrip?(): void;
+  armHome?(): void;
+  armDown?(): void;
+  armNext?(): void;
 }
 
 /** A button that nudges the hand while held down (mouse or touch). */
@@ -72,7 +78,24 @@ export function mountPilotBar(el: HTMLElement, store: Store<StudioState>, view: 
       replace(cams);
       replace(moves);
       replace(handsRow);
-      note.textContent = 'Pilot needs a robot with legs or wheels.';
+      note.textContent = 'Pilot needs an arm to steer, or legs or wheels to drive on.';
+      return;
+    }
+    const arm = view.armState?.() ?? null;
+    cams.style.display = arm ? 'none' : '';
+    if (arm) {
+      replace(drives);
+      drives.style.display = 'none';
+      replace(cams);
+      handsRow.style.display = 'none';
+      replace(keys, key('W S', 'away, back'), key('A D', 'left, right'), key('Q E', 'down, up'), key('⇧', 'faster'));
+      replace(moves,
+        arm.grips ? h('button.tb', { class: arm.closed ? 'on' : '', title: 'Close on the part between the jaws, or let go (Space)', onclick: () => view.armGrip?.() }, h('kbd', {}, 'Space'), ' ', arm.closed ? 'Release' : 'Grip') : null,
+        arm.holds ? h('button.tb', { title: 'Turn the tool to point straight down (T)', onclick: () => view.armDown?.() }, h('kbd', {}, 'T'), ' Tool down') : null,
+        h('button.tb', { title: 'Back to the home pose (R)', onclick: () => view.armHome?.() }, h('kbd', {}, 'R'), ' Home'),
+        arm.arms > 1 ? h('button.tb', { title: 'Steer the other arm (Tab)', onclick: () => view.armNext?.() }, h('kbd', {}, 'Tab'), ' Other arm') : null);
+      hint = 'Drag the tool · wheel or Shift-drag for depth';
+      tick();
       return;
     }
     const choices = view.drives?.() ?? [];
@@ -115,9 +138,11 @@ export function mountPilotBar(el: HTMLElement, store: Store<StudioState>, view: 
   const tick = () => {
     if (store.state.mode !== 'pilot') return;
     const deg = ((((view.pose.yaw * 180) / Math.PI) % 360) + 360) % 360;
-    readout.textContent = `${view.speed().toFixed(2)} m/s · ${deg.toFixed(0).padStart(3, ' ')}°`;
-    note.textContent = view.blocked ? 'Something is in the way · back off or turn' : hint;
-    note.classList.toggle('accent', !!view.blocked);
+    const arm = view.armState?.() ?? null;
+    readout.textContent = arm ? `${view.speed().toFixed(2)} m/s` : `${view.speed().toFixed(2)} m/s · ${deg.toFixed(0).padStart(3, ' ')}°`;
+    const held = arm?.holding ? `Holding the ${arm.holding.toLowerCase()}` : arm?.closed ? 'Closed on nothing: bring it to a part' : arm?.grips && !arm.loose ? 'Nothing loose here: choose a setting under the gear' : hint;
+    note.textContent = arm ? arm.stop ?? held : view.blocked ? 'Something is in the way · back off or turn' : hint;
+    note.classList.toggle('accent', arm ? !!arm.stop : !!view.blocked);
   };
   store.on(['mode', 'sessionVersion'], render);
   view.onChange(render);
